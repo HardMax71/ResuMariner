@@ -1,0 +1,185 @@
+services:
+  traefik:
+    image: traefik:v2.9
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.internal.address=:8081"
+    ports:
+      - "80:80"       # External traffic: intake, search, and dashboard (via web entrypoint)
+      - "8080:8080"   # Exposes Traefik dashboard on traefik.localhost via web entrypoint
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - public-network
+      - internal-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=web"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+
+  neo4j:
+    image: neo4j:latest
+    expose:
+      - "7474"
+      - "7687"
+    environment:
+      - NEO4J_AUTH=neo4j/testpassword
+      - NEO4J_apoc_export_file_enabled=true
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - internal-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.neo4j.rule=Host(`neo4j.internal.localhost`)"
+      - "traefik.http.routers.neo4j.entrypoints=internal"
+      - "traefik.http.services.neo4j.loadbalancer.server.port=7474"
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7474" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  qdrant:
+    image: qdrant/qdrant
+    expose:
+      - "6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - internal-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.qdrant.rule=Host(`qdrant.internal.localhost`)"
+      - "traefik.http.routers.qdrant.entrypoints=internal"
+      - "traefik.http.services.qdrant.loadbalancer.server.port=6333"
+
+  redis:
+    image: redis:alpine
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal-network
+    # Redis is non-HTTP so no Traefik labels are added.
+
+  cv-storage-service:
+    build: ./cv-storage-service
+    expose:
+      - "8002"
+    environment:
+      - SERVICE_NAME=cv-storage-service
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=testpassword
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_COLLECTION=cv_key_points
+      - VECTOR_SIZE=384
+    networks:
+      - internal-network
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cv-storage-service.rule=Host(`storage.internal.localhost`)"
+      - "traefik.http.routers.cv-storage-service.entrypoints=internal"
+      - "traefik.http.services.cv-storage-service.loadbalancer.server.port=8002"
+
+  cv-intake-service:
+    build: ./cv-intake-service
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PROCESSING_SERVICE_URL=http://cv-processing-service:8001
+      - STORAGE_SERVICE_URL=http://cv-storage-service:8002
+    networks:
+      - public-network
+      - internal-network
+    depends_on:
+      redis:
+        condition: service_started
+      cv-processing-service:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cv-intake-service.rule=Host(`intake.localhost`)"
+      - "traefik.http.routers.cv-intake-service.entrypoints=web"
+      - "traefik.http.services.cv-intake-service.loadbalancer.server.port=8000"
+
+  cv-processing-service:
+    build: ./cv-processing-service
+    environment:
+      - OPENAI_API_KEY=OPENAI_DEADBEEF
+      - GEMINI_API_KEY=GEMINI_DEADBEEF
+      - COHERE_API_KEY=COHERE_DEADBEEF
+      - GROQ_API_KEY=GROQ_DEADBEEF
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - internal-network
+    depends_on:
+      - cv-storage-service
+    # No direct public routing. It’s available in Traefik via its internal router (accessible only on internal entrypoint)
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cv-processing-service.rule=Host(`processing.internal.localhost`)"
+      - "traefik.http.routers.cv-processing-service.entrypoints=internal"
+      - "traefik.http.services.cv-processing-service.loadbalancer.server.port=8001"
+
+  cv-search-service:
+    build: ./cv-search-service
+    environment:
+      - SERVICE_NAME=cv-search-service
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=testpassword
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_COLLECTION=cv_key_points
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - VECTOR_SIZE=384
+      - DEFAULT_VECTOR_WEIGHT=0.7
+      - DEFAULT_GRAPH_WEIGHT=0.3
+      - PORT=8003
+    networks:
+      - public-network
+      - internal-network
+    depends_on:
+      - neo4j
+      - qdrant
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cv-search-service.rule=Host(`search.localhost`)"
+      - "traefik.http.routers.cv-search-service.entrypoints=web"
+      - "traefik.http.services.cv-search-service.loadbalancer.server.port=8003"
+
+networks:
+  public-network:
+    driver: bridge
+  internal-network:
+    driver: bridge
+
+volumes:
+  neo4j_data:
+  qdrant_data:
+  redis_data:
