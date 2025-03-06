@@ -4,7 +4,6 @@ from typing import Dict, List, Any
 
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qdrant_models
-from qdrant_client.http.exceptions import UnexpectedResponse
 from utils.errors import VectorDBError, DatabaseConnectionError
 
 logger = logging.getLogger(__name__)

@@ -123,10 +123,10 @@ services:
   cv-processing-service:
     build: ./cv-processing-service
     environment:
-      - OPENAI_API_KEY=OPENAI_DEADBEEF
-      - GEMINI_API_KEY=GEMINI_DEADBEEF
-      - COHERE_API_KEY=COHERE_DEADBEEF
-      - GROQ_API_KEY=GROQ_DEADBEEF
+      - LLM_PROVIDER=openai
+      - LLM_MODEL=gpt-4o-mini
+      - LLM_API_KEY=sk-proj--your-key-here
+
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
       interval: 10s
