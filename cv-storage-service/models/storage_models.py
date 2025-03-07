@@ -1,6 +1,6 @@
 from typing import Dict, List, Any, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class StoreRequest(BaseModel):
@@ -8,7 +8,7 @@ class StoreRequest(BaseModel):
     job_id: str = Field(..., description="Unique identifier for the CV processing job")
     cv_data: Dict[str, Any] = Field(..., description="Structured CV data")
 
-    @validator('cv_data')
+    @field_validator('cv_data')
     def validate_cv_data(cls, v):
         """Validate CV data has minimum required fields"""
         if not v:

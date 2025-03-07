@@ -136,8 +136,6 @@ class GraphDBService:
                     self._create_scientific_contributions(session, cv_id, cv_data)
 
             return cv_id
-        except GraphDBError:
-            raise
         except Exception as e:
             logger.error(f"Error storing CV: {str(e)}")
             raise GraphDBError(f"Failed to store CV data: {str(e)}")
@@ -243,7 +241,7 @@ class GraphDBService:
 
             logger.debug(f"Created {skills_created} skill relationships for CV {cv_id}")
         except Exception as e:
-            logger.error(f"Error creating skills: {str(e)}")
+            logger.warning(f"Error creating skills: {str(e)}")
             # Continue execution, don't fail the entire CV storage
 
     def _create_employment_history(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
@@ -358,7 +356,7 @@ class GraphDBService:
                     )
 
             except Exception as e:
-                logger.error(f"Error creating job experience: {str(e)}")
+                logger.warning(f"Error creating job experience: {str(e)}")
                 # Continue with next job
 
         # Log actual count created
@@ -480,7 +478,7 @@ class GraphDBService:
                         index=idx
                     )
             except Exception as e:
-                logger.error(f"Error creating education record: {str(e)}")
+                logger.warning(f"Error creating education record: {str(e)}")
                 # Continue with next education item
 
         # Log actual count created instead of input list length
@@ -563,7 +561,7 @@ class GraphDBService:
                         tech=tech
                     )
             except Exception as e:
-                logger.error(f"Error creating project: {str(e)}")
+                logger.warning(f"Error creating project: {str(e)}")
                 # Continue with next project
 
         # Log actual count created
@@ -599,7 +597,7 @@ class GraphDBService:
                     cefr=cefr
                 )
             except Exception as e:
-                logger.error(f"Error creating language proficiency: {str(e)}")
+                logger.warning(f"Error creating language proficiency: {str(e)}")
                 # Continue with next language, don't fail entire CV storage
 
     def _create_certifications(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
@@ -639,7 +637,7 @@ class GraphDBService:
                     certificate_link=certificate_link
                 )
             except Exception as e:
-                logger.error(f"Error creating certification: {str(e)}")
+                logger.warning(f"Error creating certification: {str(e)}")
                 # Continue with next certification, don't fail entire CV storage
 
     def _create_awards(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
@@ -684,7 +682,7 @@ class GraphDBService:
                     url=url
                 )
             except Exception as e:
-                logger.error(f"Error creating award: {str(e)}")
+                logger.warning(f"Error creating award: {str(e)}")
                 # Continue with next award, don't fail entire CV storage
 
     def _create_scientific_contributions(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
@@ -734,7 +732,7 @@ class GraphDBService:
                     description=description
                 )
             except Exception as e:
-                logger.error(f"Error creating scientific contribution: {str(e)}")
+                logger.warning(f"Error creating scientific contribution: {str(e)}")
                 # Continue with next contribution, don't fail entire CV storage
 
     def get_cv_details(self, cv_ids: List[str]) -> Dict[str, Dict[str, Any]]:
@@ -787,7 +785,7 @@ class GraphDBService:
 
             return result
         except Exception as e:
-            logger.error(f"Error retrieving CV details: {str(e)}")
+            logger.warning(f"Error retrieving CV details: {str(e)}")
             raise GraphDBError(f"Failed to retrieve CV details: {str(e)}")
 
     def find_existing_person(self, email: str, name: str = None, phone: str = None) -> Optional[Dict[str, Any]]:
@@ -824,7 +822,7 @@ class GraphDBService:
 
                 return None
         except Exception as e:
-            logger.error(f"Error finding existing person: {str(e)}")
+            logger.warning(f"Error finding existing person: {str(e)}")
             return None
 
     def delete_cv(self, cv_id: str) -> bool:
