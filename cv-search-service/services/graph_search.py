@@ -168,7 +168,7 @@ class GraphSearchService:
 
                 // Return the complete result
                 RETURN 
-                    cv.id AS cv_id,
+                    cv.cv_id AS cv_id,
                     p.name AS name,
                     p.email AS email,
                     cv.summary AS summary,

@@ -8,25 +8,25 @@ from neomodel import (
 
 
 # Enum classes for model constraints
-class WorkMode(Enum):
+class WorkMode(str, Enum):  # Changed to str, Enum for compatibility
     ONSITE = "onsite"
     HYBRID = "hybrid"
     REMOTE = "remote"
 
 
-class EmploymentType(Enum):
+class EmploymentType(str, Enum):  # Changed to str, Enum for compatibility
     FULL_TIME = "full-time"
     PART_TIME = "part-time"
     CONTRACT = "contract"
 
 
-class EducationStatus(Enum):
+class EducationStatus(str, Enum):  # Changed to str, Enum for compatibility
     COMPLETED = "completed"
     ONGOING = "ongoing"
     INCOMPLETE = "incomplete"
 
 
-class AwardType(Enum):
+class AwardType(str, Enum):  # Changed to str, Enum for compatibility
     HACKATHON = "hackathon"
     COMPETITION = "competition"
     RECOGNITION = "recognition"
@@ -34,13 +34,50 @@ class AwardType(Enum):
     OTHER = "other"
 
 
-class PublicationType(Enum):
+class PublicationType(str, Enum):  # Changed to str, Enum for compatibility
     JOURNAL_ARTICLE = "journal_article"
     CONFERENCE_PAPER = "conference_paper"
     PATENT = "patent"
     THESIS = "thesis"
     TECHNICAL_REPORT = "technical_report"
     OTHER = "other"
+
+
+# Define choices for properties as dictionaries (required by neomodel)
+WORK_MODE_CHOICES = {
+    WorkMode.ONSITE.value: WorkMode.ONSITE.value,
+    WorkMode.HYBRID.value: WorkMode.HYBRID.value,
+    WorkMode.REMOTE.value: WorkMode.REMOTE.value
+}
+
+EMPLOYMENT_TYPE_CHOICES = {
+    EmploymentType.FULL_TIME.value: EmploymentType.FULL_TIME.value,
+    EmploymentType.PART_TIME.value: EmploymentType.PART_TIME.value,
+    EmploymentType.CONTRACT.value: EmploymentType.CONTRACT.value
+}
+
+EDUCATION_STATUS_CHOICES = {
+    EducationStatus.COMPLETED.value: EducationStatus.COMPLETED.value,
+    EducationStatus.ONGOING.value: EducationStatus.ONGOING.value,
+    EducationStatus.INCOMPLETE.value: EducationStatus.INCOMPLETE.value
+}
+
+AWARD_TYPE_CHOICES = {
+    AwardType.HACKATHON.value: AwardType.HACKATHON.value,
+    AwardType.COMPETITION.value: AwardType.COMPETITION.value,
+    AwardType.RECOGNITION.value: AwardType.RECOGNITION.value,
+    AwardType.SCHOLARSHIP.value: AwardType.SCHOLARSHIP.value,
+    AwardType.OTHER.value: AwardType.OTHER.value
+}
+
+PUBLICATION_TYPE_CHOICES = {
+    PublicationType.JOURNAL_ARTICLE.value: PublicationType.JOURNAL_ARTICLE.value,
+    PublicationType.CONFERENCE_PAPER.value: PublicationType.CONFERENCE_PAPER.value,
+    PublicationType.PATENT.value: PublicationType.PATENT.value,
+    PublicationType.THESIS.value: PublicationType.THESIS.value,
+    PublicationType.TECHNICAL_REPORT.value: PublicationType.TECHNICAL_REPORT.value,
+    PublicationType.OTHER.value: PublicationType.OTHER.value
+}
 
 
 # Relationship models
@@ -163,8 +200,8 @@ class CV(StructuredNode):
 
     This node contains overall CV information and connects to a person.
     """
-    # Use a UUID as string for the ID
-    id = StringProperty(unique_index=True, required=True)
+    # Use a UUID as string for the ID, but avoid using 'id' which conflicts with neomodel
+    cv_id = StringProperty(unique_index=True, required=True)
     created_at = DateTimeProperty(default=datetime.now)
     updated_at = DateTimeProperty(default=datetime.now)
     summary = StringProperty()
@@ -219,8 +256,8 @@ class Experience(StructuredNode):
     start_date = StringProperty()
     end_date = StringProperty()
     duration_months = IntegerProperty(default=0)
-    employment_type = StringProperty(choices=EmploymentType)
-    work_mode = StringProperty(choices=WorkMode)
+    employment_type = StringProperty(choices=EMPLOYMENT_TYPE_CHOICES)  # Using the dict instead of the Enum
+    work_mode = StringProperty(choices=WORK_MODE_CHOICES)  # Using the dict instead of the Enum
 
     # Location details
     city = StringProperty()
@@ -278,7 +315,7 @@ class Education(StructuredNode):
     field = StringProperty(required=True)
     start = StringProperty()
     end = StringProperty()
-    status = StringProperty(choices=EducationStatus)
+    status = StringProperty(choices=EDUCATION_STATUS_CHOICES)  # Using the dict instead of the Enum
 
     # Location details
     city = StringProperty()
@@ -342,7 +379,7 @@ class Award(StructuredNode):
     Award node representing an award or achievement
     """
     name = StringProperty(required=True)
-    award_type = StringProperty(choices=AwardType)
+    award_type = StringProperty(choices=AWARD_TYPE_CHOICES)  # Using the dict instead of the Enum
     organization = StringProperty()
     year = IntegerProperty()
     position = StringProperty()
@@ -358,7 +395,7 @@ class ScientificContribution(StructuredNode):
     ScientificContribution node representing a scientific publication or contribution
     """
     title = StringProperty(required=True)
-    publication_type = StringProperty(choices=PublicationType)
+    publication_type = StringProperty(choices=PUBLICATION_TYPE_CHOICES)  # Using the dict instead of the Enum
     year = IntegerProperty()
     venue = StringProperty()
     doi = StringProperty()

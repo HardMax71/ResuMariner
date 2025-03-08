@@ -29,9 +29,8 @@ class GraphDBService:
             config.DATABASE_URL = f"bolt://{username}:{password}@{uri.replace('bolt://', '')}"
 
             # Test the connection
-            with db.transaction:
-                result, _ = db.cypher_query("MATCH (n) RETURN COUNT(n) AS count LIMIT 1")
-                logger.debug(f"Database connection verified, node count: {result[0][0]}")
+            result, _ = db.cypher_query("MATCH (n) RETURN COUNT(n) AS count LIMIT 1")
+            logger.debug(f"Database connection verified, node count: {result[0][0]}")
 
             self._initialize_db()
             logger.info(f"Connected to Neo4j at {uri}")
@@ -42,40 +41,38 @@ class GraphDBService:
     def _initialize_db(self) -> None:
         """Initialize database with constraints and indexes"""
         try:
-            with db.transaction:
-                # Create constraints and indexes using Cypher
-                # Note: neomodel handles many indexes automatically, but we'll ensure all are created
-                db.cypher_query("""
-                CREATE CONSTRAINT person_email IF NOT EXISTS 
-                FOR (p:Person) REQUIRE p.email IS UNIQUE
-                """)
+            # Create constraints and indexes using Cypher
+            # Note: neomodel handles many indexes automatically, but we'll ensure all are created
+            db.cypher_query("""
+            CREATE CONSTRAINT person_email IF NOT EXISTS 
+            FOR (p:Person) REQUIRE p.email IS UNIQUE
+            """)
 
-                db.cypher_query("""
-                CREATE CONSTRAINT cv_id IF NOT EXISTS 
-                FOR (cv:CV) REQUIRE cv.id IS UNIQUE
-                """)
+            db.cypher_query("""
+            CREATE CONSTRAINT cv_id IF NOT EXISTS 
+            FOR (cv:CV) REQUIRE cv.cv_id IS UNIQUE
+            """)
 
-                db.cypher_query("""
-                CREATE INDEX skill_name IF NOT EXISTS 
-                FOR (s:Skill) ON (s.name)
-                """)
+            db.cypher_query("""
+            CREATE INDEX skill_name IF NOT EXISTS 
+            FOR (s:Skill) ON (s.name)
+            """)
 
-                db.cypher_query("""
-                CREATE INDEX tech_name IF NOT EXISTS 
-                FOR (t:Technology) ON (t.name)
-                """)
+            db.cypher_query("""
+            CREATE INDEX tech_name IF NOT EXISTS 
+            FOR (t:Technology) ON (t.name)
+            """)
 
-                db.cypher_query("""
-                CREATE INDEX company_name IF NOT EXISTS 
-                FOR (c:Company) ON (c.name)
-                """)
+            db.cypher_query("""
+            CREATE INDEX company_name IF NOT EXISTS 
+            FOR (c:Company) ON (c.name)
+            """)
 
-                logger.info("Neo4j constraints and indexes initialized")
+            logger.info("Neo4j constraints and indexes initialized")
         except Exception as e:
-            logger.error(f"Error initializing Neo4j schema: {str(e)}")
+            logger.error(f"Error initializing Neo4j schema: {str(e)}", exc_info=True)
             raise GraphDBError(f"Failed to initialize Neo4j schema: {str(e)}")
 
-    @db.transaction
     def store_cv(self, cv_data: Dict[str, Any], job_id: Optional[str] = None) -> str:
         """Store a CV in the graph database, preventing duplicates
 
@@ -203,9 +200,9 @@ class GraphDBService:
                     visa_sponsorship_required=visa_sponsorship_required
                 ).save()
 
-            # Create the CV node
+            # Create the CV node with cv_id instead of id
             cv = CV(
-                id=cv_id,
+                cv_id=cv_id,  # Updated to use cv_id instead of id
                 summary=summary,
                 desired_role=role,
                 salary_expectation=salary,
@@ -387,7 +384,7 @@ class GraphDBService:
                 created_count += 1
 
                 # Add coursework
-                coursework_items = edu.get("coursework", [])
+                coursework_items = edu.get("coursework", []) or []
                 for idx, course_text in enumerate(coursework_items):
                     if not course_text:  # Skip empty coursework
                         continue
@@ -402,7 +399,7 @@ class GraphDBService:
                     education.coursework.connect(coursework)
 
                 # Add extras
-                extras_items = edu.get("extras", [])
+                extras_items = edu.get("extras", []) or []
                 for idx, extra_text in enumerate(extras_items):
                     if not extra_text:  # Skip empty extras
                         continue
@@ -417,7 +414,7 @@ class GraphDBService:
                     education.extras.connect(extra)
 
             except Exception as e:
-                logger.warning(f"Error creating education record: {str(e)}")
+                logger.warning(f"Error creating education record: {str(e)}", exc_info=True)
 
         logger.info(f"Created {created_count} education records for person {person.email}")
 
@@ -476,7 +473,7 @@ class GraphDBService:
                     project.technologies.connect(tech)
 
             except Exception as e:
-                logger.warning(f"Error creating project: {str(e)}")
+                logger.warning(f"Error creating project: {str(e)}", exc_info=True)
 
         logger.info(f"Created {created_count} projects for person {person.email}")
 
@@ -509,7 +506,7 @@ class GraphDBService:
                 languages_created += 1
 
             except Exception as e:
-                logger.warning(f"Error creating language proficiency: {str(e)}")
+                logger.warning(f"Error creating language proficiency: {str(e)}", exc_info=True)
 
         logger.debug(f"Added {languages_created} language proficiencies to person {person.email}")
 
@@ -544,7 +541,7 @@ class GraphDBService:
                 created_count += 1
 
             except Exception as e:
-                logger.warning(f"Error creating certification: {str(e)}")
+                logger.warning(f"Error creating certification: {str(e)}", exc_info=True)
 
         logger.debug(f"Added {created_count} certifications to person {person.email}")
 
@@ -589,7 +586,7 @@ class GraphDBService:
                 created_count += 1
 
             except Exception as e:
-                logger.warning(f"Error creating course: {str(e)}")
+                logger.warning(f"Error creating course: {str(e)}", exc_info=True)
 
         logger.debug(f"Added {created_count} courses to person {person.email}")
 
@@ -627,7 +624,7 @@ class GraphDBService:
                 created_count += 1
 
             except Exception as e:
-                logger.warning(f"Error creating award: {str(e)}")
+                logger.warning(f"Error creating award: {str(e)}", exc_info=True)
 
         logger.debug(f"Added {created_count} awards to person {person.email}")
 
@@ -671,11 +668,10 @@ class GraphDBService:
                 created_count += 1
 
             except Exception as e:
-                logger.warning(f"Error creating scientific contribution: {str(e)}")
+                logger.warning(f"Error creating scientific contribution: {str(e)}", exc_info=True)
 
         logger.debug(f"Added {created_count} scientific contributions to person {person.email}")
 
-    @db.transaction
     def find_existing_person(self, email: str, name: str = None, phone: str = None) -> Optional[Dict[str, Any]]:
         """Find an existing person and their CV based on contact information using neomodel
 
@@ -697,7 +693,7 @@ class GraphDBService:
             # Get CV IDs
             cv_ids = []
             for cv in person.cv.all():
-                cv_ids.append(cv.id)
+                cv_ids.append(cv.cv_id)  # Updated to use cv_id
 
             return {
                 "email": person.email,
@@ -706,10 +702,9 @@ class GraphDBService:
                 "cv_ids": cv_ids
             }
         except Exception as e:
-            logger.warning(f"Error finding existing person: {str(e)}")
+            logger.warning(f"Error finding existing person: {str(e)}", exc_info=True)
             return None
 
-    @db.transaction
     def get_cv_details(self, cv_ids: List[str]) -> Dict[str, Dict[str, Any]]:
         """Get basic details for a list of CVs using neomodel
 
@@ -724,8 +719,8 @@ class GraphDBService:
         try:
             for cv_id in cv_ids:
                 try:
-                    # Find the CV
-                    cv_node = CV.nodes.get(id=cv_id)
+                    # Find the CV by cv_id instead of id
+                    cv_node = CV.nodes.get(cv_id=cv_id)  # Updated to use cv_id
 
                     # Get the person connected to this CV
                     person = cv_node.person.get()
@@ -762,7 +757,6 @@ class GraphDBService:
             logger.error(f"Error retrieving CV details: {str(e)}")
             raise GraphDBError(f"Failed to retrieve CV details: {str(e)}")
 
-    @db.transaction
     def delete_cv(self, cv_id: str) -> bool:
         """Delete a CV and all related nodes using neomodel
 
@@ -774,17 +768,14 @@ class GraphDBService:
         """
         try:
             try:
-                # Find the CV
-                cv = CV.nodes.get(id=cv_id)
-
-                # Get the person connected to this CV
-                person = cv.person.get()
+                # Find the CV by cv_id instead of id
+                cv = CV.nodes.get(cv_id=cv_id)  # Updated to use cv_id
 
                 # Delete related nodes and relationships for this person
                 # We'll use Cypher for this to handle complex cascading deletion
                 db.cypher_query(
                     """
-                    MATCH (cv:CV {id: $cv_id})
+                    MATCH (cv:CV {cv_id: $cv_id})  
                     OPTIONAL MATCH (p:Person)-[:HAS_CV]->(cv)
 
                     // Get all experiences
@@ -812,7 +803,7 @@ class GraphDBService:
                     // Delete the CV itself, but keep the person
                     DETACH DELETE cv
                     """,
-                    {"cv_id": cv_id}
+                    {"cv_id": cv_id}  # This now refers to the cv_id property
                 )
 
                 logger.info(f"Deleted CV {cv_id} and related nodes")
