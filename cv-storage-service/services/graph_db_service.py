@@ -2,14 +2,19 @@ import logging
 import uuid
 from typing import Dict, List, Any, Optional
 
-from neo4j import GraphDatabase, exceptions
+from models.neo4j_models import (
+    Person, CV, Skill, Company, Experience, KeyPoint, Technology,
+    Project, Institution, Education, Coursework, EducationExtra,
+    Language, Certification, Award, ScientificContribution, Course
+)
+from neomodel import config, db
 from utils.errors import GraphDBError, DatabaseConnectionError
 
 logger = logging.getLogger(__name__)
 
 
 class GraphDBService:
-    """Service for storing and retrieving CV data in Neo4j"""
+    """Service for storing and retrieving CV data in Neo4j using neomodel"""
 
     def __init__(self, uri: str, username: str, password: str):
         """Initialize the graph database service
@@ -20,55 +25,57 @@ class GraphDBService:
             password: Neo4j password
         """
         try:
-            self.driver = GraphDatabase.driver(uri, auth=(username, password))
+            # Configure neomodel
+            config.DATABASE_URL = f"bolt://{username}:{password}@{uri.replace('bolt://', '')}"
+
+            # Test the connection
+            with db.transaction:
+                result, _ = db.cypher_query("MATCH (n) RETURN COUNT(n) AS count LIMIT 1")
+                logger.debug(f"Database connection verified, node count: {result[0][0]}")
+
             self._initialize_db()
             logger.info(f"Connected to Neo4j at {uri}")
-        except exceptions.ServiceUnavailable as e:
+        except Exception as e:
             logger.error(f"Failed to connect to Neo4j: {str(e)}")
             raise DatabaseConnectionError(f"Neo4j connection failed: {str(e)}")
-        except Exception as e:
-            logger.error(f"Neo4j initialization error: {str(e)}")
-            raise DatabaseConnectionError(f"Neo4j initialization failed: {str(e)}")
 
     def _initialize_db(self) -> None:
         """Initialize database with constraints and indexes"""
         try:
-            with self.driver.session() as session:
-                # Create constraint on Person.email
-                session.run(
-                    "CREATE CONSTRAINT person_email IF NOT EXISTS "
-                    "FOR (p:Person) REQUIRE p.email IS UNIQUE"
-                )
+            with db.transaction:
+                # Create constraints and indexes using Cypher
+                # Note: neomodel handles many indexes automatically, but we'll ensure all are created
+                db.cypher_query("""
+                CREATE CONSTRAINT person_email IF NOT EXISTS 
+                FOR (p:Person) REQUIRE p.email IS UNIQUE
+                """)
 
-                # Create constraint on CV.id
-                session.run(
-                    "CREATE CONSTRAINT cv_id IF NOT EXISTS "
-                    "FOR (cv:CV) REQUIRE cv.id IS UNIQUE"
-                )
+                db.cypher_query("""
+                CREATE CONSTRAINT cv_id IF NOT EXISTS 
+                FOR (cv:CV) REQUIRE cv.id IS UNIQUE
+                """)
 
-                # Create index on Skill
-                session.run(
-                    "CREATE INDEX skill_name IF NOT EXISTS "
-                    "FOR (s:Skill) ON (s.name)"
-                )
+                db.cypher_query("""
+                CREATE INDEX skill_name IF NOT EXISTS 
+                FOR (s:Skill) ON (s.name)
+                """)
 
-                # Create index on Technology
-                session.run(
-                    "CREATE INDEX tech_name IF NOT EXISTS "
-                    "FOR (t:Technology) ON (t.name)"
-                )
+                db.cypher_query("""
+                CREATE INDEX tech_name IF NOT EXISTS 
+                FOR (t:Technology) ON (t.name)
+                """)
 
-                # Create index on Company
-                session.run(
-                    "CREATE INDEX company_name IF NOT EXISTS "
-                    "FOR (c:Company) ON (c.name)"
-                )
+                db.cypher_query("""
+                CREATE INDEX company_name IF NOT EXISTS 
+                FOR (c:Company) ON (c.name)
+                """)
 
                 logger.info("Neo4j constraints and indexes initialized")
         except Exception as e:
             logger.error(f"Error initializing Neo4j schema: {str(e)}")
             raise GraphDBError(f"Failed to initialize Neo4j schema: {str(e)}")
 
+    @db.transaction
     def store_cv(self, cv_data: Dict[str, Any], job_id: Optional[str] = None) -> str:
         """Store a CV in the graph database, preventing duplicates
 
@@ -96,583 +103,515 @@ class GraphDBService:
             # Check for existing person with same email (primary identifier)
             existing_person = self.find_existing_person(email, name, phone)
 
-            with self.driver.session() as session:
-                # If person exists, delete their existing CVs to avoid duplicates
-                if existing_person and existing_person.get("cv_ids"):
-                    for existing_cv_id in existing_person["cv_ids"]:
-                        try:
-                            self.delete_cv(existing_cv_id)
-                            logger.info(f"Deleted existing CV {existing_cv_id} for {email}")
-                        except Exception as e:
-                            logger.warning(f"Error deleting existing CV {existing_cv_id}: {str(e)}")
+            # If person exists, delete their existing CVs to avoid duplicates
+            if existing_person and existing_person.get("cv_ids"):
+                for existing_cv_id in existing_person["cv_ids"]:
+                    try:
+                        self.delete_cv(existing_cv_id)
+                        logger.info(f"Deleted existing CV {existing_cv_id} for {email}")
+                    except Exception as e:
+                        logger.warning(f"Error deleting existing CV {existing_cv_id}: {str(e)}")
 
-                # Create Person and CV nodes (MERGE will ensure no duplicate Person nodes)
-                self._create_person_and_cv(session, cv_id, cv_data)
-                logger.info(f"{'Updated' if existing_person else 'Created'} person and CV nodes for {cv_id}")
+            # Create Person and CV nodes
+            person, cv = self._create_person_and_cv(cv_id, cv_data)
+            logger.info(f"{'Updated' if existing_person else 'Created'} person and CV nodes for {cv_id}")
 
-                # Continue with creating relationships
-                if cv_data.get("skills"):
-                    self._create_skills(session, cv_id, cv_data)
-
-                if cv_data.get("employment_history"):
-                    self._create_employment_history(session, cv_id, cv_data)
-
-                if cv_data.get("education"):
-                    self._create_education(session, cv_id, cv_data)
-
-                if cv_data.get("projects"):
-                    self._create_projects(session, cv_id, cv_data)
-
-                if cv_data.get("language_proficiency"):
-                    self._create_languages(session, cv_id, cv_data)
-
-                if cv_data.get("certifications"):
-                    self._create_certifications(session, cv_id, cv_data)
-
-                if cv_data.get("awards"):
-                    self._create_awards(session, cv_id, cv_data)
-
-                if cv_data.get("scientific_contributions"):
-                    self._create_scientific_contributions(session, cv_id, cv_data)
+            # Add relationships and related nodes
+            self._add_skills(person, cv_data)
+            self._add_employment_history(person, cv_data)
+            self._add_education(person, cv_data)
+            self._add_projects(person, cv_data)
+            self._add_languages(person, cv_data)
+            self._add_certifications(person, cv_data)
+            self._add_awards(person, cv_data)
+            self._add_scientific_contributions(person, cv_data)
+            self._add_courses(person, cv_data)
 
             return cv_id
         except Exception as e:
             logger.error(f"Error storing CV: {str(e)}")
             raise GraphDBError(f"Failed to store CV data: {str(e)}")
 
-    def _create_person_and_cv(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
-        """Create Person and CV nodes"""
-        personal_info = cv_data.get("personal_info", {})
-        name = personal_info.get("name", "Unknown")
-        email = personal_info.get("contact", {}).get("email", f"unknown_{cv_id}@example.com")
-
-        # Extract location data
-        location = personal_info.get("demographics", {}).get("current_location", {})
-        city = location.get("city")
-        state = location.get("state")
-        country = location.get("country")
-
-        # Extract professional profile
-        professional_profile = cv_data.get("professional_profile", {})
-        summary = professional_profile.get("summary", "")
-
-        # Extract preferences
-        preferences = professional_profile.get("preferences", {})
-        role = preferences.get("role", "")
-        salary = preferences.get("salary")
-
-        # Create more detailed person node with all available info
-        person_props = {
-            "email": email,
-            "name": name
-        }
-
-        if city:
-            person_props["city"] = city
-        if state:
-            person_props["state"] = state
-        if country:
-            person_props["country"] = country
-
-        # Make CV node properties
-        cv_props = {
-            "id": cv_id,
-            "created_at": "datetime()",  # Neo4j function, executed in Cypher
-            "summary": summary,
-            "desired_role": role
-        }
-
-        if salary:
-            cv_props["salary_expectation"] = salary
-
-        # Build the query dynamically based on available properties
-        person_props_str = ", ".join([f"p.{k} = ${k}" for k in person_props.keys()])
-        cv_props_str = ", ".join([f"cv.{k} = ${k}" for k in cv_props.keys() if k != "created_at"])
-
-        # Create nodes with all properties
-        query = f"""
-        MERGE (p:Person {{email: $email}})
-        SET {person_props_str}
-        CREATE (cv:CV {{id: $id, created_at: datetime()}})
-        SET {cv_props_str}
-        CREATE (p)-[:HAS_CV]->(cv)
-        """
-
-        # Combine all parameters and add cv_id explicitly
-        params = {**person_props, **cv_props, "cv_id": cv_id}
-
+    def _create_person_and_cv(self, cv_id: str, cv_data: Dict[str, Any]) -> tuple[Person, CV]:
+        """Create Person and CV nodes using neomodel"""
         try:
-            result = session.run(query, params)
-            # Check if operation succeeded
-            summary = result.consume()
-            if summary.counters.nodes_created == 0:
-                logger.warning(f"No nodes created for CV {cv_id}")
+            personal_info = cv_data.get("personal_info", {})
+            name = personal_info.get("name", "Unknown")
+            email = personal_info.get("contact", {}).get("email", f"unknown_{cv_id}@example.com")
+            phone = personal_info.get("contact", {}).get("phone")
+
+            # Extract contact links
+            contact_links = personal_info.get("contact", {}).get("links", {})
+            github_url = contact_links.get("github") if contact_links else None
+            linkedin_url = contact_links.get("linkedin") if contact_links else None
+            telegram_url = contact_links.get("telegram") if contact_links else None
+            other_links = contact_links.get("other_links", {}) if contact_links else {}
+
+            # Extract location data
+            location = personal_info.get("demographics", {}).get("current_location", {})
+            city = location.get("city")
+            state = location.get("state")
+            country = location.get("country")
+
+            # Extract work authorization
+            work_auth = personal_info.get("demographics", {}).get("work_authorization", {})
+            citizenship = work_auth.get("citizenship")
+            work_permit = work_auth.get("work_permit")
+            visa_sponsorship_required = work_auth.get("visa_sponsorship_required")
+
+            # Extract professional profile
+            professional_profile = cv_data.get("professional_profile", {})
+            summary = professional_profile.get("summary", "")
+
+            # Extract preferences
+            preferences = professional_profile.get("preferences", {})
+            role = preferences.get("role", "")
+            salary = preferences.get("salary")
+
+            # Get or create the Person node
+            try:
+                person = Person.nodes.get(email=email)
+                # Update properties
+                person.name = name
+                person.phone = phone
+                person.city = city
+                person.state = state
+                person.country = country
+                person.github_url = github_url
+                person.linkedin_url = linkedin_url
+                person.telegram_url = telegram_url
+                person.other_links = other_links
+                person.citizenship = citizenship
+                person.work_permit = work_permit
+                person.visa_sponsorship_required = visa_sponsorship_required
+                person.save()
+            except Person.DoesNotExist:
+                # Create a new Person node
+                person = Person(
+                    email=email,
+                    name=name,
+                    phone=phone,
+                    city=city,
+                    state=state,
+                    country=country,
+                    github_url=github_url,
+                    linkedin_url=linkedin_url,
+                    telegram_url=telegram_url,
+                    other_links=other_links,
+                    citizenship=citizenship,
+                    work_permit=work_permit,
+                    visa_sponsorship_required=visa_sponsorship_required
+                ).save()
+
+            # Create the CV node
+            cv = CV(
+                id=cv_id,
+                summary=summary,
+                desired_role=role,
+                salary_expectation=salary,
+                resume_lang=personal_info.get("resume_lang", "en")
+            ).save()
+
+            # Connect Person to CV
+            person.cv.connect(cv)
+
+            return person, cv
         except Exception as e:
             logger.error(f"Error creating person and CV nodes: {str(e)}")
             raise GraphDBError(f"Failed to create base CV record: {str(e)}")
 
-    def _create_skills(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
-        """Create Skill nodes and relationships"""
+    def _add_skills(self, person: Person, cv_data: Dict[str, Any]) -> None:
+        """Add skills to a person using neomodel"""
         skills = cv_data.get("skills", [])
-
         if not skills:
             return
 
         skills_created = 0
-        try:
-            for skill in skills:
-                if not skill:  # Skip empty skills
-                    continue
+        for skill_name in skills:
+            if not skill_name:  # Skip empty skills
+                continue
 
-                result = session.run(
-                    """
-                    MATCH (p:Person)-[:HAS_CV]->(cv:CV)
-                    WHERE cv.id = $cv_id
-                    MERGE (s:Skill {name: $skill})
-                    MERGE (p)-[:HAS_SKILL]->(s)
-                    """,
-                    cv_id=cv_id,
-                    skill=skill
-                )
-                # Check if operation succeeded
-                summary = result.consume()
-                if summary.counters.relationships_created > 0:
+            try:
+                # Get or create skill
+                try:
+                    skill = Skill.nodes.get(name=skill_name)
+                except Skill.DoesNotExist:
+                    skill = Skill(name=skill_name).save()
+
+                # Connect person to skill if not already connected
+                if not person.skills.is_connected(skill):
+                    person.skills.connect(skill)
                     skills_created += 1
+            except Exception as e:
+                logger.warning(f"Error creating skill {skill_name}: {str(e)}")
 
-            logger.debug(f"Created {skills_created} skill relationships for CV {cv_id}")
-        except Exception as e:
-            logger.warning(f"Error creating skills: {str(e)}")
-            # Continue execution, don't fail the entire CV storage
+        logger.debug(f"Created {skills_created} skill relationships for person {person.email}")
 
-    def _create_employment_history(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
-        """Create employment history with key points"""
+    def _add_employment_history(self, person: Person, cv_data: Dict[str, Any]) -> None:
+        """Add employment history to a person using neomodel"""
         jobs = cv_data.get("employment_history", [])
-
         if not jobs:
             return
 
         created_count = 0
         for job in jobs:
             try:
-                company = job.get("company", "Unknown")
+                company_name = job.get("company", "Unknown")
                 position = job.get("position", "Unknown")
-                start_date = job.get("duration", {}).get("start", "Unknown")
-                end_date = job.get("duration", {}).get("end", "current")
-                duration_months = job.get("duration", {}).get("duration_months", 0)
 
-                # Location details - handle None case
-                location = job.get("location") or {}
+                # Get duration details
+                duration = job.get("duration", {})
+                start_date = duration.get("start", "Unknown")
+                end_date = duration.get("end", "current")
+                duration_months = duration.get("duration_months", 0)
+
+                # Get location details
+                location = job.get("location", {})
                 city = location.get("city")
                 state = location.get("state")
                 country = location.get("country")
 
-                location_props = {}
-                if city:
-                    location_props["city"] = city
-                if state:
-                    location_props["state"] = state
-                if country:
-                    location_props["country"] = country
+                # Get employment type and work mode
+                employment_type = job.get("employment_type", "full-time")
+                work_mode = job.get("work_mode", "onsite")
 
-                location_str = ", ".join(f"{k}: ${k}_loc" for k in location_props.keys())
-                location_params = {f"{k}_loc": v for k, v in location_props.items()}
-
-                # Create company and position
-                result = session.run(
-                    f"""
-                    MATCH (p:Person)-[:HAS_CV]->(cv:CV)
-                    WHERE cv.id = $cv_id
-                    MERGE (c:Company {{name: $company}})
-                    CREATE (exp:Experience {{
-                        position: $position,
-                        start_date: $start_date,
-                        end_date: $end_date,
-                        employment_type: $employment_type,
-                        work_mode: $work_mode,
-                        duration_months: $duration_months
-                        {', ' + location_str if location_props else ''}
-                    }})
-                    CREATE (p)-[:HAD_EXPERIENCE]->(exp)
-                    CREATE (exp)-[:AT_COMPANY]->(c)
-                    RETURN elementId(exp) AS exp_id
-                    """,
-                    cv_id=cv_id,
-                    company=company,
+                # Create Experience node
+                experience = Experience(
                     position=position,
                     start_date=start_date,
                     end_date=end_date,
-                    employment_type=job.get("employment_type", "full-time"),
-                    work_mode=job.get("work_mode", "onsite"),
                     duration_months=duration_months,
-                    **location_params
-                )
+                    employment_type=employment_type,
+                    work_mode=work_mode,
+                    city=city,
+                    state=state,
+                    country=country
+                ).save()
 
-                # Check if we have a valid result
-                record = result.single()
-                if record is None:
-                    logger.warning(f"Failed to create experience for CV {cv_id} at company {company}")
-                    continue
+                # Connect Person to Experience
+                person.experiences.connect(experience)
 
-                exp_id = record["exp_id"]
+                # Get or create Company
+                try:
+                    company = Company.nodes.get(name=company_name)
+                except Company.DoesNotExist:
+                    company = Company(name=company_name).save()
+
+                # Connect Experience to Company
+                experience.company.connect(company)
+
                 created_count += 1
 
-                # Make sure key_points is a list even if None
-                key_points = job.get("key_points") or []
-                for idx, point in enumerate(key_points):
-                    if not point:  # Skip empty points
+                # Add key points
+                key_points = job.get("key_points", [])
+                for idx, point_text in enumerate(key_points):
+                    if not point_text:  # Skip empty points
                         continue
 
-                    session.run(
-                        """
-                        MATCH (exp:Experience)
-                        WHERE elementId(exp) = $exp_id
-                        CREATE (kp:KeyPoint {
-                            text: $text,
-                            index: $index,
-                            source: 'experience'
-                        })
-                        CREATE (exp)-[:HAS_KEY_POINT]->(kp)
-                        """,
-                        exp_id=exp_id,
-                        text=point,
-                        index=idx
-                    )
+                    # Create KeyPoint node
+                    key_point = KeyPoint(
+                        text=point_text,
+                        index=idx,
+                        source="experience"
+                    ).save()
 
-                # Make sure tech_stack is a list even if None
-                tech_stack = job.get("tech_stack") or []
-                for tech in tech_stack:
-                    if not tech:  # Skip empty tech entries
+                    # Connect Experience to KeyPoint
+                    experience.key_points.connect(key_point)
+
+                # Add technologies
+                tech_stack = job.get("tech_stack", [])
+                for tech_name in tech_stack:
+                    if not tech_name:  # Skip empty tech entries
                         continue
 
-                    session.run(
-                        """
-                        MATCH (exp:Experience)
-                        WHERE elementId(exp) = $exp_id
-                        MERGE (t:Technology {name: $tech})
-                        CREATE (exp)-[:USES_TECHNOLOGY]->(t)
-                        """,
-                        exp_id=exp_id,
-                        tech=tech
-                    )
+                    # Get or create Technology
+                    try:
+                        tech = Technology.nodes.get(name=tech_name)
+                    except Technology.DoesNotExist:
+                        tech = Technology(name=tech_name).save()
+
+                    # Connect Experience to Technology
+                    experience.technologies.connect(tech)
 
             except Exception as e:
                 logger.warning(f"Error creating job experience: {str(e)}")
-                # Continue with next job
 
-        # Log actual count created
-        logger.info(f"Created {created_count} job experiences for CV {cv_id}")
+        logger.info(f"Created {created_count} job experiences for person {person.email}")
 
-    def _create_education(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
-        """Create education nodes and relationships"""
+    def _add_education(self, person: Person, cv_data: Dict[str, Any]) -> None:
+        """Add education to a person using neomodel"""
         education_items = cv_data.get("education", [])
-
         if not education_items:
             return
 
         created_count = 0
         for edu in education_items:
             try:
-                institution = edu.get("institution", "Unknown")
+                institution_name = edu.get("institution", "Unknown")
                 qualification = edu.get("qualification", "Unknown")
                 study_field = edu.get("study_field", "Unknown")
                 start = edu.get("start")
                 end = edu.get("end")
                 status = edu.get("status", "completed")
 
-                # Extract location details if available - handle None case
-                location = edu.get("location") or {}
+                # Get location details
+                location = edu.get("location", {})
                 city = location.get("city")
                 state = location.get("state")
                 country = location.get("country")
 
-                # Build location part of query
-                location_props = {}
-                if city:
-                    location_props["city"] = city
-                if state:
-                    location_props["state"] = state
-                if country:
-                    location_props["country"] = country
-
-                location_str = ", ".join(f"{k}: ${k}_loc" for k in location_props.keys())
-                location_params = {f"{k}_loc": v for k, v in location_props.items()}
-
-                # Create education node with all details
-                result = session.run(
-                    f"""
-                    MATCH (p:Person)-[:HAS_CV]->(cv:CV)
-                    WHERE cv.id = $cv_id
-                    MERGE (i:Institution {{name: $institution}})
-                    CREATE (e:Education {{
-                        qualification: $qualification,
-                        field: $study_field,
-                        start: $start,
-                        end: $end,
-                        status: $status
-                        {', ' + location_str if location_props else ''}
-                    }})
-                    CREATE (p)-[:EDUCATED_AT]->(e)
-                    CREATE (e)-[:AT_INSTITUTION]->(i)
-                    RETURN elementId(e) AS edu_id
-                    """,
-                    cv_id=cv_id,
-                    institution=institution,
+                # Create Education node
+                education = Education(
                     qualification=qualification,
-                    study_field=study_field,
+                    field=study_field,
                     start=start,
                     end=end,
                     status=status,
-                    **location_params
-                )
+                    city=city,
+                    state=state,
+                    country=country
+                ).save()
 
-                # Safety check for result
-                record = result.single()
-                if record is None:
-                    logger.warning(f"No education record created for CV {cv_id} and institution {institution}")
-                    continue  # Skip to the next education record
+                # Connect Person to Education
+                person.education.connect(education)
 
-                edu_id = record["edu_id"]
+                # Get or create Institution
+                try:
+                    institution = Institution.nodes.get(name=institution_name)
+                except Institution.DoesNotExist:
+                    institution = Institution(name=institution_name).save()
+
+                # Connect Education to Institution
+                education.institution.connect(institution)
+
                 created_count += 1
 
-                # Make sure coursework and extras are lists even if None
-                coursework = edu.get("coursework") or []
-                extras = edu.get("extras") or []
-
-                # Add coursework if available
-                for idx, course in enumerate(coursework):
-                    if not course:  # Skip empty coursework
+                # Add coursework
+                coursework_items = edu.get("coursework", [])
+                for idx, course_text in enumerate(coursework_items):
+                    if not course_text:  # Skip empty coursework
                         continue
 
-                    session.run(
-                        """
-                        MATCH (e:Education)
-                        WHERE elementId(e) = $edu_id
-                        CREATE (c:Coursework {
-                            text: $text,
-                            index: $index
-                        })
-                        CREATE (e)-[:INCLUDES_COURSEWORK]->(c)
-                        """,
-                        edu_id=edu_id,
-                        text=course,
+                    # Create Coursework node
+                    coursework = Coursework(
+                        text=course_text,
                         index=idx
-                    )
+                    ).save()
 
-                # Add extras if available
-                for idx, extra in enumerate(extras):
-                    if not extra:  # Skip empty extras
+                    # Connect Education to Coursework
+                    education.coursework.connect(coursework)
+
+                # Add extras
+                extras_items = edu.get("extras", [])
+                for idx, extra_text in enumerate(extras_items):
+                    if not extra_text:  # Skip empty extras
                         continue
 
-                    session.run(
-                        """
-                        MATCH (e:Education)
-                        WHERE elementId(e) = $edu_id
-                        CREATE (ex:EducationExtra {
-                            text: $text,
-                            index: $index
-                        })
-                        CREATE (e)-[:HAS_EXTRA]->(ex)
-                        """,
-                        edu_id=edu_id,
-                        text=extra,
+                    # Create EducationExtra node
+                    extra = EducationExtra(
+                        text=extra_text,
                         index=idx
-                    )
+                    ).save()
+
+                    # Connect Education to Extra
+                    education.extras.connect(extra)
+
             except Exception as e:
                 logger.warning(f"Error creating education record: {str(e)}")
-                # Continue with next education item
 
-        # Log actual count created instead of input list length
-        logger.info(f"Created {created_count} education records for CV {cv_id}")
+        logger.info(f"Created {created_count} education records for person {person.email}")
 
-    def _create_projects(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
-        """Create project nodes and relationships"""
-        projects = cv_data.get("projects", [])
-
-        if not projects:
+    def _add_projects(self, person: Person, cv_data: Dict[str, Any]) -> None:
+        """Add projects to a person using neomodel"""
+        projects_data = cv_data.get("projects", [])
+        if not projects_data:
             return
 
         created_count = 0
-        for project in projects:
+        for project_data in projects_data:
             try:
-                title = project.get("title", "Unknown")
-                url = project.get("url")
+                title = project_data.get("title", "Unknown")
+                url = project_data.get("url")
 
-                result = session.run(
-                    """
-                    MATCH (p:Person)-[:HAS_CV]->(cv:CV)
-                    WHERE cv.id = $cv_id
-                    CREATE (proj:Project {
-                        title: $title,
-                        url: $url
-                    })
-                    CREATE (p)-[:COMPLETED_PROJECT]->(proj)
-                    RETURN elementId(proj) AS proj_id
-                    """,
-                    cv_id=cv_id,
+                # Create Project node
+                project = Project(
                     title=title,
                     url=url
-                )
+                ).save()
 
-                # Check if we have a valid result
-                record = result.single()
-                if record is None:
-                    logger.warning(f"Failed to create project for CV {cv_id} with title {title}")
-                    continue
+                # Connect Person to Project
+                person.projects.connect(project)
 
-                proj_id = record["proj_id"]
                 created_count += 1
 
-                # Make sure key_points is a list even if None
-                key_points = project.get("key_points") or []
-                for idx, point in enumerate(key_points):
-                    if not point:
+                # Add key points
+                key_points = project_data.get("key_points", [])
+                for idx, point_text in enumerate(key_points):
+                    if not point_text:  # Skip empty points
                         continue
 
-                    session.run(
-                        """
-                        MATCH (proj:Project)
-                        WHERE elementId(proj) = $proj_id
-                        CREATE (kp:KeyPoint {
-                            text: $text,
-                            index: $index,
-                            source: 'project'
-                        })
-                        CREATE (proj)-[:HAS_KEY_POINT]->(kp)
-                        """,
-                        proj_id=proj_id,
-                        text=point,
-                        index=idx
-                    )
+                    # Create KeyPoint node
+                    key_point = KeyPoint(
+                        text=point_text,
+                        index=idx,
+                        source="project"
+                    ).save()
 
-                # Make sure tech_stack is a list even if None
-                tech_stack = project.get("tech_stack") or []
-                for tech in tech_stack:
-                    if not tech:
+                    # Connect Project to KeyPoint
+                    project.key_points.connect(key_point)
+
+                # Add technologies
+                tech_stack = project_data.get("tech_stack", [])
+                for tech_name in tech_stack:
+                    if not tech_name:  # Skip empty tech entries
                         continue
 
-                    session.run(
-                        """
-                        MATCH (proj:Project)
-                        WHERE elementId(proj) = $proj_id
-                        MERGE (t:Technology {name: $tech})
-                        CREATE (proj)-[:USES_TECHNOLOGY]->(t)
-                        """,
-                        proj_id=proj_id,
-                        tech=tech
-                    )
+                    # Get or create Technology
+                    try:
+                        tech = Technology.nodes.get(name=tech_name)
+                    except Technology.DoesNotExist:
+                        tech = Technology(name=tech_name).save()
+
+                    # Connect Project to Technology
+                    project.technologies.connect(tech)
+
             except Exception as e:
                 logger.warning(f"Error creating project: {str(e)}")
-                # Continue with next project
 
-        # Log actual count created
-        logger.info(f"Created {created_count} projects for CV {cv_id}")
+        logger.info(f"Created {created_count} projects for person {person.email}")
 
-    def _create_languages(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
-        """Create language proficiency nodes and relationships"""
-        languages = cv_data.get("language_proficiency", [])
-
-        if not languages:
+    def _add_languages(self, person: Person, cv_data: Dict[str, Any]) -> None:
+        """Add language proficiencies to a person using neomodel"""
+        languages_data = cv_data.get("language_proficiency", [])
+        if not languages_data:
             return
 
-        for lang in languages:
+        languages_created = 0
+        for lang_data in languages_data:
             try:
-                language = lang.get("language", "Unknown")
-                level = lang.get("level", {})
-                self_assessed = level.get("self_assessed", "Unknown")
-                cefr = level.get("cefr", "Unknown")
+                language_name = lang_data.get("language", "Unknown")
+                level_data = lang_data.get("level", {})
+                self_assessed = level_data.get("self_assessed", "Unknown")
+                cefr = level_data.get("cefr", "Unknown")
 
-                session.run(
-                    """
-                    MATCH (p:Person)-[:HAS_CV]->(cv:CV)
-                    WHERE cv.id = $cv_id
-                    MERGE (l:Language {name: $language})
-                    CREATE (p)-[:SPEAKS {
-                        self_assessed: $self_assessed,
-                        cefr: $cefr
-                    }]->(l)
-                    """,
-                    cv_id=cv_id,
-                    language=language,
-                    self_assessed=self_assessed,
-                    cefr=cefr
-                )
+                # Get or create Language node
+                try:
+                    language = Language.nodes.get(name=language_name)
+                except Language.DoesNotExist:
+                    language = Language(name=language_name).save()
+
+                # Connect Person to Language with proficiency details
+                person.languages.connect(language, {
+                    "self_assessed": self_assessed,
+                    "cefr": cefr
+                })
+
+                languages_created += 1
+
             except Exception as e:
                 logger.warning(f"Error creating language proficiency: {str(e)}")
-                # Continue with next language, don't fail entire CV storage
 
-    def _create_certifications(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
-        """Create certification nodes and relationships"""
-        certifications = cv_data.get("certifications", [])
+        logger.debug(f"Added {languages_created} language proficiencies to person {person.email}")
 
-        if not certifications:
+    def _add_certifications(self, person: Person, cv_data: Dict[str, Any]) -> None:
+        """Add certifications to a person using neomodel"""
+        certifications_data = cv_data.get("certifications", [])
+        if not certifications_data:
             return
 
-        for cert in certifications:
+        created_count = 0
+        for cert_data in certifications_data:
             try:
-                # Ensure certification name is not None or empty
-                name = cert.get("name")
-                if not name:
+                name = cert_data.get("name")
+                if not name:  # Skip certifications without names
                     name = "Untitled Certification"
 
-                issue_org = cert.get("issue_org")
-                issue_year = cert.get("issue_year")
-                certificate_link = cert.get("certificate_link")
+                issue_org = cert_data.get("issue_org")
+                issue_year = cert_data.get("issue_year")
+                certificate_link = cert_data.get("certificate_link")
 
-                session.run(
-                    """
-                    MATCH (p:Person)-[:HAS_CV]->(cv:CV)
-                    WHERE cv.id = $cv_id
-                    CREATE (c:Certification {
-                        name: $name,
-                        issue_org: $issue_org,
-                        issue_year: $issue_year,
-                        certificate_link: $certificate_link
-                    })
-                    CREATE (p)-[:HAS_CERTIFICATION]->(c)
-                    """,
-                    cv_id=cv_id,
+                # Create Certification node
+                certification = Certification(
                     name=name,
                     issue_org=issue_org,
                     issue_year=issue_year,
                     certificate_link=certificate_link
-                )
+                ).save()
+
+                # Connect Person to Certification
+                person.certifications.connect(certification)
+
+                created_count += 1
+
             except Exception as e:
                 logger.warning(f"Error creating certification: {str(e)}")
-                # Continue with next certification, don't fail entire CV storage
 
-    def _create_awards(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
-        """Create award nodes and relationships"""
-        awards = cv_data.get("awards", [])
+        logger.debug(f"Added {created_count} certifications to person {person.email}")
 
-        if not awards:
+    def _add_courses(self, person: Person, cv_data: Dict[str, Any]) -> None:
+        """Add courses to a person using neomodel"""
+        courses_data = cv_data.get("courses", [])
+        if not courses_data:
             return
 
-        for award in awards:
+        created_count = 0
+        for course_data in courses_data:
             try:
-                name = award.get("name", "Unknown Award")
-                award_type = award.get("award_type", "other")
-                organization = award.get("organization", "Unknown")
-                year = award.get("year")
-                position = award.get("position")
-                description = award.get("description")
-                url = award.get("url")
+                name = course_data.get("name")
+                if not name:
+                    continue
 
-                session.run(
+                organization = course_data.get("organization", "Unknown")
+                year = course_data.get("year")
+                course_url = course_data.get("course_url")
+                certificate_url = course_data.get("certificate_url")
+
+                # Create Course node
+                course = Course(
+                    name=name,
+                    organization=organization,
+                    year=year,
+                    course_url=course_url,
+                    certificate_url=certificate_url
+                ).save()
+
+                # Since we don't have a direct connection in our Person model to Course,
+                # we'll add it using a custom Cypher query
+                db.cypher_query(
                     """
-                    MATCH (p:Person)-[:HAS_CV]->(cv:CV)
-                    WHERE cv.id = $cv_id
-                    CREATE (a:Award {
-                        name: $name,
-                        award_type: $award_type,
-                        organization: $organization,
-                        year: $year,
-                        position: $position,
-                        description: $description,
-                        url: $url
-                    })
-                    CREATE (p)-[:RECEIVED_AWARD]->(a)
+                    MATCH (p:Person), (c:Course)
+                    WHERE id(p) = $person_id AND id(c) = $course_id
+                    CREATE (p)-[:COMPLETED_COURSE]->(c)
                     """,
-                    cv_id=cv_id,
+                    {"person_id": person.id, "course_id": course.id}
+                )
+
+                created_count += 1
+
+            except Exception as e:
+                logger.warning(f"Error creating course: {str(e)}")
+
+        logger.debug(f"Added {created_count} courses to person {person.email}")
+
+    def _add_awards(self, person: Person, cv_data: Dict[str, Any]) -> None:
+        """Add awards to a person using neomodel"""
+        awards_data = cv_data.get("awards", [])
+        if not awards_data:
+            return
+
+        created_count = 0
+        for award_data in awards_data:
+            try:
+                name = award_data.get("name", "Unknown Award")
+                award_type = award_data.get("award_type", "other")
+                organization = award_data.get("organization", "Unknown")
+                year = award_data.get("year")
+                position = award_data.get("position")
+                description = award_data.get("description")
+                url = award_data.get("url")
+
+                # Create Award node
+                award = Award(
                     name=name,
                     award_type=award_type,
                     organization=organization,
@@ -680,49 +619,43 @@ class GraphDBService:
                     position=position,
                     description=description,
                     url=url
-                )
+                ).save()
+
+                # Connect Person to Award
+                person.awards.connect(award)
+
+                created_count += 1
+
             except Exception as e:
                 logger.warning(f"Error creating award: {str(e)}")
-                # Continue with next award, don't fail entire CV storage
 
-    def _create_scientific_contributions(self, session, cv_id: str, cv_data: Dict[str, Any]) -> None:
-        """Create scientific contribution nodes and relationships"""
-        contributions: list[dict] | dict = cv_data.get("scientific_contributions", [])
+        logger.debug(f"Added {created_count} awards to person {person.email}")
+
+    def _add_scientific_contributions(self, person: Person, cv_data: Dict[str, Any]) -> None:
+        """Add scientific contributions to a person using neomodel"""
+        contributions_data = cv_data.get("scientific_contributions", [])
 
         # Handle both single item and list
-        if not contributions:
+        if not contributions_data:
             return
 
         # Convert single item to list if needed
-        if not isinstance(contributions, list):
-            contributions = [contributions]
+        if not isinstance(contributions_data, list):
+            contributions_data = [contributions_data]
 
-        for contribution in contributions:
+        created_count = 0
+        for contribution_data in contributions_data:
             try:
-                title = contribution.get("title", "Unknown Contribution")
-                publication_type = contribution.get("publication_type", "other")
-                year = contribution.get("year")
-                venue = contribution.get("venue")
-                doi = contribution.get("doi")
-                url = contribution.get("url")
-                description = contribution.get("description")
+                title = contribution_data.get("title", "Unknown Contribution")
+                publication_type = contribution_data.get("publication_type", "other")
+                year = contribution_data.get("year")
+                venue = contribution_data.get("venue")
+                doi = contribution_data.get("doi")
+                url = contribution_data.get("url")
+                description = contribution_data.get("description")
 
-                session.run(
-                    """
-                    MATCH (p:Person)-[:HAS_CV]->(cv:CV)
-                    WHERE cv.id = $cv_id
-                    CREATE (sc:ScientificContribution {
-                        title: $title,
-                        publication_type: $publication_type,
-                        year: $year,
-                        venue: $venue,
-                        doi: $doi,
-                        url: $url,
-                        description: $description
-                    })
-                    CREATE (p)-[:AUTHORED]->(sc)
-                    """,
-                    cv_id=cv_id,
+                # Create ScientificContribution node
+                contribution = ScientificContribution(
                     title=title,
                     publication_type=publication_type,
                     year=year,
@@ -730,66 +663,21 @@ class GraphDBService:
                     doi=doi,
                     url=url,
                     description=description
-                )
+                ).save()
+
+                # Connect Person to ScientificContribution
+                person.scientific_contributions.connect(contribution)
+
+                created_count += 1
+
             except Exception as e:
                 logger.warning(f"Error creating scientific contribution: {str(e)}")
-                # Continue with next contribution, don't fail entire CV storage
 
-    def get_cv_details(self, cv_ids: List[str]) -> Dict[str, Dict[str, Any]]:
-        """Get basic details for a list of CVs
+        logger.debug(f"Added {created_count} scientific contributions to person {person.email}")
 
-        Args:
-            cv_ids: List of CV IDs to retrieve
-
-        Returns:
-            Dictionary mapping CV IDs to CV details
-        """
-        result = {}
-
-        try:
-            with self.driver.session() as session:
-                records = session.run(
-                    """
-                    MATCH (p:Person)-[:HAS_CV]->(cv:CV)
-                    WHERE cv.id IN $cv_ids
-                    OPTIONAL MATCH (p)-[:HAD_EXPERIENCE]->(exp)-[:AT_COMPANY]->(c:Company)
-                    WITH p, cv, COLLECT(DISTINCT {company: c.name, position: exp.position}) AS experiences
-                    OPTIONAL MATCH (p)-[:HAS_SKILL]->(s:Skill)
-                    WITH p, cv, experiences, COLLECT(DISTINCT s.name) AS skills
-                    RETURN 
-                        cv.id AS cv_id,
-                        p.name AS name,
-                        p.email AS email,
-                        p.city AS city,
-                        p.country AS country,
-                        cv.summary AS summary,
-                        cv.desired_role AS desired_role,
-                        experiences,
-                        skills
-                    """,
-                    cv_ids=cv_ids
-                )
-
-                for record in records:
-                    cv_id = record["cv_id"]
-                    result[cv_id] = {
-                        "name": record["name"],
-                        "email": record["email"],
-                        "city": record["city"],
-                        "country": record["country"],
-                        "summary": record["summary"],
-                        "desired_role": record["desired_role"],
-                        "experiences": record["experiences"],
-                        "skills": record["skills"]
-                    }
-
-            return result
-        except Exception as e:
-            logger.warning(f"Error retrieving CV details: {str(e)}")
-            raise GraphDBError(f"Failed to retrieve CV details: {str(e)}")
-
+    @db.transaction
     def find_existing_person(self, email: str, name: str = None, phone: str = None) -> Optional[Dict[str, Any]]:
-        """Find an existing person and their CV based on contact information
+        """Find an existing person and their CV based on contact information using neomodel
 
         Args:
             email: Person's email (primary identifier)
@@ -800,33 +688,83 @@ class GraphDBService:
             Dictionary with person details and CV IDs if found, None otherwise
         """
         try:
-            with self.driver.session() as session:
-                # Start with email match (required unique field)
-                query = """
-                MATCH (p:Person {email: $email})
-                OPTIONAL MATCH (p)-[:HAS_CV]->(cv:CV)
-                RETURN p.email AS email, p.name AS name, p.phone AS phone,
-                       COLLECT(cv.id) AS cv_ids
-                """
-
-                result = session.run(query, email=email)
-                record = result.single()
-
-                if record and record["email"]:
-                    return {
-                        "email": record["email"],
-                        "name": record["name"],
-                        "phone": record["phone"],
-                        "cv_ids": record["cv_ids"]
-                    }
-
+            # Try to find by email
+            try:
+                person = Person.nodes.get(email=email)
+            except Person.DoesNotExist:
                 return None
+
+            # Get CV IDs
+            cv_ids = []
+            for cv in person.cv.all():
+                cv_ids.append(cv.id)
+
+            return {
+                "email": person.email,
+                "name": person.name,
+                "phone": person.phone,
+                "cv_ids": cv_ids
+            }
         except Exception as e:
             logger.warning(f"Error finding existing person: {str(e)}")
             return None
 
+    @db.transaction
+    def get_cv_details(self, cv_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+        """Get basic details for a list of CVs using neomodel
+
+        Args:
+            cv_ids: List of CV IDs to retrieve
+
+        Returns:
+            Dictionary mapping CV IDs to CV details
+        """
+        result = {}
+
+        try:
+            for cv_id in cv_ids:
+                try:
+                    # Find the CV
+                    cv_node = CV.nodes.get(id=cv_id)
+
+                    # Get the person connected to this CV
+                    person = cv_node.person.get()
+
+                    # Get experiences
+                    experiences = []
+                    for exp in person.experiences.all():
+                        company = exp.company.get()
+                        experiences.append({
+                            "company": company.name,
+                            "position": exp.position,
+                        })
+
+                    # Get skills
+                    skills = [skill.name for skill in person.skills.all()]
+
+                    # Create result entry
+                    result[cv_id] = {
+                        "name": person.name,
+                        "email": person.email,
+                        "city": person.city,
+                        "country": person.country,
+                        "summary": cv_node.summary,
+                        "desired_role": cv_node.desired_role,
+                        "experiences": experiences,
+                        "skills": skills
+                    }
+                except (CV.DoesNotExist, Person.DoesNotExist):
+                    logger.warning(f"CV with ID {cv_id} not found or has no connected person")
+                    continue
+
+            return result
+        except Exception as e:
+            logger.error(f"Error retrieving CV details: {str(e)}")
+            raise GraphDBError(f"Failed to retrieve CV details: {str(e)}")
+
+    @db.transaction
     def delete_cv(self, cv_id: str) -> bool:
-        """Delete a CV and all related nodes
+        """Delete a CV and all related nodes using neomodel
 
         Args:
             cv_id: CV ID to delete
@@ -835,36 +773,54 @@ class GraphDBService:
             True if successful, False otherwise
         """
         try:
-            with self.driver.session() as session:
-                # Use a cascading delete approach
-                session.run(
+            try:
+                # Find the CV
+                cv = CV.nodes.get(id=cv_id)
+
+                # Get the person connected to this CV
+                person = cv.person.get()
+
+                # Delete related nodes and relationships for this person
+                # We'll use Cypher for this to handle complex cascading deletion
+                db.cypher_query(
                     """
                     MATCH (cv:CV {id: $cv_id})
                     OPTIONAL MATCH (p:Person)-[:HAS_CV]->(cv)
-                    OPTIONAL MATCH (p)-[r1:HAD_EXPERIENCE]->(exp)
-                    OPTIONAL MATCH (exp)-[r2:AT_COMPANY]->(c:Company)
-                    OPTIONAL MATCH (exp)-[r3:HAS_KEY_POINT]->(kp:KeyPoint)
-                    OPTIONAL MATCH (exp)-[r4:USES_TECHNOLOGY]->(t:Technology)
-                    OPTIONAL MATCH (p)-[r5:COMPLETED_PROJECT]->(proj:Project)
-                    OPTIONAL MATCH (proj)-[r6:HAS_KEY_POINT]->(pkp:KeyPoint)
-                    OPTIONAL MATCH (proj)-[r7:USES_TECHNOLOGY]->(pt:Technology)
-                    OPTIONAL MATCH (p)-[r8:EDUCATED_AT]->(e:Education)
-                    OPTIONAL MATCH (e)-[r9:AT_INSTITUTION]->(i:Institution)
-                    OPTIONAL MATCH (p)-[r10:SPEAKS]->(l:Language)
-                    OPTIONAL MATCH (p)-[r11:HAS_CERTIFICATION]->(cert:Certification)
 
-                    DETACH DELETE exp, kp, proj, pkp, e, cert
+                    // Get all experiences
+                    OPTIONAL MATCH (p)-[:HAD_EXPERIENCE]->(exp:Experience)
+                    OPTIONAL MATCH (exp)-[:HAS_KEY_POINT]->(kp:KeyPoint)
 
-                    WITH cv, p
+                    // Get all projects
+                    OPTIONAL MATCH (p)-[:COMPLETED_PROJECT]->(proj:Project)
+                    OPTIONAL MATCH (proj)-[:HAS_KEY_POINT]->(pkp:KeyPoint)
+
+                    // Get all education records
+                    OPTIONAL MATCH (p)-[:EDUCATED_AT]->(edu:Education)
+                    OPTIONAL MATCH (edu)-[:INCLUDES_COURSEWORK]->(cw:Coursework)
+                    OPTIONAL MATCH (edu)-[:HAS_EXTRA]->(ex:EducationExtra)
+
+                    // Get other records
+                    OPTIONAL MATCH (p)-[:COMPLETED_COURSE]->(course:Course)
+                    OPTIONAL MATCH (p)-[:HAS_CERTIFICATION]->(cert:Certification)
+                    OPTIONAL MATCH (p)-[:RECEIVED_AWARD]->(award:Award)
+                    OPTIONAL MATCH (p)-[:AUTHORED]->(sc:ScientificContribution)
+
+                    // Delete all related nodes but NOT the shared ones (Company, Tech, etc.)
+                    DETACH DELETE exp, kp, proj, pkp, edu, cw, ex, course, cert, award, sc
+
+                    // Delete the CV itself, but keep the person
                     DETACH DELETE cv
-
-                    // Keep person node but remove the CV relationship
                     """,
-                    cv_id=cv_id
+                    {"cv_id": cv_id}
                 )
 
                 logger.info(f"Deleted CV {cv_id} and related nodes")
                 return True
+
+            except CV.DoesNotExist:
+                logger.warning(f"CV with ID {cv_id} not found")
+                return False
 
         except Exception as e:
             logger.error(f"Error deleting CV {cv_id}: {str(e)}")
