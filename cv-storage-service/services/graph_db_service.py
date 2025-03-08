@@ -7,7 +7,7 @@ from models.neo4j_models import (
     Project, Institution, Education, Coursework, EducationExtra,
     Language, Certification, Award, ScientificContribution, Course
 )
-from neomodel import config, db
+from neomodel import config, db, install_all_labels
 from utils.errors import GraphDBError, DatabaseConnectionError
 
 logger = logging.getLogger(__name__)
@@ -45,79 +45,8 @@ class GraphDBService:
     def _initialize_db(self) -> None:
         """Initialize database with constraints and indexes"""
         try:
-            # Create constraints and indexes using Cypher
-            # Note: neomodel handles many indexes automatically, but we'll ensure all are created
-            db.cypher_query("""
-            CREATE CONSTRAINT person_email IF NOT EXISTS 
-            FOR (p:Person) REQUIRE p.email IS UNIQUE
-            """)
-
-            db.cypher_query("""
-            CREATE CONSTRAINT cv_id IF NOT EXISTS 
-            FOR (cv:CV) REQUIRE cv.cv_id IS UNIQUE
-            """)
-
-            db.cypher_query("""
-            CREATE INDEX skill_name IF NOT EXISTS 
-            FOR (s:Skill) ON (s.name)
-            """)
-
-            db.cypher_query("""
-            CREATE INDEX tech_name IF NOT EXISTS 
-            FOR (t:Technology) ON (t.name)
-            """)
-
-            db.cypher_query("""
-            CREATE INDEX company_name IF NOT EXISTS 
-            FOR (c:Company) ON (c.name)
-            """)
-
-            db.cypher_query("""
-                        CREATE INDEX person_name IF NOT EXISTS 
-                        FOR (p:Person) ON (p.name)
-                    """)
-            db.cypher_query("""
-                        CREATE INDEX person_phone IF NOT EXISTS 
-                        FOR (p:Person) ON (p.phone)
-                    """)
-
-            # Indices for Experience properties frequently used in filters
-            db.cypher_query("""
-                        CREATE INDEX experience_position IF NOT EXISTS 
-                        FOR (e:Experience) ON (e.position)
-                    """)
-            db.cypher_query("""
-                        CREATE INDEX experience_employment_type IF NOT EXISTS 
-                        FOR (e:Experience) ON (e.employment_type)
-                    """)
-            db.cypher_query("""
-                        CREATE INDEX experience_work_mode IF NOT EXISTS 
-                        FOR (e:Experience) ON (e.work_mode)
-                    """)
-
-            # Indices for Education properties
-            db.cypher_query("""
-                        CREATE INDEX education_qualification IF NOT EXISTS 
-                        FOR (edu:Education) ON (edu.qualification)
-                    """)
-            db.cypher_query("""
-                        CREATE INDEX education_field IF NOT EXISTS 
-                        FOR (edu:Education) ON (edu.field)
-                    """)
-
-            # Index for Project title
-            db.cypher_query("""
-                        CREATE INDEX project_title IF NOT EXISTS 
-                        FOR (proj:Project) ON (proj.title)
-                    """)
-
-            # Index for Course name
-            db.cypher_query("""
-                        CREATE INDEX course_name IF NOT EXISTS 
-                        FOR (c:Course) ON (c.name)
-                    """)
-
-            logger.info("Neo4j constraints and indexes initialized")
+            db.install_all_labels()
+            logger.info("Neo4j constraints and indexes installed via neomodel")
         except Exception as e:
             logger.error(f"Error initializing Neo4j schema: {str(e)}", exc_info=True)
             raise GraphDBError(f"Failed to initialize Neo4j schema: {str(e)}")

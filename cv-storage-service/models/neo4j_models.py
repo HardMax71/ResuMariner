@@ -256,8 +256,8 @@ class Experience(StructuredNode):
     start_date = StringProperty()
     end_date = StringProperty()
     duration_months = IntegerProperty(default=0)
-    employment_type = StringProperty(choices=EMPLOYMENT_TYPE_CHOICES)  # Using the dict instead of the Enum
-    work_mode = StringProperty(choices=WORK_MODE_CHOICES)  # Using the dict instead of the Enum
+    employment_type = StringProperty(choices=EMPLOYMENT_TYPE_CHOICES, index=True)
+    work_mode = StringProperty(choices=WORK_MODE_CHOICES, index=True)
 
     # Location details
     city = StringProperty()
@@ -275,7 +275,7 @@ class Project(StructuredNode):
     """
     Project node representing a project completed by a person
     """
-    title = StringProperty(required=True)
+    title = StringProperty(required=True, index=True)
     url = StringProperty()
 
     # Relationships
@@ -311,8 +311,8 @@ class Education(StructuredNode):
     """
     Education node representing educational background
     """
-    qualification = StringProperty(required=True)
-    field = StringProperty(required=True)
+    qualification = StringProperty(required=True, index=True)
+    field = StringProperty(required=True, index=True)
     start = StringProperty()
     end = StringProperty()
     status = StringProperty(choices=EDUCATION_STATUS_CHOICES)  # Using the dict instead of the Enum
@@ -365,7 +365,7 @@ class Certification(StructuredNode):
     """
     Certification node representing a professional certification
     """
-    name = StringProperty(required=True)
+    name = StringProperty(required=True, index=True)
     issue_org = StringProperty()
     issue_year = IntegerProperty()
     certificate_link = StringProperty()
@@ -378,7 +378,7 @@ class Award(StructuredNode):
     """
     Award node representing an award or achievement
     """
-    name = StringProperty(required=True)
+    name = StringProperty(required=True, index=True)
     award_type = StringProperty(choices=AWARD_TYPE_CHOICES)  # Using the dict instead of the Enum
     organization = StringProperty()
     year = IntegerProperty()
@@ -394,7 +394,7 @@ class ScientificContribution(StructuredNode):
     """
     ScientificContribution node representing a scientific publication or contribution
     """
-    title = StringProperty(required=True)
+    title = StringProperty(required=True, index=True)
     publication_type = StringProperty(choices=PUBLICATION_TYPE_CHOICES)  # Using the dict instead of the Enum
     year = IntegerProperty()
     venue = StringProperty()
@@ -410,7 +410,7 @@ class Course(StructuredNode):
     """
     Course node representing an individual course taken
     """
-    name = StringProperty(required=True)
+    name = StringProperty(required=True, index=True)
     organization = StringProperty(required=True)
     year = IntegerProperty()
     course_url = StringProperty()
