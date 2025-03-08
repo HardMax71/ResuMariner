@@ -69,10 +69,10 @@ async def store_cv(request: StoreRequest):
             vector_count=0  # No vectors stored initially
         )
     except GraphDBError as e:
-        logger.error(f"Graph database error: {str(e)}")
+        logger.error(f"Graph database error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Graph database error: {str(e)}")
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Storage operation failed: {str(e)}")
 
 

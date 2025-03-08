@@ -14,7 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 class GraphDBService:
-    """Service for storing and retrieving CV data in Neo4j using neomodel"""
+    """
+    Service for storing and retrieving CV data in Neo4j using neomodel
+    Useful links:
+    - Batch operations: https://github.com/neo4j-contrib/neomodel/blob/5bc4213598233172526cd3c59fdfed5745a80130/doc/source/batch.rst#create_or_update
+    """
 
     def __init__(self, uri: str, username: str, password: str):
         """Initialize the graph database service
@@ -67,6 +71,51 @@ class GraphDBService:
             CREATE INDEX company_name IF NOT EXISTS 
             FOR (c:Company) ON (c.name)
             """)
+
+            db.cypher_query("""
+                        CREATE INDEX person_name IF NOT EXISTS 
+                        FOR (p:Person) ON (p.name)
+                    """)
+            db.cypher_query("""
+                        CREATE INDEX person_phone IF NOT EXISTS 
+                        FOR (p:Person) ON (p.phone)
+                    """)
+
+            # Indices for Experience properties frequently used in filters
+            db.cypher_query("""
+                        CREATE INDEX experience_position IF NOT EXISTS 
+                        FOR (e:Experience) ON (e.position)
+                    """)
+            db.cypher_query("""
+                        CREATE INDEX experience_employment_type IF NOT EXISTS 
+                        FOR (e:Experience) ON (e.employment_type)
+                    """)
+            db.cypher_query("""
+                        CREATE INDEX experience_work_mode IF NOT EXISTS 
+                        FOR (e:Experience) ON (e.work_mode)
+                    """)
+
+            # Indices for Education properties
+            db.cypher_query("""
+                        CREATE INDEX education_qualification IF NOT EXISTS 
+                        FOR (edu:Education) ON (edu.qualification)
+                    """)
+            db.cypher_query("""
+                        CREATE INDEX education_field IF NOT EXISTS 
+                        FOR (edu:Education) ON (edu.field)
+                    """)
+
+            # Index for Project title
+            db.cypher_query("""
+                        CREATE INDEX project_title IF NOT EXISTS 
+                        FOR (proj:Project) ON (proj.title)
+                    """)
+
+            # Index for Course name
+            db.cypher_query("""
+                        CREATE INDEX course_name IF NOT EXISTS 
+                        FOR (c:Course) ON (c.name)
+                    """)
 
             logger.info("Neo4j constraints and indexes initialized")
         except Exception as e:
@@ -159,50 +208,30 @@ class GraphDBService:
             # Extract professional profile
             professional_profile = cv_data.get("professional_profile", {})
             summary = professional_profile.get("summary", "")
-
-            # Extract preferences
             preferences = professional_profile.get("preferences", {})
             role = preferences.get("role", "")
             salary = preferences.get("salary")
 
-            # Get or create the Person node
-            try:
-                person = Person.nodes.get(email=email)
-                # Update properties
-                person.name = name
-                person.phone = phone
-                person.city = city
-                person.state = state
-                person.country = country
-                person.github_url = github_url
-                person.linkedin_url = linkedin_url
-                person.telegram_url = telegram_url
-                person.other_links = other_links
-                person.citizenship = citizenship
-                person.work_permit = work_permit
-                person.visa_sponsorship_required = visa_sponsorship_required
-                person.save()
-            except Person.DoesNotExist:
-                # Create a new Person node
-                person = Person(
-                    email=email,
-                    name=name,
-                    phone=phone,
-                    city=city,
-                    state=state,
-                    country=country,
-                    github_url=github_url,
-                    linkedin_url=linkedin_url,
-                    telegram_url=telegram_url,
-                    other_links=other_links,
-                    citizenship=citizenship,
-                    work_permit=work_permit,
-                    visa_sponsorship_required=visa_sponsorship_required
-                ).save()
+            # create_or_update returns a list of nodes, so we take the first element
+            person = Person.create_or_update({
+                "email": email,  # Unique property used for matching
+                "name": name,
+                "phone": phone,
+                "city": city,
+                "state": state,
+                "country": country,
+                "github_url": github_url,
+                "linkedin_url": linkedin_url,
+                "telegram_url": telegram_url,
+                "other_links": other_links,
+                "citizenship": citizenship,
+                "work_permit": work_permit,
+                "visa_sponsorship_required": visa_sponsorship_required
+            })[0]
 
-            # Create the CV node with cv_id instead of id
+            # Create the CV node
             cv = CV(
-                cv_id=cv_id,  # Updated to use cv_id instead of id
+                cv_id=cv_id,
                 summary=summary,
                 desired_role=role,
                 salary_expectation=salary,
@@ -218,24 +247,13 @@ class GraphDBService:
             raise GraphDBError(f"Failed to create base CV record: {str(e)}")
 
     def _add_skills(self, person: Person, cv_data: Dict[str, Any]) -> None:
-        """Add skills to a person using neomodel"""
-        skills = cv_data.get("skills", [])
-        if not skills:
-            return
-
+        """Add skills to a person using neomodel with create_or_update"""
+        skills = cv_data.get("skills", []) or []
         skills_created = 0
+
         for skill_name in skills:
-            if not skill_name:  # Skip empty skills
-                continue
-
             try:
-                # Get or create skill
-                try:
-                    skill = Skill.nodes.get(name=skill_name)
-                except Skill.DoesNotExist:
-                    skill = Skill(name=skill_name).save()
-
-                # Connect person to skill if not already connected
+                skill = Skill.create_or_update({"name": skill_name})[0]
                 if not person.skills.is_connected(skill):
                     person.skills.connect(skill)
                     skills_created += 1
@@ -245,12 +263,10 @@ class GraphDBService:
         logger.debug(f"Created {skills_created} skill relationships for person {person.email}")
 
     def _add_employment_history(self, person: Person, cv_data: Dict[str, Any]) -> None:
-        """Add employment history to a person using neomodel"""
-        jobs = cv_data.get("employment_history", [])
-        if not jobs:
-            return
-
+        """Add employment history to a person using neomodel with upserting"""
+        jobs = cv_data.get("employment_history", []) or []
         created_count = 0
+
         for job in jobs:
             try:
                 company_name = job.get("company", "Unknown")
@@ -288,46 +304,28 @@ class GraphDBService:
                 # Connect Person to Experience
                 person.experiences.connect(experience)
 
-                # Get or create Company
-                try:
-                    company = Company.nodes.get(name=company_name)
-                except Company.DoesNotExist:
-                    company = Company(name=company_name).save()
-
-                # Connect Experience to Company
+                # Upsert Company node using create_or_update (using name as unique identifier)
+                company = Company.create_or_update({"name": company_name})[0]
                 experience.company.connect(company)
 
                 created_count += 1
 
-                # Add key points
+                # Add key points (no upsert here as they are typically unique per experience)
                 key_points = job.get("key_points", [])
                 for idx, point_text in enumerate(key_points):
                     if not point_text:  # Skip empty points
                         continue
-
-                    # Create KeyPoint node
                     key_point = KeyPoint(
                         text=point_text,
                         index=idx,
                         source="experience"
                     ).save()
-
-                    # Connect Experience to KeyPoint
                     experience.key_points.connect(key_point)
 
-                # Add technologies
+                # Upsert technologies using create_or_update (using name as unique identifier)
                 tech_stack = job.get("tech_stack", [])
                 for tech_name in tech_stack:
-                    if not tech_name:  # Skip empty tech entries
-                        continue
-
-                    # Get or create Technology
-                    try:
-                        tech = Technology.nodes.get(name=tech_name)
-                    except Technology.DoesNotExist:
-                        tech = Technology(name=tech_name).save()
-
-                    # Connect Experience to Technology
+                    tech = Technology.create_or_update({"name": tech_name})[0]
                     experience.technologies.connect(tech)
 
             except Exception as e:
@@ -336,12 +334,10 @@ class GraphDBService:
         logger.info(f"Created {created_count} job experiences for person {person.email}")
 
     def _add_education(self, person: Person, cv_data: Dict[str, Any]) -> None:
-        """Add education to a person using neomodel"""
-        education_items = cv_data.get("education", [])
-        if not education_items:
-            return
-
+        """Add education to a person using neomodel with upserting for the Institution node"""
+        education_items = cv_data.get("education", []) or []
         created_count = 0
+
         for edu in education_items:
             try:
                 institution_name = edu.get("institution", "Unknown")
@@ -372,13 +368,8 @@ class GraphDBService:
                 # Connect Person to Education
                 person.education.connect(education)
 
-                # Get or create Institution
-                try:
-                    institution = Institution.nodes.get(name=institution_name)
-                except Institution.DoesNotExist:
-                    institution = Institution(name=institution_name).save()
-
-                # Connect Education to Institution
+                # Upsert Institution node using create_or_update (using 'name' as unique identifier)
+                institution = Institution.create_or_update({"name": institution_name})[0]
                 education.institution.connect(institution)
 
                 created_count += 1
@@ -386,31 +377,20 @@ class GraphDBService:
                 # Add coursework
                 coursework_items = edu.get("coursework", []) or []
                 for idx, course_text in enumerate(coursework_items):
-                    if not course_text:  # Skip empty coursework
-                        continue
-
-                    # Create Coursework node
                     coursework = Coursework(
                         text=course_text,
                         index=idx
                     ).save()
-
-                    # Connect Education to Coursework
                     education.coursework.connect(coursework)
 
                 # Add extras
                 extras_items = edu.get("extras", []) or []
                 for idx, extra_text in enumerate(extras_items):
-                    if not extra_text:  # Skip empty extras
-                        continue
-
-                    # Create EducationExtra node
                     extra = EducationExtra(
                         text=extra_text,
                         index=idx
                     ).save()
 
-                    # Connect Education to Extra
                     education.extras.connect(extra)
 
             except Exception as e:
@@ -419,58 +399,43 @@ class GraphDBService:
         logger.info(f"Created {created_count} education records for person {person.email}")
 
     def _add_projects(self, person: Person, cv_data: Dict[str, Any]) -> None:
-        """Add projects to a person using neomodel"""
-        projects_data = cv_data.get("projects", [])
-        if not projects_data:
-            return
-
+        """Add projects to a person using neomodel with upserting"""
+        projects_data = cv_data.get("projects", []) or []
         created_count = 0
+
         for project_data in projects_data:
             try:
                 title = project_data.get("title", "Unknown")
                 url = project_data.get("url")
 
-                # Create Project node
-                project = Project(
-                    title=title,
-                    url=url
-                ).save()
+                # Upsert Project node using create_or_update, using title and url as unique identifiers
+                project = Project.create_or_update({
+                    "title": title,
+                    "url": url
+                })[0]
 
-                # Connect Person to Project
-                person.projects.connect(project)
+                # Connect Person to Project if not already connected
+                if not person.projects.is_connected(project):
+                    person.projects.connect(project)
 
                 created_count += 1
 
-                # Add key points
+                # Add key points (these are created as new nodes since they're specific to this project)
                 key_points = project_data.get("key_points", [])
                 for idx, point_text in enumerate(key_points):
-                    if not point_text:  # Skip empty points
-                        continue
-
-                    # Create KeyPoint node
                     key_point = KeyPoint(
                         text=point_text,
                         index=idx,
                         source="project"
                     ).save()
 
-                    # Connect Project to KeyPoint
                     project.key_points.connect(key_point)
 
-                # Add technologies
                 tech_stack = project_data.get("tech_stack", [])
                 for tech_name in tech_stack:
-                    if not tech_name:  # Skip empty tech entries
-                        continue
-
-                    # Get or create Technology
-                    try:
-                        tech = Technology.nodes.get(name=tech_name)
-                    except Technology.DoesNotExist:
-                        tech = Technology(name=tech_name).save()
-
-                    # Connect Project to Technology
-                    project.technologies.connect(tech)
+                    tech = Technology.create_or_update({"name": tech_name})[0]
+                    if not project.technologies.is_connected(tech):
+                        project.technologies.connect(tech)
 
             except Exception as e:
                 logger.warning(f"Error creating project: {str(e)}", exc_info=True)
@@ -478,12 +443,10 @@ class GraphDBService:
         logger.info(f"Created {created_count} projects for person {person.email}")
 
     def _add_languages(self, person: Person, cv_data: Dict[str, Any]) -> None:
-        """Add language proficiencies to a person using neomodel"""
-        languages_data = cv_data.get("language_proficiency", [])
-        if not languages_data:
-            return
-
+        """Add language proficiencies to a person using neomodel with upserting"""
+        languages_data = cv_data.get("language_proficiency", []) or []
         languages_created = 0
+
         for lang_data in languages_data:
             try:
                 language_name = lang_data.get("language", "Unknown")
@@ -491,13 +454,8 @@ class GraphDBService:
                 self_assessed = level_data.get("self_assessed", "Unknown")
                 cefr = level_data.get("cefr", "Unknown")
 
-                # Get or create Language node
-                try:
-                    language = Language.nodes.get(name=language_name)
-                except Language.DoesNotExist:
-                    language = Language(name=language_name).save()
-
-                # Connect Person to Language with proficiency details
+                # Upsert Language node using create_or_update (using 'name' as the unique identifier)
+                language = Language.create_or_update({"name": language_name})[0]
                 person.languages.connect(language, {
                     "self_assessed": self_assessed,
                     "cefr": cefr
@@ -512,17 +470,12 @@ class GraphDBService:
 
     def _add_certifications(self, person: Person, cv_data: Dict[str, Any]) -> None:
         """Add certifications to a person using neomodel"""
-        certifications_data = cv_data.get("certifications", [])
-        if not certifications_data:
-            return
-
+        certifications_data = cv_data.get("certifications", []) or []
         created_count = 0
+
         for cert_data in certifications_data:
             try:
                 name = cert_data.get("name")
-                if not name:  # Skip certifications without names
-                    name = "Untitled Certification"
-
                 issue_org = cert_data.get("issue_org")
                 issue_year = cert_data.get("issue_year")
                 certificate_link = cert_data.get("certificate_link")
@@ -537,7 +490,6 @@ class GraphDBService:
 
                 # Connect Person to Certification
                 person.certifications.connect(certification)
-
                 created_count += 1
 
             except Exception as e:
@@ -547,11 +499,9 @@ class GraphDBService:
 
     def _add_courses(self, person: Person, cv_data: Dict[str, Any]) -> None:
         """Add courses to a person using neomodel"""
-        courses_data = cv_data.get("courses", [])
-        if not courses_data:
-            return
-
+        courses_data = cv_data.get("courses", []) or []
         created_count = 0
+
         for course_data in courses_data:
             try:
                 name = course_data.get("name")
@@ -592,11 +542,9 @@ class GraphDBService:
 
     def _add_awards(self, person: Person, cv_data: Dict[str, Any]) -> None:
         """Add awards to a person using neomodel"""
-        awards_data = cv_data.get("awards", [])
-        if not awards_data:
-            return
-
+        awards_data = cv_data.get("awards", []) or []
         created_count = 0
+
         for award_data in awards_data:
             try:
                 name = award_data.get("name", "Unknown Award")
@@ -630,17 +578,9 @@ class GraphDBService:
 
     def _add_scientific_contributions(self, person: Person, cv_data: Dict[str, Any]) -> None:
         """Add scientific contributions to a person using neomodel"""
-        contributions_data = cv_data.get("scientific_contributions", [])
-
-        # Handle both single item and list
-        if not contributions_data:
-            return
-
-        # Convert single item to list if needed
-        if not isinstance(contributions_data, list):
-            contributions_data = [contributions_data]
-
+        contributions_data = cv_data.get("scientific_contributions", []) or []
         created_count = 0
+
         for contribution_data in contributions_data:
             try:
                 title = contribution_data.get("title", "Unknown Contribution")
@@ -661,8 +601,6 @@ class GraphDBService:
                     url=url,
                     description=description
                 ).save()
-
-                # Connect Person to ScientificContribution
                 person.scientific_contributions.connect(contribution)
 
                 created_count += 1
@@ -683,27 +621,22 @@ class GraphDBService:
         Returns:
             Dictionary with person details and CV IDs if found, None otherwise
         """
-        try:
-            # Try to find by email
-            try:
-                person = Person.nodes.get(email=email)
-            except Person.DoesNotExist:
-                return None
+        filters = {"email": email}
+        if name is not None:
+            filters["name"] = name
+        if phone is not None:
+            filters["phone"] = phone
 
-            # Get CV IDs
-            cv_ids = []
-            for cv in person.cv.all():
-                cv_ids.append(cv.cv_id)  # Updated to use cv_id
-
-            return {
-                "email": person.email,
-                "name": person.name,
-                "phone": person.phone,
-                "cv_ids": cv_ids
-            }
-        except Exception as e:
-            logger.warning(f"Error finding existing person: {str(e)}", exc_info=True)
+        person = Person.nodes.filter(**filters).first_or_none()
+        if not person:
             return None
+
+        return {
+            "email": person.email,
+            "name": person.name,
+            "phone": person.phone,
+            "cv_ids": [cv.cv_id for cv in person.cv.all()]
+        }
 
     def get_cv_details(self, cv_ids: List[str]) -> Dict[str, Dict[str, Any]]:
         """Get basic details for a list of CVs using neomodel
@@ -716,46 +649,37 @@ class GraphDBService:
         """
         result = {}
 
-        try:
-            for cv_id in cv_ids:
-                try:
-                    # Find the CV by cv_id instead of id
-                    cv_node = CV.nodes.get(cv_id=cv_id)  # Updated to use cv_id
+        for cv_id in cv_ids:
+            cv_node = CV.nodes.filter(cv_id=cv_id).first_or_none()
+            if not cv_node:
+                logger.warning(f"CV with ID {cv_id} not found")
+                continue
 
-                    # Get the person connected to this CV
-                    person = cv_node.person.get()
+            # Get the connected person.
+            person = cv_node.person.first()
 
-                    # Get experiences
-                    experiences = []
-                    for exp in person.experiences.all():
-                        company = exp.company.get()
-                        experiences.append({
-                            "company": company.name,
-                            "position": exp.position,
-                        })
+            # Build experiences list.
+            experiences = []
+            for exp in person.experiences.all():
+                company = exp.company.get()
+                experiences.append({
+                    "company": company.name,
+                    "position": exp.position,
+                })
+            skills = [skill.name for skill in person.skills.all()]
 
-                    # Get skills
-                    skills = [skill.name for skill in person.skills.all()]
+            result[cv_id] = {
+                "name": person.name,
+                "email": person.email,
+                "city": person.city,
+                "country": person.country,
+                "summary": cv_node.summary,
+                "desired_role": cv_node.desired_role,
+                "experiences": experiences,
+                "skills": skills
+            }
 
-                    # Create result entry
-                    result[cv_id] = {
-                        "name": person.name,
-                        "email": person.email,
-                        "city": person.city,
-                        "country": person.country,
-                        "summary": cv_node.summary,
-                        "desired_role": cv_node.desired_role,
-                        "experiences": experiences,
-                        "skills": skills
-                    }
-                except (CV.DoesNotExist, Person.DoesNotExist):
-                    logger.warning(f"CV with ID {cv_id} not found or has no connected person")
-                    continue
-
-            return result
-        except Exception as e:
-            logger.error(f"Error retrieving CV details: {str(e)}")
-            raise GraphDBError(f"Failed to retrieve CV details: {str(e)}")
+        return result
 
     def delete_cv(self, cv_id: str) -> bool:
         """Delete a CV and all related nodes using neomodel
