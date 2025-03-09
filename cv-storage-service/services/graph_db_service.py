@@ -7,7 +7,7 @@ from models.neo4j_models import (
     Project, Institution, Education, Coursework, EducationExtra,
     Language, Certification, Award, ScientificContribution, Course
 )
-from neomodel import config, db, install_all_labels
+from neomodel import config, db
 from utils.errors import GraphDBError, DatabaseConnectionError
 
 logger = logging.getLogger(__name__)
@@ -45,6 +45,9 @@ class GraphDBService:
     def _initialize_db(self) -> None:
         """Initialize database with constraints and indexes"""
         try:
+            # Stupid idea of removing and reinstalling labels comes from:
+            # https://github.com/neo4j-contrib/neomodel/issues/539#issuecomment-906157466
+            db.remove_all_labels()
             db.install_all_labels()
             logger.info("Neo4j constraints and indexes installed via neomodel")
         except Exception as e:
@@ -451,17 +454,8 @@ class GraphDBService:
                     certificate_url=certificate_url
                 ).save()
 
-                # Since we don't have a direct connection in our Person model to Course,
-                # we'll add it using a custom Cypher query
-                db.cypher_query(
-                    """
-                    MATCH (p:Person), (c:Course)
-                    WHERE id(p) = $person_id AND id(c) = $course_id
-                    CREATE (p)-[:COMPLETED_COURSE]->(c)
-                    """,
-                    {"person_id": person.id, "course_id": course.id}
-                )
-
+                # Connect person to course using the relationship
+                person.courses.connect(course)
                 created_count += 1
 
             except Exception as e:
@@ -550,11 +544,8 @@ class GraphDBService:
         Returns:
             Dictionary with person details and CV IDs if found, None otherwise
         """
-        filters = {"email": email}
-        if name is not None:
-            filters["name"] = name
-        if phone is not None:
-            filters["phone"] = phone
+        # Create filters with only non-None values in a single expression
+        filters = {k: v for k, v in {"email": email, "name": name, "phone": phone}.items() if v is not None}
 
         person = Person.nodes.filter(**filters).first_or_none()
         if not person:
@@ -611,61 +602,48 @@ class GraphDBService:
         return result
 
     def delete_cv(self, cv_id: str) -> bool:
-        """Delete a CV and all related nodes using neomodel
-
-        Args:
-            cv_id: CV ID to delete
-
-        Returns:
-            True if successful, False otherwise
-        """
+        """Delete a CV and all related nodes using neomodel"""
+        cv = CV.nodes.get_or_none(cv_id=cv_id)
+        if not cv:
+            logger.warning(f"CV with ID {cv_id} not found")
+            return False
         try:
-            try:
-                # Find the CV by cv_id instead of id
-                cv = CV.nodes.get(cv_id=cv_id)  # Updated to use cv_id
+            # Delete related nodes and relationships for this person
+            # We'll use Cypher for this to handle complex cascading deletion
+            db.cypher_query(
+                """
+                MATCH (cv:CV {cv_id: $cv_id})  
+                OPTIONAL MATCH (p:Person)-[:HAS_CV]->(cv)
 
-                # Delete related nodes and relationships for this person
-                # We'll use Cypher for this to handle complex cascading deletion
-                db.cypher_query(
-                    """
-                    MATCH (cv:CV {cv_id: $cv_id})  
-                    OPTIONAL MATCH (p:Person)-[:HAS_CV]->(cv)
+                // Get all experiences
+                OPTIONAL MATCH (p)-[:HAD_EXPERIENCE]->(exp:Experience)
+                OPTIONAL MATCH (exp)-[:HAS_KEY_POINT]->(kp:KeyPoint)
 
-                    // Get all experiences
-                    OPTIONAL MATCH (p)-[:HAD_EXPERIENCE]->(exp:Experience)
-                    OPTIONAL MATCH (exp)-[:HAS_KEY_POINT]->(kp:KeyPoint)
+                // Get all projects
+                OPTIONAL MATCH (p)-[:COMPLETED_PROJECT]->(proj:Project)
+                OPTIONAL MATCH (proj)-[:HAS_KEY_POINT]->(pkp:KeyPoint)
 
-                    // Get all projects
-                    OPTIONAL MATCH (p)-[:COMPLETED_PROJECT]->(proj:Project)
-                    OPTIONAL MATCH (proj)-[:HAS_KEY_POINT]->(pkp:KeyPoint)
+                // Get all education records
+                OPTIONAL MATCH (p)-[:EDUCATED_AT]->(edu:Education)
+                OPTIONAL MATCH (edu)-[:INCLUDES_COURSEWORK]->(cw:Coursework)
+                OPTIONAL MATCH (edu)-[:HAS_EXTRA]->(ex:EducationExtra)
 
-                    // Get all education records
-                    OPTIONAL MATCH (p)-[:EDUCATED_AT]->(edu:Education)
-                    OPTIONAL MATCH (edu)-[:INCLUDES_COURSEWORK]->(cw:Coursework)
-                    OPTIONAL MATCH (edu)-[:HAS_EXTRA]->(ex:EducationExtra)
+                // Get other records
+                OPTIONAL MATCH (p)-[:COMPLETED_COURSE]->(course:Course)
+                OPTIONAL MATCH (p)-[:HAS_CERTIFICATION]->(cert:Certification)
+                OPTIONAL MATCH (p)-[:RECEIVED_AWARD]->(award:Award)
+                OPTIONAL MATCH (p)-[:AUTHORED]->(sc:ScientificContribution)
 
-                    // Get other records
-                    OPTIONAL MATCH (p)-[:COMPLETED_COURSE]->(course:Course)
-                    OPTIONAL MATCH (p)-[:HAS_CERTIFICATION]->(cert:Certification)
-                    OPTIONAL MATCH (p)-[:RECEIVED_AWARD]->(award:Award)
-                    OPTIONAL MATCH (p)-[:AUTHORED]->(sc:ScientificContribution)
+                // Delete all related nodes but NOT the shared ones (Company, Tech, etc.)
+                DETACH DELETE exp, kp, proj, pkp, edu, cw, ex, course, cert, award, sc
 
-                    // Delete all related nodes but NOT the shared ones (Company, Tech, etc.)
-                    DETACH DELETE exp, kp, proj, pkp, edu, cw, ex, course, cert, award, sc
-
-                    // Delete the CV itself, but keep the person
-                    DETACH DELETE cv
-                    """,
-                    {"cv_id": cv_id}  # This now refers to the cv_id property
-                )
-
-                logger.info(f"Deleted CV {cv_id} and related nodes")
-                return True
-
-            except CV.DoesNotExist:
-                logger.warning(f"CV with ID {cv_id} not found")
-                return False
-
+                // Delete the CV itself, but keep the person
+                DETACH DELETE cv
+                """,
+                {"cv_id": cv_id}  # This now refers to the cv_id property
+            )
+            logger.info(f"Successfully deleted CV {cv_id} and related nodes")
+            return True
         except Exception as e:
             logger.error(f"Error deleting CV {cv_id}: {str(e)}")
             raise GraphDBError(f"Failed to delete CV: {str(e)}")

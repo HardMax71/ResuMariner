@@ -172,6 +172,7 @@ class Person(StructuredNode):
     certifications = RelationshipTo('Certification', 'HAS_CERTIFICATION', model=HasCertificationRel)
     awards = RelationshipTo('Award', 'RECEIVED_AWARD', model=ReceivedAwardRel)
     scientific_contributions = RelationshipTo('ScientificContribution', 'AUTHORED', model=AuthoredRel)
+    courses = RelationshipTo('Course', 'COMPLETED_COURSE')
 
     @classmethod
     def get_or_create(cls, email, **properties):
