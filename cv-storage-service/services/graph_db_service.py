@@ -1,4 +1,5 @@
 import logging
+import urllib.parse
 import uuid
 from typing import Dict, List, Any, Optional
 
@@ -29,8 +30,10 @@ class GraphDBService:
             password: Neo4j password
         """
         try:
-            # Configure neomodel
-            config.DATABASE_URL = f"bolt://{username}:{password}@{uri.replace('bolt://', '')}"
+            parsed_uri = urllib.parse.urlparse(uri)
+            hostname = parsed_uri.hostname or "localhost"
+            port = parsed_uri.port or 7687
+            config.DATABASE_URL = f"bolt://{username}:{password}@{hostname}:{port}"
 
             # Test the connection
             result, _ = db.cypher_query("MATCH (n) RETURN COUNT(n) AS count LIMIT 1")
