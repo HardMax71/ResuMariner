@@ -1,9 +1,7 @@
 import logging
 
-logger = logging.getLogger(__name__)
-from fastapi import HTTPException, APIRouter
-
 from config import settings
+from fastapi import HTTPException, APIRouter
 from models.storage_models import (
     StoreRequest, StoreResponse,
     VectorStoreRequest, VectorStoreResponse
@@ -11,6 +9,8 @@ from models.storage_models import (
 from services.graph_db_service import GraphDBService
 from services.vector_db_service import VectorDBService
 from utils.errors import StorageServiceError, GraphDBError, VectorDBError, DatabaseConnectionError
+
+logger = logging.getLogger(__name__)
 
 try:
     graph_db = GraphDBService(

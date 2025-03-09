@@ -1,17 +1,15 @@
 import logging
 
-from config import settings
-
-logging.basicConfig(
-    level=logging.DEBUG if settings.DEBUG else logging.INFO,
-)
-logger = logging.getLogger(__name__)
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from config import settings
 from routes.search_routes import router as search_router
 
+logging.basicConfig(
+    level=logging.DEBUG if settings.DEBUG else logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
+)
 app = FastAPI(
     title=settings.SERVICE_NAME,
     description="CV Search Service"
@@ -45,5 +43,6 @@ if __name__ == "__main__":
         "app:app",
         host="0.0.0.0",
         port=settings.PORT,
-        reload=settings.DEBUG
+        reload=settings.DEBUG,
+        log_config=None
     )

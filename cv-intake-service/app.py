@@ -1,16 +1,18 @@
-import os
-
-from config import settings
 import logging
-logging.basicConfig(
-    level=logging.DEBUG if settings.DEBUG else logging.INFO,
-)
-logger = logging.getLogger(__name__)
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from config import settings
 from routes.cv_routes import router as cv_router
+
+logging.basicConfig(
+    level=logging.DEBUG if settings.DEBUG else logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
+)
+
+logger = logging.getLogger(__name__)
 
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 logger.info(f"Ensuring uploads directory exists at: {settings.UPLOAD_DIR}")
@@ -36,4 +38,6 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=settings.DEBUG)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000,
+                reload=settings.DEBUG,
+                log_config=None)
