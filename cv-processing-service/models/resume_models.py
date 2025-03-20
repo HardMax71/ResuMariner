@@ -583,7 +583,7 @@ class ResumeStructure(BaseModel):
         description="List of awards, hackathons, competitions, and other achievements. "
                     "May be null if nothing is specified."
     )
-    scientific_contributions: ScientificContribution | None = Field(
+    scientific_contributions: List[ScientificContribution] | None = Field(
         None,
         description="Scientific and research contributions including publications, patents, "
                     "and research profiles. May be null if nothing is specified."

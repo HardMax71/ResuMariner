@@ -1,9 +1,7 @@
 import logging
 
-logger = logging.getLogger(__name__)
-from fastapi import HTTPException, APIRouter
-
 from config import settings
+from fastapi import HTTPException, APIRouter
 from models.storage_models import (
     StoreRequest, StoreResponse,
     VectorStoreRequest, VectorStoreResponse
@@ -11,6 +9,8 @@ from models.storage_models import (
 from services.graph_db_service import GraphDBService
 from services.vector_db_service import VectorDBService
 from utils.errors import StorageServiceError, GraphDBError, VectorDBError, DatabaseConnectionError
+
+logger = logging.getLogger(__name__)
 
 try:
     graph_db = GraphDBService(
@@ -69,10 +69,10 @@ async def store_cv(request: StoreRequest):
             vector_count=0  # No vectors stored initially
         )
     except GraphDBError as e:
-        logger.error(f"Graph database error: {str(e)}")
+        logger.error(f"Graph database error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Graph database error: {str(e)}")
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Storage operation failed: {str(e)}")
 
 

@@ -1,15 +1,15 @@
 import logging
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from config import settings
+from routes.processing_routes import router as processing_router
 
 logging.basicConfig(
     level=logging.DEBUG if settings.DEBUG else logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
 )
-logger = logging.getLogger(__name__)
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from routes.processing_routes import router as processing_router
 
 app = FastAPI(title="CV Processing Service")
 
@@ -26,4 +26,6 @@ app.include_router(processing_router, tags=["processing"])
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app:app", host="0.0.0.0", port=8001, reload=settings.DEBUG)
+    uvicorn.run("app:app", host="0.0.0.0", port=8001,
+                reload=settings.DEBUG,
+                log_config=None)
