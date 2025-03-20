@@ -43,18 +43,9 @@ edu_status_values = [mode for mode in EducationStatus]
 # --- Reused pydantic models ---
 
 class Location(BaseModel):
-    city: str | None = Field(
-        ...,
-        description="City"
-    )
-    state: str | None = Field(
-        ...,
-        description="State"
-    )
-    country: str | None = Field(
-        ...,
-        description="Country"
-    )
+    city: str | None = Field(..., description="City")
+    state: str | None = Field(..., description="State")
+    country: str | None = Field(..., description="Country")
 
 
 # --- Personal Info Section Models ---
@@ -198,14 +189,42 @@ class EmploymentDuration(BaseModel):
     )
 
 
-class EmploymentHistoryItem(BaseModel):
-    company: str = Field(
+class Skill(BaseModel):
+    name: str = Field(
         ...,
-        description="exact company name"
+        description="Exact skill name"
     )
-    company_url: HttpUrl | None = Field(
+
+
+class CompanyInfo(BaseModel):
+    name: str = Field(
+        ...,
+        description="Exact company name"
+    )
+    url: Optional[HttpUrl] = Field(
         None,
-        description="company website url"
+        description="Company website URL"
+    )
+
+
+class KeyPointInfo(BaseModel):
+    text: str = Field(
+        ...,
+        description="The text of the key point"
+    )
+
+
+class Technology(BaseModel):
+    name: str = Field(
+        ...,
+        description="Exact technology name, preserving original capitalization and version details as needed"
+    )
+
+
+class EmploymentHistoryItem(BaseModel):
+    company: CompanyInfo = Field(
+        ...,
+        description="Company information as a nested object"
     )
     position: str = Field(
         ...,
@@ -229,13 +248,13 @@ class EmploymentHistoryItem(BaseModel):
         ...,
         description="Job location with city and country"
     )
-    key_points: list[str] = Field(
+    key_points: List[KeyPointInfo] = Field(
         ...,
-        description="Verbatim responsibility/achievement without leading bullet points or separators"
+        description="List of key point objects with text and optional index"
     )
-    tech_stack: list[str] = Field(
+    tech_stack: List[Technology] = Field(
         ...,
-        description="Extract exact technology names, preserving original capitalization, and append versions directly to the name as a single string."
+        description="List of Technology objects representing the tech stack. Each technology preserves its original capitalization and includes version details if applicable."
     )
 
 
@@ -250,30 +269,50 @@ class Project(BaseModel):
         None,
         description="if mentioned, exact url else null"
     )
-    tech_stack: list[str] = Field(
+    tech_stack: List[Technology] = Field(
         ...,
-        description="Extract exact technology names, preserving original capitalization, and append versions directly to the name as a single string."
+        description="List of Technology objects representing the tech stack. Each technology preserves its original capitalization and includes version details if applicable."
     )
-    key_points: list[str] = Field(
+    key_points: List[KeyPointInfo] = Field(
         ...,
-        description="Exact verbatim text without leading bullet points or separators"
+        description="List of key point objects with text and optional order index"
     )
 
 
 # --- Education Section Models ---
 
+class InstitutionInfo(BaseModel):
+    name: str = Field(
+        ...,
+        description="Exact institution name"
+    )
+
+
+class Coursework(BaseModel):
+    text: str = Field(
+        ...,
+        description="Detailed description of a coursework item"
+    )
+
+
+class EducationExtra(BaseModel):
+    text: str = Field(
+        ...,
+        description="Detailed description of an additional educational achievement or extra detail (e.g., GPA, awards)"
+    )
+
 
 class EducationItem(BaseModel):
-    institution: str = Field(
+    institution: InstitutionInfo = Field(
         ...,
-        description="exact name (only include accredited institutions)"
+        description="Institution information as a nested object"
     )
     qualification: str | None = Field(
         ...,
         description="academic degree (e.g., Bachelor, Master; do not include field details; "
                     "if no degree mentioned - that's not education; put it into courses)"
     )
-    study_field: str = Field(
+    field: str = Field(
         ...,
         description="exact study field (e.g., Chemistry, Computer Science)"
     )
@@ -295,13 +334,13 @@ class EducationItem(BaseModel):
         ...,
         description=f"Exactly one of: {edu_status_values}"
     )
-    coursework: list[str] | None = Field(
+    coursework: List[Coursework] | None = Field(
         ...,
-        description="exact course work details"
+        description="List of Coursework objects representing detailed course work information"
     )
-    extras: list[str] | None = Field(
+    extras: List[EducationExtra] | None = Field(
         ...,
-        description="verbatim achievements, courses, GPA, etc."
+        description="List of EducationExtra objects representing additional achievements, courses, GPA, etc."
     )
 
 
@@ -353,7 +392,18 @@ class Certification(BaseModel):
 
 # --- Language Proficiency Section Models ---
 
-class ProficiencyLevel(BaseModel):
+class Language(BaseModel):
+    name: str = Field(
+        ...,
+        description="exact language name"
+    )
+
+
+class LanguageProficiencyItem(BaseModel):
+    language: Language = Field(
+        ...,
+        description="exact language name"
+    )
     self_assessed: str = Field(
         ...,
         description="verbatim level"
@@ -361,17 +411,6 @@ class ProficiencyLevel(BaseModel):
     cefr: str = Field(
         pattern=r'^(A1|A2|B1|B2|C1|C2|Native)$',
         description="Language knowledge level in CEFR, one of: A1|A2|B1|B2|C1|C2|Native"
-    )
-
-
-class LanguageProficiencyItem(BaseModel):
-    language: str = Field(
-        ...,
-        description="exact name"
-    )
-    level: ProficiencyLevel = Field(
-        ...,
-        description="Language proficiency details with self-assessed level and CEFR equivalent."
     )
 
 
@@ -439,7 +478,8 @@ class Award(BaseModel):
     )
     position: str | None = Field(
         None,
-        description="Position/ranking achieved (e.g., '1st place', 'Finalist') or null if not applicable"
+        description="Position/ranking achieved (e.g., '1st place', 'Finalist') "
+                    "or null if not applicable"
     )
     description: str | None = Field(
         None,
@@ -501,19 +541,21 @@ class ScientificContribution(BaseModel):
 class ResumeStructure(BaseModel):
     personal_info: PersonalInfo = Field(
         ...,
-        description="Personal information section containing name, resume language, contact, and demographics."
+        description="Personal information section containing name, resume language, "
+                    "contact, and demographics."
     )
     professional_profile: ProfessionalProfile = Field(
         ...,
         description="Professional profile including summary and job preferences."
     )
-    skills: List[str] = Field(
+    skills: List[Skill] = Field(
         ...,
-        description="List of exact skill names"
+        description="List of Skill objects, each representing an exact skill name"
     )
     employment_history: List[EmploymentHistoryItem] = Field(
         ...,
-        description="List of employment history items with company, position, duration, and related details."
+        description="List of employment history items with company, position, duration, "
+                    "and related details."
     )
     projects: List[Project] | None = Field(
         None,
@@ -538,15 +580,18 @@ class ResumeStructure(BaseModel):
     )
     awards: List[Award] | None = Field(
         None,
-        description="List of awards, hackathons, competitions, and other achievements. May be null if nothing is specified."
+        description="List of awards, hackathons, competitions, and other achievements. "
+                    "May be null if nothing is specified."
     )
     scientific_contributions: ScientificContribution | None = Field(
         None,
-        description="Scientific and research contributions including publications, patents, and research profiles. May be null if nothing is specified."
+        description="Scientific and research contributions including publications, patents, "
+                    "and research profiles. May be null if nothing is specified."
     )
     validation_metadata: ValidationMetadata = Field(
         ...,
-        description="Metadata for validation including text characters processed, links processed, and any anomalies."
+        description="Metadata for validation including text characters processed, links processed, "
+                    "and any anomalies."
     )
 
 

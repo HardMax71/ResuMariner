@@ -3,7 +3,7 @@ from enum import Enum
 
 from neomodel import (
     StringProperty, IntegerProperty, DateTimeProperty, BooleanProperty,
-    JSONProperty, RelationshipTo, RelationshipFrom, StructuredNode, StructuredRel, ZeroOrOne, ZeroOrMore, One
+    JSONProperty, RelationshipTo, StructuredNode, StructuredRel, ArrayProperty
 )
 
 
@@ -43,341 +43,205 @@ class PublicationType(Enum):
     OTHER = "other"
 
 
+# Convert Enum classes to dictionaries for neomodel choices
+WORK_MODE_CHOICES = {e.value: e.value for e in WorkMode}
+EMPLOYMENT_TYPE_CHOICES = {e.value: e.value for e in EmploymentType}
+EDUCATION_STATUS_CHOICES = {e.value: e.value for e in EducationStatus}
+AWARD_TYPE_CHOICES = {e.value: e.value for e in AwardType}
+PUBLICATION_TYPE_CHOICES = {e.value: e.value for e in PublicationType}
+
+
 # Relationship models
 class BaseRelationship(StructuredRel):
     """Base relationship with common properties"""
     created_at = DateTimeProperty(default=datetime.now)
 
 
-class HasSkillRel(BaseRelationship):
-    """Relationship for a person's skill"""
-    pass
+# Node models
+
+class LanguageNode(StructuredNode):
+    name = StringProperty(required=True, unique_index=True)
 
 
-class HasCourseRel(BaseRelationship):
-    """Relationship for courses"""
-    level = StringProperty()
-    start_date = DateTimeProperty()
-    end_date = DateTimeProperty()
-
-
-class SpeaksLanguageRel(BaseRelationship):
-    """Relationship for language proficiency"""
+class LanguageProficiencyNode(StructuredNode):
+    # The proficiency details
     self_assessed = StringProperty(required=True)
     cefr = StringProperty(required=True)
+    language = RelationshipTo('LanguageNode', 'OF_LANGUAGE')
 
 
-class HasExperienceRel(BaseRelationship):
-    """Relationship for employment history"""
-    pass
-
-
-class CompletedProjectRel(BaseRelationship):
-    """Relationship for projects"""
-    pass
-
-
-class EducatedAtRel(BaseRelationship):
-    """Relationship for education"""
-    pass
-
-
-class HasCertificationRel(BaseRelationship):
-    """Relationship for certifications"""
-    pass
-
-
-class ReceivedAwardRel(BaseRelationship):
-    """Relationship for awards"""
-    pass
-
-
-class AuthoredRel(BaseRelationship):
-    """Relationship for scientific contributions"""
-    pass
-
-
-# Node models
-class Person(StructuredNode):
-    """
-    Person node representing an individual with a CV
-
-    This is the central node that connects to all other nodes in the graph.
-    """
-    # Basic information
-    email = StringProperty(unique_index=True, required=True)
-    name = StringProperty(index=True, required=True)
-    phone = StringProperty(index=True)
-
-    # Location information
-    city = StringProperty(index=True)
+class LocationNode(StructuredNode):
+    city = StringProperty()
     state = StringProperty()
-    country = StringProperty(index=True)
+    country = StringProperty()
 
-    # Professional links
-    github_url = StringProperty()
-    linkedin_url = StringProperty()
-    telegram_url = StringProperty()
-    other_links = JSONProperty()  # Store other links as JSON
 
-    # Work authorization
+class ContactLinksNode(StructuredNode):
+    telegram = StringProperty()
+    linkedin = StringProperty()
+    github = StringProperty()
+    other_links = JSONProperty()
+
+
+class ContactNode(StructuredNode):
+    email = StringProperty(required=True, unique_index=True)
+    phone = StringProperty()
+    # A relationship to a ContactLinksNode (one-to-one).
+    links = RelationshipTo('ContactLinksNode', 'HAS_LINKS')
+
+
+class WorkAuthorizationNode(StructuredNode):
     citizenship = StringProperty()
     work_permit = BooleanProperty()
     visa_sponsorship_required = BooleanProperty()
 
-    # Relationships - CV data
-    cv = RelationshipTo('CV', 'HAS_CV', cardinality=ZeroOrMore)
-    skills = RelationshipTo('Skill', 'HAS_SKILL', model=HasSkillRel)
-    experiences = RelationshipTo('Experience', 'HAD_EXPERIENCE', model=HasExperienceRel)
-    projects = RelationshipTo('Project', 'COMPLETED_PROJECT', model=CompletedProjectRel)
-    education = RelationshipTo('Education', 'EDUCATED_AT', model=EducatedAtRel)
-    languages = RelationshipTo('Language', 'SPEAKS', model=SpeaksLanguageRel)
-    certifications = RelationshipTo('Certification', 'HAS_CERTIFICATION', model=HasCertificationRel)
-    awards = RelationshipTo('Award', 'RECEIVED_AWARD', model=ReceivedAwardRel)
-    scientific_contributions = RelationshipTo('ScientificContribution', 'AUTHORED', model=AuthoredRel)
 
-    @classmethod
-    def get_or_create(cls, email, **properties):
-        """Get existing person or create a new one if not found"""
-        try:
-            # First try to find by email
-            person = cls.nodes.get(email=email)
-
-            # Update properties if provided
-            if properties:
-                for key, value in properties.items():
-                    setattr(person, key, value)
-                person.save()
-
-            return person, False
-        except cls.DoesNotExist:
-            # Create new person if not found
-            person = cls(email=email, **properties)
-            person.save()
-            return person, True
+class DemographicsNode(StructuredNode):
+    # Replace nested models with relationships.
+    current_location = RelationshipTo('LocationNode', 'HAS_LOCATION')
+    work_authorization = RelationshipTo('WorkAuthorizationNode', 'HAS_WORK_AUTHORIZATION')
 
 
-class CV(StructuredNode):
-    """
-    CV node representing a person's curriculum vitae
+class PersonalInfoNode(StructuredNode):
+    name = StringProperty(required=True)
+    resume_lang = StringProperty(required=True)
+    # Relationships replacing nested dicts:
+    contact = RelationshipTo('ContactNode', 'HAS_CONTACT')
+    demographics = RelationshipTo('DemographicsNode', 'HAS_DEMOGRAPHICS')
 
-    This node contains overall CV information and connects to a person.
-    """
-    # Use a UUID as string for the ID
-    id = StringProperty(unique_index=True, required=True)
-    created_at = DateTimeProperty(default=datetime.now)
-    updated_at = DateTimeProperty(default=datetime.now)
+
+class PreferencesNode(StructuredNode):
+    role = StringProperty(required=True)
+    # Using ArrayProperty with a base StringProperty that enforces valid choices:
+    employment_types = ArrayProperty(base_property=StringProperty(choices=EMPLOYMENT_TYPE_CHOICES))
+    work_modes = ArrayProperty(base_property=StringProperty(choices=WORK_MODE_CHOICES))
+    salary = StringProperty()
+
+
+class ProfessionalProfileNode(StructuredNode):
     summary = StringProperty()
-    desired_role = StringProperty(index=True)
-    salary_expectation = StringProperty()
-    resume_lang = StringProperty(default="en")  # ISO 639-1 language code
-
-    # Relationships
-    person = RelationshipFrom('Person', 'HAS_CV', cardinality=One)
-
-    def before_save(self):
-        """Update the 'updated_at' timestamp before saving the node"""
-        self.updated_at = datetime.now()
+    preferences = RelationshipTo('PreferencesNode', 'HAS_PREFERENCES')
 
 
-class Skill(StructuredNode):
-    """
-    Skill node representing a single skill or competency
-    """
-    name = StringProperty(unique_index=True, required=True)
-
-    # Relationships
-    persons = RelationshipFrom('Person', 'HAS_SKILL', model=HasSkillRel)
+class EmploymentDurationNode(StructuredNode):
+    date_format = StringProperty(required=True)
+    start = StringProperty(required=True)
+    end = StringProperty(required=True)
+    duration_months = IntegerProperty(required=True)
 
 
-class Technology(StructuredNode):
-    """
-    Technology node representing a specific technology or tool
-    """
-    name = StringProperty(unique_index=True, required=True)
-
-    # Relationships
-    experiences = RelationshipFrom('Experience', 'USES_TECHNOLOGY')
-    projects = RelationshipFrom('Project', 'USES_TECHNOLOGY')
-
-
-class Company(StructuredNode):
-    """
-    Company node representing an organization where a person has worked
-    """
-    name = StringProperty(unique_index=True, required=True)
-
-    # Relationships
-    experiences = RelationshipFrom('Experience', 'AT_COMPANY')
-
-
-class Experience(StructuredNode):
-    """
-    Experience node representing a job or work experience
-    """
-    position = StringProperty(required=True, index=True)
-    start_date = StringProperty()
-    end_date = StringProperty()
-    duration_months = IntegerProperty(default=0)
-    employment_type = StringProperty(choices=EmploymentType)
-    work_mode = StringProperty(choices=WorkMode)
-
-    # Location details
-    city = StringProperty()
-    state = StringProperty()
-    country = StringProperty()
-
-    # Relationships
-    person = RelationshipFrom('Person', 'HAD_EXPERIENCE', cardinality=One)
-    company = RelationshipTo('Company', 'AT_COMPANY', cardinality=One)
-    key_points = RelationshipTo('KeyPoint', 'HAS_KEY_POINT')
-    technologies = RelationshipTo('Technology', 'USES_TECHNOLOGY')
-
-
-class Project(StructuredNode):
-    """
-    Project node representing a project completed by a person
-    """
-    title = StringProperty(required=True)
+class CompanyInfoNode(StructuredNode):
+    name = StringProperty(required=True, unique_index=True)
     url = StringProperty()
 
-    # Relationships
-    person = RelationshipFrom('Person', 'COMPLETED_PROJECT', cardinality=One)
-    key_points = RelationshipTo('KeyPoint', 'HAS_KEY_POINT')
-    technologies = RelationshipTo('Technology', 'USES_TECHNOLOGY')
 
-
-class KeyPoint(StructuredNode):
-    """
-    KeyPoint node representing a bullet point or achievement
-    """
+class KeyPointInfoNode(StructuredNode):
     text = StringProperty(required=True)
-    index = IntegerProperty(default=0)  # For ordering
-    source = StringProperty()  # e.g., 'experience' or 'project'
-
-    # Relationships
-    experience = RelationshipFrom('Experience', 'HAS_KEY_POINT', cardinality=ZeroOrOne)
-    project = RelationshipFrom('Project', 'HAS_KEY_POINT', cardinality=ZeroOrOne)
 
 
-class Institution(StructuredNode):
-    """
-    Institution node representing an educational institution
-    """
-    name = StringProperty(unique_index=True, required=True)
-
-    # Relationships
-    educations = RelationshipFrom('Education', 'AT_INSTITUTION')
+class TechnologyNode(StructuredNode):
+    name = StringProperty(required=True, unique_index=True)
 
 
-class Education(StructuredNode):
-    """
-    Education node representing educational background
-    """
-    qualification = StringProperty(required=True)
+class EmploymentHistoryItemNode(StructuredNode):
+    position = StringProperty(required=True)
+    employment_type = StringProperty(required=True, choices=EMPLOYMENT_TYPE_CHOICES)
+    work_mode = StringProperty(required=True, choices=WORK_MODE_CHOICES)
+    tech_stack = RelationshipTo('TechnologyNode', 'USES_TECHNOLOGY')
+
+    # Relationships to flattened nodes:
+    company = RelationshipTo('CompanyInfoNode', 'WORKED_AT')
+    duration = RelationshipTo('EmploymentDurationNode', 'HAS_DURATION')
+    location = RelationshipTo('LocationNode', 'LOCATED_AT')
+    key_points = RelationshipTo('KeyPointInfoNode', 'HAS_KEY_POINT')
+
+
+class ProjectNode(StructuredNode):
+    title = StringProperty(required=True)
+    url = StringProperty()
+    tech_stack = RelationshipTo('TechnologyNode', 'USES_TECHNOLOGY')
+    key_points = RelationshipTo('KeyPointInfoNode', 'HAS_KEY_POINT')
+
+
+class InstitutionInfoNode(StructuredNode):
+    name = StringProperty(required=True, unique_index=True)
+
+
+class CourseworkNode(StructuredNode):
+    text = StringProperty(required=True)
+
+
+class EducationExtraNode(StructuredNode):
+    text = StringProperty(required=True)
+
+
+class EducationItemNode(StructuredNode):
+    qualification = StringProperty()
     field = StringProperty(required=True)
     start = StringProperty()
     end = StringProperty()
-    status = StringProperty(choices=EducationStatus)
+    status = StringProperty(required=True, choices=EDUCATION_STATUS_CHOICES)
+    coursework = RelationshipTo('CourseworkNode', 'INCLUDES_COURSEWORK')
+    extras = RelationshipTo('EducationExtraNode', 'HAS_EXTRA')
 
-    # Location details
-    city = StringProperty()
-    state = StringProperty()
-    country = StringProperty()
-
-    # Relationships
-    person = RelationshipFrom('Person', 'EDUCATED_AT', cardinality=One)
-    institution = RelationshipTo('Institution', 'AT_INSTITUTION', cardinality=One)
-    coursework = RelationshipTo('Coursework', 'INCLUDES_COURSEWORK')
-    extras = RelationshipTo('EducationExtra', 'HAS_EXTRA')
+    institution = RelationshipTo('InstitutionInfoNode', 'ATTENDED')
+    location = RelationshipTo('LocationNode', 'LOCATED_AT')
 
 
-class Coursework(StructuredNode):
-    """
-    Coursework node representing coursework within an education
-    """
-    text = StringProperty(required=True)
-    index = IntegerProperty(default=0)  # For ordering
-
-    # Relationships
-    education = RelationshipFrom('Education', 'INCLUDES_COURSEWORK', cardinality=One)
-
-
-class EducationExtra(StructuredNode):
-    """
-    EducationExtra node representing additional educational achievements
-    """
-    text = StringProperty(required=True)
-    index = IntegerProperty(default=0)  # For ordering
-
-    # Relationships
-    education = RelationshipFrom('Education', 'HAS_EXTRA', cardinality=One)
-
-
-class Language(StructuredNode):
-    """
-    Language node representing a spoken language
-    """
-    name = StringProperty(unique_index=True, required=True)
-
-    # Relationships
-    persons = RelationshipFrom('Person', 'SPEAKS', model=SpeaksLanguageRel)
-
-
-class Certification(StructuredNode):
-    """
-    Certification node representing a professional certification
-    """
-    name = StringProperty(required=True)
-    issue_org = StringProperty()
-    issue_year = IntegerProperty()
-    certificate_link = StringProperty()
-
-    # Relationships
-    person = RelationshipFrom('Person', 'HAS_CERTIFICATION', cardinality=One)
-
-
-class Award(StructuredNode):
-    """
-    Award node representing an award or achievement
-    """
-    name = StringProperty(required=True)
-    award_type = StringProperty(choices=AwardType)
-    organization = StringProperty()
-    year = IntegerProperty()
-    position = StringProperty()
-    description = StringProperty()
-    url = StringProperty()
-
-    # Relationships
-    person = RelationshipFrom('Person', 'RECEIVED_AWARD', cardinality=One)
-
-
-class ScientificContribution(StructuredNode):
-    """
-    ScientificContribution node representing a scientific publication or contribution
-    """
-    title = StringProperty(required=True)
-    publication_type = StringProperty(choices=PublicationType)
-    year = IntegerProperty()
-    venue = StringProperty()
-    doi = StringProperty()
-    url = StringProperty()
-    description = StringProperty()
-
-    # Relationships
-    person = RelationshipFrom('Person', 'AUTHORED', cardinality=One)
-
-
-class Course(StructuredNode):
-    """
-    Course node representing an individual course taken
-    """
+class CourseNode(StructuredNode):
     name = StringProperty(required=True)
     organization = StringProperty(required=True)
     year = IntegerProperty()
     course_url = StringProperty()
     certificate_url = StringProperty()
 
-    # Relationships
-    person = RelationshipFrom('Person', 'COMPLETED_COURSE', cardinality=One)
+
+class CertificationNode(StructuredNode):
+    name = StringProperty(required=True)
+    issue_org = StringProperty()
+    issue_year = IntegerProperty()
+    certificate_link = StringProperty()
+
+
+class AwardNode(StructuredNode):
+    name = StringProperty(required=True)
+    award_type = StringProperty(required=True, choices=AWARD_TYPE_CHOICES)
+    organization = StringProperty(required=True)
+    year = IntegerProperty()
+    position = StringProperty()
+    description = StringProperty()
+    url = StringProperty()
+
+
+class ScientificContributionNode(StructuredNode):
+    title = StringProperty(required=True)
+    publication_type = StringProperty(required=True, choices=PUBLICATION_TYPE_CHOICES)
+    year = IntegerProperty()
+    venue = StringProperty()
+    doi = StringProperty()
+    url = StringProperty()
+    description = StringProperty()
+
+
+class SkillNode(StructuredNode):
+    name = StringProperty(required=True, unique_index=True)
+
+
+# The main CV node aggregates all the other flattened nodes.
+class CVNode(StructuredNode):
+    uid = StringProperty(required=True, unique_index=True)
+    created_at = DateTimeProperty(default=datetime.now)
+    updated_at = DateTimeProperty(default=datetime.now)
+
+    # Relationships to the various sections.
+    personal_info = RelationshipTo('PersonalInfoNode', 'HAS_PERSONAL_INFO')
+    professional_profile = RelationshipTo('ProfessionalProfileNode', 'HAS_PROFESSIONAL_PROFILE')
+    skills = RelationshipTo('SkillNode', 'HAS_SKILL')
+    employment_history = RelationshipTo('EmploymentHistoryItemNode', 'HAS_EMPLOYMENT_HISTORY')
+    projects = RelationshipTo('ProjectNode', 'HAS_PROJECT')
+    education = RelationshipTo('EducationItemNode', 'HAS_EDUCATION')
+    courses = RelationshipTo('CourseNode', 'HAS_COURSE')
+    certifications = RelationshipTo('CertificationNode', 'HAS_CERTIFICATION')
+    awards = RelationshipTo('AwardNode', 'HAS_AWARD')
+    scientific_contributions = RelationshipTo('ScientificContributionNode', 'HAS_SCIENTIFIC_CONTRIBUTION')
+    language_proficiency = RelationshipTo('LanguageProficiencyNode', 'HAS_LANGUAGE_PROFICIENCY')

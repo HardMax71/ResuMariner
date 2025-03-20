@@ -68,7 +68,8 @@ class ProcessingService:
                     async with httpx.AsyncClient() as client:
                         storage_response = await client.post(
                             f"{settings.STORAGE_SERVICE_URL}/cv",
-                            json={"job_id": cv_id, "cv_data": structured_data.model_dump(mode="json")},
+                            json={"job_id": cv_id, "cv_data": structured_data.model_dump(mode="json",
+                                                                                         exclude_none=True)},
                             timeout=60.0
                         )
 

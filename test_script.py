@@ -131,8 +131,10 @@ class CVProcessingTest:
 
         # Extract skills (all and top 3)
         if self.cv_data.get('skills'):
-            params['all_skills'] = self.cv_data['skills']
-            params['top_skills'] = self.cv_data['skills'][:min(3, len(self.cv_data['skills']))]
+            # Extract skill names from skill objects
+            skill_names = [skill.get('name') for skill in self.cv_data['skills']]
+            params['all_skills'] = skill_names
+            params['top_skills'] = skill_names[:min(3, len(skill_names))]
 
         # Extract role
         if self.cv_data.get('professional_profile', {}).get('preferences', {}).get('role'):
@@ -163,11 +165,17 @@ class CVProcessingTest:
         if self.cv_data.get('employment_history'):
             for job in self.cv_data['employment_history']:
                 if job.get('tech_stack'):
-                    tech_lists.append(job['tech_stack'])
+                    # Extract name from each technology dictionary
+                    tech_list = [tech.get('name') for tech in job['tech_stack'] if
+                                 isinstance(tech, dict) and 'name' in tech]
+                    tech_lists.append(tech_list)
         if self.cv_data.get('projects'):
             for project in self.cv_data['projects']:
                 if project.get('tech_stack'):
-                    tech_lists.append(project['tech_stack'])
+                    # Extract name from each technology dictionary
+                    tech_list = [tech.get('name') for tech in project['tech_stack'] if
+                                 isinstance(tech, dict) and 'name' in tech]
+                    tech_lists.append(tech_list)
         if tech_lists:
             technologies = list(set(itertools.chain.from_iterable(tech_lists)))
             if technologies:
@@ -224,7 +232,7 @@ class CVProcessingTest:
             if role:
                 search_payload["role"] = role
             if company:
-                search_payload["company"] = company
+                search_payload["company"] = company.get("name") if isinstance(company, dict) else company
             if location:
                 search_payload["location"] = location
             if years_experience is not None:
@@ -272,7 +280,7 @@ class CVProcessingTest:
             if role:
                 search_payload["role"] = role
             if company:
-                search_payload["company"] = company
+                search_payload["company"] = company.get("name") if isinstance(company, dict) else company
             if location:
                 search_payload["location"] = location
 
@@ -389,8 +397,12 @@ class CVProcessingTest:
         for key, description in semantic_categories.items():
             if key in params:
                 query = params[key]
-                if isinstance(query, list):
-                    query = ", ".join(query)
+                if isinstance(query, dict):
+                    query = query.get("name", "")
+                elif isinstance(query, list):
+                    # Also check if list items are dicts and convert them
+                    query = ", ".join(
+                        item.get("name", str(item)) if isinstance(item, dict) else str(item) for item in query)
                 print(f"\nRunning {description}: {query}")
                 results = self.search_semantic(query)
                 if results:
@@ -495,7 +507,7 @@ def main():
     parser.add_argument('--intake-url', default='http://intake.localhost', help='URL for intake service')
     parser.add_argument('--search-url', default='http://search.localhost', help='URL for search service')
     parser.add_argument('--no-review', action='store_true', help='Skip generating review')
-    parser.add_argument('--no-store', action='store_true', help='Skip storing in database')
+    parser.add_argument('--no-store', action='store_false', help='Skip storing in database')
     parser.add_argument('--no-search', action='store_true', help='Skip searching')
     parser.add_argument('--full-json', action='store_true', help='Print full JSON output including match details')
     parser.add_argument('--parallel', action='store_true', help='Use parallel processing')

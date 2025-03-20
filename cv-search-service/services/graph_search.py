@@ -48,71 +48,56 @@ class GraphSearchService:
         try:
             with self.driver.session() as session:
                 # Build dynamic query based on provided filters
-                match_clauses = ["MATCH (p:Person)-[:HAS_CV]->(cv:CV)"]
+                match_clauses = ["MATCH (cv:CVNode)"]
                 where_clauses = []
                 params = {}
 
                 # Skills filter
                 if skills and len(skills) > 0:
-                    match_clauses.append("MATCH (p)-[:HAS_SKILL]->(s:Skill)")
+                    match_clauses.append("MATCH (cv)-[:HAS_SKILL]->(s:SkillNode)")
                     where_clauses.append("s.name IN $skills")
                     params["skills"] = skills
 
                 # Technologies filter
                 if technologies and len(technologies) > 0:
                     match_clauses.append("""
-                    MATCH (p)-[:HAD_EXPERIENCE|COMPLETED_PROJECT]->(entity)
-                    MATCH (entity)-[:USES_TECHNOLOGY]->(t:Technology)
+                    MATCH (cv)-[:HAS_EMPLOYMENT_HISTORY|HAS_PROJECT]->(entity)
+                    MATCH (entity)-[:USES_TECHNOLOGY]->(t:TechnologyNode)
                     """)
                     where_clauses.append("t.name IN $technologies")
                     params["technologies"] = technologies
 
-                # Role filter - fixed to avoid the problematic COLLECT() in WHERE clause
+                # Role filter
                 if role:
                     match_clauses.append("""
-                    OPTIONAL MATCH (p)-[:HAD_EXPERIENCE]->(exp_role:Experience)
+                    MATCH (cv)-[:HAS_PROFESSIONAL_PROFILE]->(pp:ProfessionalProfileNode)
+                    -[:HAS_PREFERENCES]->(pref:PreferencesNode)
                     """)
-                    where_clauses.append("""
-                    (cv.desired_role CONTAINS $role OR 
-                     EXISTS {
-                        MATCH (p)-[:HAD_EXPERIENCE]->(e)
-                        WHERE toLower(e.position) CONTAINS toLower($role)
-                     })
-                    """)
+                    where_clauses.append("pref.role CONTAINS $role")
                     params["role"] = role
 
                 # Company filter
                 if company:
                     match_clauses.append("""
-                    MATCH (p)-[:HAD_EXPERIENCE]->(exp:Experience)-[:AT_COMPANY]->(c:Company)
+                    MATCH (cv)-[:HAS_EMPLOYMENT_HISTORY]->(job:EmploymentHistoryItemNode)
+                    -[:WORKED_AT]->(c:CompanyInfoNode)
                     """)
                     where_clauses.append("c.name CONTAINS $company")
                     params["company"] = company
 
-                # Location filter - fixed to avoid incorrect ANY() with arrays
+                # Location filter
                 if location:
+                    match_clauses.append("""
+                    MATCH (cv)-[:HAS_PERSONAL_INFO]->(p:PersonalInfoNode)
+                    -[:HAS_DEMOGRAPHICS]->(d:DemographicsNode)
+                    -[:HAS_LOCATION]->(loc:LocationNode)
+                    """)
                     location_where = """
-                    (p.city CONTAINS $location OR 
-                     p.country CONTAINS $location OR 
-                     EXISTS {
-                        MATCH (p)-[:HAD_EXPERIENCE]->(e)
-                        WHERE (e.city IS NOT NULL AND e.city CONTAINS $location) OR
-                              (e.country IS NOT NULL AND e.country CONTAINS $location)
-                     })
+                    (loc.city CONTAINS $location OR 
+                     loc.country CONTAINS $location)
                     """
                     where_clauses.append(location_where)
                     params["location"] = location
-
-                # Years of experience filter
-                if years_experience is not None and years_experience > 0:
-                    match_clauses.append("""
-                    MATCH (p)-[:HAD_EXPERIENCE]->(exp_years:Experience)
-                    """)
-                    where_clauses.append("""
-                    WITH p, cv, sum(exp_years.duration_months) / 12.0 AS total_years
-                    WHERE total_years >= $years_experience
-                    """)
-                    params["years_experience"] = years_experience
 
                 # Combine query parts
                 query = "\n".join(match_clauses)
@@ -121,64 +106,56 @@ class GraphSearchService:
 
                 # Add return statement with complete CV details
                 query += """
-                WITH DISTINCT p, cv
+                WITH DISTINCT cv
 
-                // Get work experiences with companies
-                OPTIONAL MATCH (p)-[:HAD_EXPERIENCE]->(exp)-[:AT_COMPANY]->(c:Company)
-                WITH p, cv, 
-                     COLLECT(DISTINCT {
-                        company: c.name, 
-                        position: exp.position,
-                        duration_months: exp.duration_months,
-                        start_date: exp.start_date,
-                        end_date: exp.end_date,
-                        employment_type: exp.employment_type,
-                        work_mode: exp.work_mode
-                     }) AS experiences
+                // Get personal info
+                MATCH (cv)-[:HAS_PERSONAL_INFO]->(p:PersonalInfoNode)
+                MATCH (p)-[:HAS_CONTACT]->(contact:ContactNode)
 
                 // Get skills
-                OPTIONAL MATCH (p)-[:HAS_SKILL]->(s:Skill)
-                WITH p, cv, experiences, COLLECT(DISTINCT s.name) AS skills
+                OPTIONAL MATCH (cv)-[:HAS_SKILL]->(s:SkillNode)
+                WITH cv, p, contact, COLLECT(DISTINCT s.name) AS skills
+
+                // Get employment history
+                OPTIONAL MATCH (cv)-[:HAS_EMPLOYMENT_HISTORY]->(job:EmploymentHistoryItemNode)
+                OPTIONAL MATCH (job)-[:WORKED_AT]->(comp:CompanyInfoNode)
+                OPTIONAL MATCH (job)-[:HAS_DURATION]->(dur:EmploymentDurationNode)
+
+                WITH cv, p, contact, skills, 
+                     COLLECT(DISTINCT {
+                        company: comp.name, 
+                        position: job.position,
+                        duration_months: dur.duration_months
+                     }) AS experiences
 
                 // Get education
-                OPTIONAL MATCH (p)-[:EDUCATED_AT]->(e:Education)-[:AT_INSTITUTION]->(i:Institution)
-                WITH p, cv, experiences, skills, 
+                OPTIONAL MATCH (cv)-[:HAS_EDUCATION]->(edu:EducationItemNode)
+                OPTIONAL MATCH (edu)-[:ATTENDED]->(inst:InstitutionInfoNode)
+
+                WITH cv, p, contact, skills, experiences,
                      COLLECT(DISTINCT {
-                        institution: i.name,
-                        qualification: e.qualification,
-                        field: e.field,
-                        start: e.start,
-                        end: e.end,
-                        status: e.status
+                        institution: inst.name,
+                        qualification: edu.qualification,
+                        field: edu.field,
+                        start: edu.start,
+                        end: edu.end,
+                        status: edu.status
                      }) AS education
 
-                // Get location info
-                OPTIONAL MATCH (p)-[:HAD_EXPERIENCE]->(exp)
-                WITH p, cv, experiences, skills, education,
-                     COLLECT(DISTINCT {
-                        city: exp.city,
-                        country: exp.country
-                     }) AS job_locations
-
                 // Calculate experience stats
-                WITH p, cv, experiences, skills, education, job_locations,
+                WITH cv, p, contact, skills, experiences, education,
                      CASE WHEN experiences IS NULL OR size(experiences) = 0 THEN 0
                           ELSE REDUCE(s = 0, exp IN experiences | s + COALESCE(exp.duration_months, 0))
                      END / 12.0 AS years_experience
 
                 // Return the complete result
                 RETURN 
-                    cv.id AS cv_id,
+                    cv.uid AS cv_id,
                     p.name AS name,
-                    p.email AS email,
-                    cv.summary AS summary,
-                    cv.desired_role AS desired_role,
-                    p.city AS city,
-                    p.country AS country,
+                    contact.email AS email,
                     skills,
                     experiences,
                     education,
-                    job_locations,
                     years_experience,
                     1.0 AS score
                 ORDER BY years_experience DESC
@@ -189,7 +166,7 @@ class GraphSearchService:
                 # Execute query
                 records = session.run(query, params)
 
-                # Process results - keep duration_months as integer
+                # Process results
                 results = []
                 for record in records:
                     # Format the data for the response
@@ -197,13 +174,7 @@ class GraphSearchService:
                         "cv_id": record["cv_id"],
                         "person_name": record["name"],
                         "email": record["email"],
-                        "summary": record.get("summary"),
-                        "desired_role": record.get("desired_role"),
-                        "location": {
-                            "city": record.get("city"),
-                            "country": record.get("country")
-                        },
-                        "experiences": record["experiences"],  # Keep original format with integer duration_months
+                        "experiences": record["experiences"],
                         "skills": record["skills"],
                         "education": record["education"],
                         "years_experience": round(record.get("years_experience", 0), 1),
@@ -227,8 +198,8 @@ class GraphSearchService:
             with self.driver.session() as session:
                 # Get skills with counts
                 skills_result = session.run("""
-                MATCH (s:Skill)<-[:HAS_SKILL]-(p:Person)
-                WITH s.name AS skill, count(DISTINCT p) AS count
+                MATCH (s:SkillNode)<-[:HAS_SKILL]-(cv:CVNode)
+                WITH s.name AS skill, count(DISTINCT cv) AS count
                 WHERE count > 0
                 RETURN skill, count
                 ORDER BY count DESC, skill
@@ -242,8 +213,8 @@ class GraphSearchService:
 
                 # Get technologies with counts
                 tech_result = session.run("""
-                MATCH (t:Technology)<-[:USES_TECHNOLOGY]-()<-[:HAD_EXPERIENCE|COMPLETED_PROJECT]-(p:Person)
-                WITH t.name AS technology, count(DISTINCT p) AS count
+                MATCH (t:TechnologyNode)<-[:USES_TECHNOLOGY]-()<-[:HAS_EMPLOYMENT_HISTORY|HAS_PROJECT]-(cv:CVNode)
+                WITH t.name AS technology, count(DISTINCT cv) AS count
                 WHERE count > 0
                 RETURN technology, count
                 ORDER BY count DESC, technology
@@ -255,22 +226,12 @@ class GraphSearchService:
                     for record in tech_result
                 ]
 
-                # Get roles with counts (from desired_role and experience positions)
+                # Get roles with counts
                 roles_result = session.run("""
-                // Get roles from CV desired_roles
-                MATCH (p:Person)-[:HAS_CV]->(cv:CV)
-                WHERE cv.desired_role IS NOT NULL
-                WITH cv.desired_role AS role, count(DISTINCT p) AS count
-
-                // Combine with roles from experiences
-                UNION
-
-                MATCH (p:Person)-[:HAD_EXPERIENCE]->(exp:Experience)
-                WHERE exp.position IS NOT NULL
-                WITH exp.position AS role, count(DISTINCT p) AS count
-
-                // Return final results
-                WITH role, count
+                MATCH (cv:CVNode)-[:HAS_PROFESSIONAL_PROFILE]->(pp:ProfessionalProfileNode)
+                -[:HAS_PREFERENCES]->(pref:PreferencesNode)
+                WHERE pref.role IS NOT NULL
+                WITH pref.role AS role, count(DISTINCT cv) AS count
                 WHERE count > 0 AND role <> ""
                 RETURN role, count
                 ORDER BY count DESC, role
@@ -284,8 +245,9 @@ class GraphSearchService:
 
                 # Get companies with counts
                 companies_result = session.run("""
-                MATCH (c:Company)<-[:AT_COMPANY]-(:Experience)<-[:HAD_EXPERIENCE]-(p:Person)
-                WITH c.name AS company, count(DISTINCT p) AS count
+                MATCH (c:CompanyInfoNode)<-[:WORKED_AT]-(job:EmploymentHistoryItemNode)
+                <-[:HAS_EMPLOYMENT_HISTORY]-(cv:CVNode)
+                WITH c.name AS company, count(DISTINCT cv) AS count
                 WHERE count > 0 AND company <> ""
                 RETURN company, count
                 ORDER BY count DESC, company
@@ -297,22 +259,16 @@ class GraphSearchService:
                     for record in companies_result
                 ]
 
-                # Get locations with counts (cities and countries)
+                # Get locations with counts
                 locations_result = session.run("""
-                // Get locations from Person nodes
-                MATCH (p:Person)
-                WHERE p.city IS NOT NULL OR p.country IS NOT NULL
-                WITH COLLECT(DISTINCT {location: p.city, count: count(p)}) + 
-                     COLLECT(DISTINCT {location: p.country, count: count(p)}) AS all_locations
-
-                // Filter and sort
+                MATCH (cv:CVNode)-[:HAS_PERSONAL_INFO]->(:PersonalInfoNode)
+                -[:HAS_DEMOGRAPHICS]->(:DemographicsNode)-[:HAS_LOCATION]->(loc:LocationNode)
+                WITH COLLECT(DISTINCT {location: loc.city, count: count(cv)}) + 
+                     COLLECT(DISTINCT {location: loc.country, count: count(cv)}) AS all_locations
                 UNWIND all_locations AS loc_data
                 WITH loc_data.location AS location, loc_data.count AS count
                 WHERE location IS NOT NULL AND location <> ""
-
-                // Combine duplicates
-                WITH location, sum(count) AS total_count
-                RETURN location, total_count AS count
+                RETURN location, count
                 ORDER BY count DESC, location
                 LIMIT 100
                 """)
@@ -322,42 +278,7 @@ class GraphSearchService:
                     for record in locations_result
                 ]
 
-                # Get experience ranges with counts
-                exp_ranges_result = session.run("""
-                MATCH (p:Person)-[:HAD_EXPERIENCE]->(exp:Experience)
-                WITH p, sum(exp.duration_months) / 12.0 AS years
-
-                // Create experience ranges
-                WITH p, years,
-                     CASE 
-                        WHEN years < 1 THEN "< 1 year"
-                        WHEN years >= 1 AND years < 3 THEN "1-3 years"
-                        WHEN years >= 3 AND years < 5 THEN "3-5 years"
-                        WHEN years >= 5 AND years < 10 THEN "5-10 years"
-                        ELSE "10+ years"
-                     END AS exp_range,
-
-                     // Also create actual year value for filtering
-                     CASE 
-                        WHEN years < 1 THEN 0
-                        WHEN years >= 1 AND years < 3 THEN 1
-                        WHEN years >= 3 AND years < 5 THEN 3
-                        WHEN years >= 5 AND years < 10 THEN 5
-                        ELSE 10
-                     END AS year_value
-
-                // Count people in each range
-                WITH exp_range, year_value, count(p) AS count
-                RETURN exp_range AS value, year_value AS numeric_value, count
-                ORDER BY year_value
-                """)
-
-                filter_options["experience_ranges"] = [
-                    {"value": record["value"], "numeric_value": record["numeric_value"], "count": record["count"]}
-                    for record in exp_ranges_result
-                ]
-
-            return filter_options
+                return filter_options
 
         except Exception as e:
             logger.error(f"Error retrieving filter options: {str(e)}")

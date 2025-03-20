@@ -52,8 +52,8 @@ async def store_cv(request: StoreRequest):
         # Check if this person already exists (for logging only)
         is_update = False
         if email != "unknown":
-            existing_person = graph_db.find_existing_person(email)
-            is_update = existing_person is not None and len(existing_person.get("cv_ids", [])) > 0
+            existing_cv = graph_db.find_existing_cv_by_email(email)
+            is_update = existing_cv is not None
 
         # Store in graph database (will handle duplicate detection internally)
         graph_id = graph_db.store_cv(request.cv_data, request.job_id)
