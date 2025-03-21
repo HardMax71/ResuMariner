@@ -113,6 +113,8 @@ Processing completed! CV ID: f0ffd328-ed4c-4e80-8b77-f4ab1b7b6650
 
 2. CV Summary:
 ================================================================================
+2. CV Summary:
+================================================================================
 {
   "personal_info": {
     "name": "Max Azatian",
@@ -158,35 +160,85 @@ Processing completed! CV ID: f0ffd328-ed4c-4e80-8b77-f4ab1b7b6650
     }
   },
   "skills": [
-    "Python",
-    "JavaScript",
-    "HTML/CSS",
-    "FastAPI",
-    "Flask",
-    "Django",
-    "ORM (SQLAlchemy)",
-    "Linters (Flake8, Ruff)",
-    "Locust",
-    "RESTful APIs",
-    "PostgreSQL",
-    "MongoDB",
-    "SQLite",
-    "Redis",
-    "Neo4j",
-    "Docker",
-    "Docker Compose",
-    "Kubernetes",
-    "Git",
-    "Linux",
-    "Cloud platforms (GCP, Azure)",
-    "Traefik",
-    "Prometheus",
-    "Grafana"
+    {
+      "name": "Python"
+    },
+    {
+      "name": "JavaScript"
+    },
+    {
+      "name": "HTML/CSS"
+    },
+    {
+      "name": "FastAPI"
+    },
+    {
+      "name": "Flask"
+    },
+    {
+      "name": "Django"
+    },
+    {
+      "name": "ORM (SQLAlchemy)"
+    },
+    {
+      "name": "Linters (Flake8, Ruff)"
+    },
+    {
+      "name": "Locust"
+    },
+    {
+      "name": "RESTful APIs"
+    },
+    {
+      "name": "PostgreSQL"
+    },
+    {
+      "name": "MongoDB"
+    },
+    {
+      "name": "SQLite"
+    },
+    {
+      "name": "Redis"
+    },
+    {
+      "name": "Neo4j"
+    },
+    {
+      "name": "Docker"
+    },
+    {
+      "name": "Docker Compose"
+    },
+    {
+      "name": "Kubernetes"
+    },
+    {
+      "name": "Git"
+    },
+    {
+      "name": "Linux"
+    },
+    {
+      "name": "Cloud platforms (GCP, Azure)"
+    },
+    {
+      "name": "Traefik"
+    },
+    {
+      "name": "Prometheus"
+    },
+    {
+      "name": "Grafana"
+    }
   ],
   "employment_history": [
     {
-      "company": "Self-employed",
-      "company_url": null,
+      "company": {
+        "name": "Self-employed",
+        "url": null
+      },
       "position": "Software Engineer (Part-time)",
       "employment_type": "part-time",
       "work_mode": "remote",
@@ -197,17 +249,25 @@ Processing completed! CV ID: f0ffd328-ed4c-4e80-8b77-f4ab1b7b6650
         "duration_months": 45
       },
       "location": {
-        "city": "Remote",
+        "city": "Munich",
         "state": null,
-        "country": null
+        "country": "Germany"
       },
       "key_points": [
-        "Reached 90% pilot user adoption for pet salon booking system by developing Django/PostgreSQL MVP with auto scheduling, accompanied by Doxygen documentation featuring UML diagrams (class, activity, deployment)",
-        "Increased monthly active user growth by 40% for board game community platform via creating Django REST backend implementation supporting profile creation, blog posts, and filtered game searches with Bootstrap-based UI."
+        {
+          "text": "Reached 90% pilot user adoption for pet salon booking system by developing Django/PostgreSQL MVP with auto scheduling, accompanied by Doxygen documentation featuring UML diagrams (class, activity, deployment)."
+        },
+        {
+          "text": "Increased monthly active user growth by 40% for board game community platform via creating Django REST backend implementation supporting profile creation, blog posts, and filtered game searches with Bootstrap-based UI."
+        }
       ],
       "tech_stack": [
-        "Django",
-        "PostgreSQL"
+        {
+          "name": "Django"
+        },
+        {
+          "name": "PostgreSQL"
+        }
       ]
     }
   ],
@@ -216,65 +276,51 @@ Processing completed! CV ID: f0ffd328-ed4c-4e80-8b77-f4ab1b7b6650
       "title": "Integr8sCode",
       "url": "https://github.com/HardMax71/Integr8sCode",
       "tech_stack": [
-        "Python",
-        "FastAPI",
-        "Pydantic",
-        "Kubernetes",
-        "Svelte",
-        "MongoDB",
-        "Prometheus",
-        "Grafana"
+        {
+          "name": "Python"
+        },
+        {
+          "name": "FastAPI"
+        },
+        {
+          "name": "Pydantic"
+        },
+        {
+          "name": "Kubernetes"
+        },
+        {
+          "name": "Svelte"
+        },
+        {
+          "name": "MongoDB"
+        },
+        {
+          "name": "Prometheus"
+        },
+        {
+          "name": "Grafana"
+        }
       ],
       "key_points": [
-        "Reduced memory usage by 25%, tracked in Prometheus, by enforcing per-pod CPU/memory limits (CPU: 100m, memory: 128Mi), adding auto-scaling policies (Horizontal Pod Autoscaler), and optimizing Docker layers (e.g., moving nonessential packages and using python:{version}-slim)",
-        "Achieved 30K+ daily script executions with an error rate below 0.3%, monitored via Grafana, by orchestrating ephemeral K8s pods and adding request validation with Pydantic",
-        "Raised backend test coverage to 92%, as measured by Codecov, by introducing unit/integration tests for critical modules and logging/reporting coverage in HTML reports."
-      ]
-    },
-    {
-      "title": "Flet-Chat",
-      "url": "https://github.com/HardMax71/Flet-Chat",
-      "tech_stack": [
-        "Python",
-        "FastAPI",
-        "Flet",
-        "PostgreSQL",
-        "Redis",
-        "Docker",
-        "Pydantic"
-      ],
-      "key_points": [
-        "Created real-time chat with an average latency of less than 100ms, confirmed by stress tests, by integrating FastAPI WebSockets and Flet UI components",
-        "Acquired \u201dA\u201d code quality (measured by Codacy) and 85% test coverage, validated via Codecov, by standardizing linting rules and expanding unit/integration tests",
-        "Reduced database load by 31.2%, tracked in Docker, by adopting Redis for caching ephemeral data."
-      ]
-    },
-    {
-      "title": "ResuMariner",
-      "url": "https://github.com/HardMax71/ResuMariner",
-      "tech_stack": [
-        "Python",
-        "FastAPI",
-        "Pydantic",
-        "Neo4j",
-        "Qdrant",
-        "Docker",
-        "Traefik",
-        "Redis",
-        "LLM"
-      ],
-      "key_points": [
-        "Increased data retrieval accuracy by 78% compared to keyword-based SQL queries via implementing hybrid search (Neo4j graph traversals, Qdrant vector similarity), validated through precision/recall on technical skill matching",
-        "Lowered mean processing time from 9s to 2.5s by creating parallel processing pipelines and LLM prompting strategies (context windowing, structured output schemas)",
-        "Added zero public exposure of internal services, confirmed via OWASP-based penetration testing, by implementing network isolation with Traefik\u2019s internal entrypoints and dedicated bridge networks."
+        {
+          "text": "Reduced memory usage by 25%, tracked in Prometheus, by enforcing per-pod CPU/memory limits (CPU: 100m, memory: 128Mi), adding auto-scaling policies (Horizontal Pod Autoscaler), and optimizing Docker layers (e.g., moving nonessential packages and using python:{version}-slim)."
+        },
+        {
+          "text": "Achieved 30K+ daily script executions with an error rate below 0.3%, monitored via Grafana, by orchestrating ephemeral K8s pods and adding request validation with Pydantic."
+        },
+        {
+          "text": "Raised backend test coverage to 92%, as measured by Codecov, by introducing unit/integration tests for critical modules and logging/reporting coverage in HTML reports."
+        }
       ]
     }
   ],
   "education": [
     {
-      "institution": "Technical University of Munich",
+      "institution": {
+        "name": "Technical University of Munich"
+      },
       "qualification": "Master",
-      "study_field": "Computer Science",
+      "field": "Computer Science",
       "location": {
         "city": "Munich",
         "state": null,
@@ -287,9 +333,11 @@ Processing completed! CV ID: f0ffd328-ed4c-4e80-8b77-f4ab1b7b6650
       "extras": null
     },
     {
-      "institution": "Technical University of Munich",
+      "institution": {
+        "name": "Technical University of Munich"
+      },
       "qualification": "Bachelor",
-      "study_field": "Computer Science",
+      "field": "Computer Science",
       "location": {
         "city": "Munich",
         "state": null,
@@ -306,32 +354,32 @@ Processing completed! CV ID: f0ffd328-ed4c-4e80-8b77-f4ab1b7b6650
   "certifications": null,
   "language_proficiency": [
     {
-      "language": "English",
-      "level": {
-        "self_assessed": "C1",
-        "cefr": "C1"
-      }
+      "language": {
+        "name": "English"
+      },
+      "self_assessed": "C1",
+      "cefr": "C1"
     },
     {
-      "language": "German",
-      "level": {
-        "self_assessed": "C1",
-        "cefr": "C1"
-      }
+      "language": {
+        "name": "German"
+      },
+      "self_assessed": "C1",
+      "cefr": "C1"
     },
     {
-      "language": "Japanese",
-      "level": {
-        "self_assessed": "B1",
-        "cefr": "B1"
-      }
+      "language": {
+        "name": "Japanese"
+      },
+      "self_assessed": "B1",
+      "cefr": "B1"
     }
   ],
   "awards": null,
   "scientific_contributions": null,
   "validation_metadata": {
-    "text_characters_processed": 2808,
-    "links_processed": 6,
+    "text_characters_processed": 2864,
+    "links_processed": 7,
     "anomalies": []
   }
 }

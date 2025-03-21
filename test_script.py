@@ -64,7 +64,7 @@ class CVProcessingTest:
 
             # Poll for processing completion
             print("\nWaiting for processing to complete...")
-            max_retries = 60
+            max_retries = 120
             retry_interval = 2  # seconds
 
             for i in tqdm(range(max_retries)):
@@ -507,7 +507,7 @@ def main():
     parser.add_argument('--intake-url', default='http://intake.localhost', help='URL for intake service')
     parser.add_argument('--search-url', default='http://search.localhost', help='URL for search service')
     parser.add_argument('--no-review', action='store_true', help='Skip generating review')
-    parser.add_argument('--no-store', action='store_false', help='Skip storing in database')
+    parser.add_argument('--no-store', action='store_true', help='Skip storing in database')
     parser.add_argument('--no-search', action='store_true', help='Skip searching')
     parser.add_argument('--full-json', action='store_true', help='Print full JSON output including match details')
     parser.add_argument('--parallel', action='store_true', help='Use parallel processing')

@@ -46,7 +46,8 @@ class LLMService(Generic[T]):
             self.agent = Agent(
                 model=self.model,
                 result_type=result_type,
-                system_prompt=system_prompt
+                system_prompt=system_prompt,
+                retries=3
             )
         except Exception as e:
             raise LLMServiceError(f"Failed to initialize LLM service: {str(e)}")
