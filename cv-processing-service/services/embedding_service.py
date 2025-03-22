@@ -38,7 +38,7 @@ class EmbeddingService:
             **metadata
         }
 
-    def _extract_fragments(self, obj: Any, path: List[str] = None) -> List[Dict[str, Any]]:
+    def _extract_fragments(self, obj: Any, path: List[str] | None = None) -> List[Dict[str, Any]]:
         """
         Recursively traverse the resume structure to extract text fragments.
         Returns a list of dictionaries where each dictionary contains:

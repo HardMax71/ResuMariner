@@ -25,6 +25,11 @@ class FileService:
         """
         try:
             # Validate file type
+            if not file or not file.filename:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File {file.filename} was not found.",
+                )
             is_valid, file_ext = FileService.validate_file_type(file.filename)
             if not is_valid:
                 raise HTTPException(
@@ -124,7 +129,7 @@ class FileService:
         return is_valid, file_ext
 
     @staticmethod
-    def get_durable_file_path(job_id: str, file_ext: str = None) -> Optional[str]:
+    def get_durable_file_path(job_id: str, file_ext: str | None = None) -> Optional[str]:
         """
         Get the path to a durably stored file if it exists.
         This is used when retrieving files after processing.

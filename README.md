@@ -1,4 +1,13 @@
 <h1 align="center">ResuMariner</h1>
+<p align="center">
+  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/mypy.yml">
+    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/mypy.yml/badge.svg" alt="Mypy Checks" />
+  </a>
+  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/ruff.yml">
+    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/ruff.yml/badge.svg" alt="Ruff Linting" />
+  </a>
+</p>
+
 
 > We are looking for backend Python Developer for parsing project with unknown bounds and requirements. By the way, have you worked with RAGs and vector databases?
 > 

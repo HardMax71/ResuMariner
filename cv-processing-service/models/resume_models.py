@@ -55,7 +55,7 @@ class ContactLinks(BaseModel):
         None,
         description="verbatim URL MUST START WITH with http(s)://t.me or alike if exists else null"
     )
-    linkedin: HttpUrl = Field(
+    linkedin: HttpUrl | None = Field(
         None,
         description="verbatim URL MUST START WITH with http(s):// if exists else null"
     )
@@ -171,13 +171,11 @@ class EmploymentDuration(BaseModel):
         description="original date format"
     )
     start: str = Field(
-        None,
         pattern=DATE_MMYYYY_REGEX,
         description="start month and year in MM.YYYY format OR just year in YYYY format if month not specified; "
                     "must not be null"
     )
     end: str = Field(
-        None,
         pattern=DATE_MMYYYY_OR_CURRENT_REGEX,
         description="end month and year in MM.YYYY format or just year in YYYY format if month not specified, "
                     "'current' if still working; must not be null"

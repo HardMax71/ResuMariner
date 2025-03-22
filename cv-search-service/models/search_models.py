@@ -63,17 +63,17 @@ class GraphSearchQuery(BaseModel):
     limit: int = Field(10, description="Maximum number of results to return")
 
     @model_validator(mode="after")
-    def check_at_least_one_param(cls, model: "GraphSearchQuery") -> "GraphSearchQuery":
+    def check_at_least_one_param(self) -> "GraphSearchQuery":
         if not any([
-            model.skills,
-            model.technologies,
-            model.role,
-            model.company,
-            model.location,
-            model.years_experience,
+            self.skills,
+            self.technologies,
+            self.role,
+            self.company,
+            self.location,
+            self.years_experience,
         ]):
             raise ValueError("At least one search parameter must be provided")
-        return model
+        return self
 
 
 class HybridSearchQuery(BaseModel):

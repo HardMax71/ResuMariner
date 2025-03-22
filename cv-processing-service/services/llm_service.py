@@ -1,11 +1,11 @@
 import os
-from typing import TypeVar, Generic, Type, Optional
-
-from pydantic_ai import Agent
-from pydantic_ai.models import infer_model
-from pydantic_ai.settings import ModelSettings
+from typing import TypeVar, Generic, Type, Optional, cast
 
 from config import settings
+from pydantic_ai import Agent
+from pydantic_ai.models import infer_model, Model, KnownModelName
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.settings import ModelSettings
 from utils.errors import LLMServiceError
 
 # Generic type for result models
@@ -23,8 +23,7 @@ class LLMService(Generic[T]):
 
             # Special case for custom base URLs
             if settings.LLM_BASE_URL:
-                from pydantic_ai.models.openai import OpenAIModel
-                self.model = OpenAIModel(
+                self.model: Model = OpenAIModel(
                     model_name=settings.LLM_MODEL,
                     base_url=settings.LLM_BASE_URL,
                     api_key=settings.LLM_API_KEY
@@ -32,7 +31,7 @@ class LLMService(Generic[T]):
             else:
                 # For all other providers, use infer_model and pass API key
                 model_string = f"{settings.LLM_PROVIDER}:{settings.LLM_MODEL}"
-                model = infer_model(model_string)
+                model = infer_model(cast(KnownModelName, model_string))
 
                 # Set the API key for the model
                 if hasattr(model, 'api_key'):

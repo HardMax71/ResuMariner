@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     # File storage configuration
     TEMP_DIR: str = os.getenv("TEMP_DIR", "/tmp/cv_uploads")
-    DURABLE_STORAGE: Literal["local", "s3", "none"] = os.getenv("DURABLE_STORAGE", "none")
+    DURABLE_STORAGE: Literal["local", "s3", "none"] = os.getenv("DURABLE_STORAGE", "none")  # type: ignore
 
     # S3 settings (only used when DURABLE_STORAGE is "s3")
     S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "")

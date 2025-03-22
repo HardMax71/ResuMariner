@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Optional, ClassVar
 
 from config import settings
 from sentence_transformers import SentenceTransformer
@@ -9,8 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingService:
-
-    _instance = None
+    _instance: ClassVar[Optional['EmbeddingService']] = None
+    model: SentenceTransformer
+    vector_size: int
 
     def __new__(cls):
         """Singleton pattern to reuse the embedding model"""

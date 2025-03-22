@@ -27,8 +27,8 @@ class HybridSearchService:
                role: Optional[str] = None,
                company: Optional[str] = None,
                location: Optional[str] = None,
-               vector_weight: float = None,
-               graph_weight: float = None,
+               vector_weight: float | None = None,
+               graph_weight: float | None = None,
                limit: int = 10) -> Dict[str, Any]:
         """Perform hybrid search combining vector and graph approaches"""
         start_time = time.time()
@@ -44,7 +44,7 @@ class HybridSearchService:
             query_vector = self.embedding_service.encode(query)
 
             # Determine if we need filters for vector search
-            vector_filters = {}
+            vector_filters: Dict[str, Any] = {}
             if skills:
                 vector_filters["skills"] = skills
             if company:

@@ -50,7 +50,7 @@ class GraphSearchService:
                 # Build dynamic query based on provided filters
                 match_clauses = ["MATCH (cv:CVNode)"]
                 where_clauses = []
-                params = {}
+                params: Dict[str, Any] = {}
 
                 # Skills filter
                 if skills and len(skills) > 0:

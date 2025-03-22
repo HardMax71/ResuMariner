@@ -1,14 +1,10 @@
 import logging
-
-logger = logging.getLogger(__name__)
-
 import time
 
 from fastapi import HTTPException, APIRouter
-
 from models.search_models import (
     VectorSearchQuery, GraphSearchQuery, HybridSearchQuery,
-    SearchResponse, FilterOptions
+    SearchResponse, FilterOptions, SearchResult
 )
 from services.embedding_service import EmbeddingService
 from services.graph_search import GraphSearchService
@@ -16,6 +12,8 @@ from services.hybrid_search import HybridSearchService
 from services.vector_search import VectorSearchService
 from utils.errors import SearchServiceError, EmbeddingError, DatabaseError
 from utils.helpers import timed_execution
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -103,7 +101,7 @@ async def semantic_search(query: VectorSearchQuery):
         execution_time = time.time() - start_time
 
         return SearchResponse(
-            results=formatted_results,
+            results=[SearchResult(**result) for result in formatted_results],
             total=len(formatted_results),
             query=query.query,
             search_type="semantic",
@@ -151,7 +149,7 @@ async def structured_search(query: GraphSearchQuery):
         execution_time = time.time() - start_time
 
         return SearchResponse(
-            results=results,
+            results=[SearchResult(**result) for result in results],
             total=len(results),
             query="Structured search",
             search_type="structured",

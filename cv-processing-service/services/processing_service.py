@@ -44,12 +44,19 @@ class ProcessingService:
             Processing result with structured data and review
         """
         start_time = time.time()
-        metadata = {}
+        metadata: dict[str, str | int] = {}
         cv_id = str(uuid.uuid4())  # Generate a unique ID for this CV
 
         try:
             # Determine file type
-            file_ext = os.path.splitext(file.filename)[1].lower()
+            if file.filename is None:
+                raise ValueError("File name is missing")
+
+            filename_parts = os.path.splitext(file.filename)
+            if not filename_parts[1]:
+                raise ValueError(f"Invalid file name or missing extension: {file.filename}")
+
+            file_ext = filename_parts[1].lower()
             parser = self._get_parser(file_path, file_ext)
 
             # Parse document
@@ -107,7 +114,7 @@ class ProcessingService:
 
             # Calculate processing time
             processing_time = time.time() - start_time
-            metadata["processing_time_sec"] = processing_time
+            metadata["processing_time_sec"] = int(processing_time)
 
             # Return the result without embeddings
             return ProcessingResult(

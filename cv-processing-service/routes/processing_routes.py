@@ -1,17 +1,13 @@
 import logging
-
-from config import settings
-
-logger = logging.getLogger(__name__)
-
 import os
 import tempfile
 
+from config import settings
 from fastapi import File, UploadFile, Form, HTTPException, APIRouter
-
 from models.processing_models import ProcessingResult, ProcessingOptions
 from services.processing_service import ProcessingService
 
+logger = logging.getLogger(__name__)
 processing_service = ProcessingService()
 router = APIRouter()
 
@@ -35,6 +31,8 @@ async def process_cv(
         Structured CV data, review, and embeddings (if requested)
     """
     # Create temp file
+    if file.filename is None:
+        raise ValueError("File name is missing")
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1])
 
     try:

@@ -17,9 +17,8 @@ from models.neo4j_models import (
     ScientificContributionNode,
 )
 from neomodel import config, install_all_labels, db
-from utils.errors import GraphDBError, DatabaseConnectionError
-
 from pydantic_neomodel_dict import Converter
+from utils.errors import GraphDBError, DatabaseConnectionError
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ class GraphDBService:
             logger.error(f"Failed to connect to Neo4j: {e}", exc_info=True)
             raise DatabaseConnectionError(f"Neo4j connection failed: {e}")
 
-    def find_existing_cv_by_email(self, email: str) -> Optional[CVNode]:
+    def find_existing_cv_by_email(self, email: str) -> Optional[List[CVNode]]:
         """Find an existing CV by email via its connected Contact node."""
         try:
             query = """
@@ -60,13 +59,43 @@ class GraphDBService:
             logger.error(f"Error finding CV for email {email}: {e}", exc_info=True)
             return None
 
-    def delete_cv_by_email(self, email: str) -> bool:
-        """Delete all CVs and related nodes for a given email."""
+    def delete_cv(self, cv_id: Optional[str] = None, email: Optional[str] = None) -> bool:
+        """
+        Delete a CV and all related nodes by either CV ID or email.
+
+        Args:
+            cv_id: Optional CV ID to delete
+            email: Optional email to delete CVs for
+
+        Returns:
+            True if deletion was successful
+
+        Raises:
+            GraphDBError: If deletion fails
+            ValueError: If neither cv_id nor email is provided
+        """
+        if not cv_id and not email:
+            raise ValueError("Either cv_id or email must be provided")
+
         try:
-            # Execute a Cypher query that finds and deletes all CVs with this email
-            query = """
-            MATCH (cv:CVNode)-[:HAS_PERSONAL_INFO]->(p:PersonalInfoNode)-[:HAS_CONTACT]->(c:ContactNode)
-            WHERE c.email = $email
+            # Build the appropriate match clause based on which parameter was provided
+            if cv_id:
+                match_clause = "MATCH (cv:CVNode {uid: $cv_id})"
+                params = {"cv_id": cv_id}
+                id_info = f"CV ID {cv_id}"
+            elif email:
+                match_clause = """
+                MATCH (cv:CVNode)-[:HAS_PERSONAL_INFO]->(p:PersonalInfoNode)-[:HAS_CONTACT]->(c:ContactNode)
+                WHERE c.email = $email
+                """
+                params = {"email": email}
+                id_info = f"email {email}"
+            else:
+                raise ValueError("Either cv_id or email must be provided")
+
+            # Build the rest of the query for deleting nodes
+            query = f"""
+            {match_clause}
 
             // Find everything connected to the CV up to 4 levels deep
             OPTIONAL MATCH (cv)-[r1]->(n1)
@@ -77,10 +106,10 @@ class GraphDBService:
             // Check if nodes have other incoming relationships
             WITH 
                 cv,
-                n1, NOT EXISTS { MATCH (n1)<-[r]-(other) WHERE other <> cv } as n1_delete,
-                n2, NOT EXISTS { MATCH (n2)<-[r]-(other) WHERE other <> n1 } as n2_delete,
-                n3, NOT EXISTS { MATCH (n3)<-[r]-(other) WHERE other <> n2 } as n3_delete,
-                n4, NOT EXISTS { MATCH (n4)<-[r]-(other) WHERE other <> n3 } as n4_delete
+                n1, NOT EXISTS {{ MATCH (n1)<-[r]-(other) WHERE other <> cv }} as n1_delete,
+                n2, NOT EXISTS {{ MATCH (n2)<-[r]-(other) WHERE other <> n1 }} as n2_delete,
+                n3, NOT EXISTS {{ MATCH (n3)<-[r]-(other) WHERE other <> n2 }} as n3_delete,
+                n4, NOT EXISTS {{ MATCH (n4)<-[r]-(other) WHERE other <> n3 }} as n4_delete
 
             // Delete the CV nodes first
             DETACH DELETE cv
@@ -103,13 +132,14 @@ class GraphDBService:
             DETACH DELETE n4
             """
 
-            result, _ = db.cypher_query(query, {"email": email})
-            logger.info(f"Deleted all CVs for email {email}")
+            result, _ = db.cypher_query(query, params)
+            logger.info(f"Deleted CV(s) for {id_info}")
             return True
 
         except Exception as e:
-            logger.error(f"Error deleting CVs for email {email}: {e}", exc_info=True)
-            raise GraphDBError(f"Failed to delete CVs for email {email}: {e}")
+            logger.error(f"Error deleting CV(s) for {id_info if 'id_info' in locals() else 'unknown'}: {e}",
+                         exc_info=True)
+            raise GraphDBError(f"Failed to delete CV(s): {e}")
 
     @db.transaction
     def store_cv(self, cv_data: Dict[str, Any], job_id: Optional[str] = None) -> str:
@@ -128,7 +158,7 @@ class GraphDBService:
             existing_cvs = self.find_existing_cv_by_email(email)
             if existing_cvs:
                 for existing_cv in existing_cvs:
-                    self.delete_cv_by_email(email)
+                    self.delete_cv(email=email)
                     logger.info(f"Deleted existing CV with ID {existing_cv.uid} for email {email}")
 
             # Convert sections to OGM nodes.

@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 @router.post("/upload", response_model=JobResponse)
 async def upload_cv_for_processing(background_tasks: BackgroundTasks,
                                    file: UploadFile = File(...)):
+    if not file or not file.filename:
+        raise HTTPException(
+            status_code=400,
+            detail="No filename provided",
+        )
     try:
         is_valid, file_ext = FileService.validate_file_type(file.filename)
         if not is_valid:
@@ -38,6 +43,9 @@ async def upload_cv_for_processing(background_tasks: BackgroundTasks,
 async def get_job_status(job_id: str):
     try:
         job = await job_service.get_job(job_id)
+        if not job:
+            raise HTTPException(status_code=404,
+                                detail=f"Job {job_id} not found")
         return job_service.to_response(job)
     except HTTPException:
         raise
@@ -49,6 +57,8 @@ async def get_job_status(job_id: str):
 async def get_job_results(job_id: str):
     try:
         job = await job_service.get_job(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
         logger.info(f"Job {job_id}: status={job.status}, result type={type(job.result)}")
         if hasattr(job.result, 'keys'):

@@ -70,12 +70,12 @@ class JobService:
         """Queue a job for background processing"""
         try:
             job = await self.get_job(job_id)
+            if not job:
+                raise JobServiceError(f"Job not found: {job_id}")
 
             background_tasks.add_task(self._process_job_task, job_id, job.file_path)
 
             return {"job_id": job_id, "status": "queued for processing"}
-        except HTTPException:
-            raise
         except Exception as e:
             logger.error(f"Error queueing job {job_id}: {str(e)}")
             raise JobServiceError(f"Failed to queue job: {str(e)}")
@@ -119,6 +119,8 @@ class JobService:
                     result_url=f"/api/v1/results/{job_id}"
                 )
             )
+            if not updated_job:
+                raise JobServiceError(f"Failed to update job: {job_id}")
 
             # Check if the update was successful by verifying the result field
             logger.debug(f"Job updated - status: {updated_job.status}, "
