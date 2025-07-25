@@ -8,9 +8,9 @@ with patch("neomodel.config"):
     with patch("neomodel.install_all_labels"):
         with patch("neomodel.db"):
             with patch("qdrant_client.QdrantClient"):
-                from services.graph_db_service import GraphDBService
-                from services.vector_db_service import VectorDBService
-                from utils.errors import (
+                from cv_storage_service.services.graph_db_service import GraphDBService
+                from cv_storage_service.services.vector_db_service import VectorDBService
+                from cv_storage_service.utils.errors import (
                     GraphDBError,
                     VectorDBError,
                     DatabaseConnectionError,
@@ -20,9 +20,9 @@ with patch("neomodel.config"):
 class TestGraphDBService:
     """Test GraphDBService functionality"""
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
     def test_graph_db_service_init_bolt_uri(self, mock_db, mock_install, mock_config):
         """Test GraphDBService initialization with bolt:// URI"""
         mock_db.cypher_query.return_value = ([], [])
@@ -36,9 +36,9 @@ class TestGraphDBService:
         assert mock_config.DATABASE_URL == expected_url
         mock_install.assert_called_once()
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
     def test_graph_db_service_init_no_bolt_prefix(
         self, mock_db, mock_install, mock_config
     ):
@@ -50,9 +50,9 @@ class TestGraphDBService:
         expected_url = "bolt://test_user:test_pass@localhost:7687"
         assert mock_config.DATABASE_URL == expected_url
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
     def test_graph_db_service_init_connection_error(
         self, mock_db, mock_install, mock_config
     ):
@@ -64,10 +64,10 @@ class TestGraphDBService:
 
         assert "Neo4j connection failed" in str(exc_info.value)
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.graph_db_service.Converter")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.Converter")
     def test_store_cv_success(self, mock_converter, mock_db, mock_install, mock_config):
         """Test successful CV storage"""
         mock_db.cypher_query.return_value = ([], [])
@@ -91,10 +91,10 @@ class TestGraphDBService:
         assert result == "stored-cv-id"
         mock_converter_instance.from_dict.assert_called_once_with(cv_data)
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.graph_db_service.Converter")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.Converter")
     def test_store_cv_conversion_error(
         self, mock_converter, mock_db, mock_install, mock_config
     ):
@@ -114,10 +114,10 @@ class TestGraphDBService:
 
         assert "Failed to store CV" in str(exc_info.value)
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.graph_db_service.CVNode")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.CVNode")
     def test_find_existing_cv_by_email_found(
         self, mock_cv_node, mock_db, mock_install, mock_config
     ):
@@ -136,10 +136,10 @@ class TestGraphDBService:
         assert result is not None
         assert result.uid == "existing-cv-123"
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.graph_db_service.CVNode")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.CVNode")
     def test_find_existing_cv_by_email_not_found(
         self, mock_cv_node, mock_db, mock_install, mock_config
     ):
@@ -154,10 +154,10 @@ class TestGraphDBService:
 
         assert result is None
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.graph_db_service.CVNode")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.CVNode")
     def test_find_existing_cv_by_email_error(
         self, mock_cv_node, mock_db, mock_install, mock_config
     ):
@@ -173,10 +173,10 @@ class TestGraphDBService:
 
         assert "Failed to search for existing CV" in str(exc_info.value)
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.graph_db_service.CVNode")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.CVNode")
     def test_get_cv_details_success(
         self, mock_cv_node, mock_db, mock_install, mock_config
     ):
@@ -200,10 +200,10 @@ class TestGraphDBService:
 
         assert result == {"cv-1": {"name": "User 1"}, "cv-2": {"name": "User 2"}}
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.graph_db_service.CVNode")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.CVNode")
     def test_get_cv_details_empty_list(
         self, mock_cv_node, mock_db, mock_install, mock_config
     ):
@@ -218,10 +218,10 @@ class TestGraphDBService:
         # Should not call filter with empty list
         mock_cv_node.nodes.filter.assert_not_called()
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.graph_db_service.CVNode")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.CVNode")
     def test_get_cv_details_error(
         self, mock_cv_node, mock_db, mock_install, mock_config
     ):
@@ -237,10 +237,10 @@ class TestGraphDBService:
 
         assert "Failed to retrieve CV details" in str(exc_info.value)
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.graph_db_service.CVNode")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.CVNode")
     def test_delete_cv_success(self, mock_cv_node, mock_db, mock_install, mock_config):
         """Test successful CV deletion"""
         mock_db.cypher_query.return_value = ([], [])
@@ -255,10 +255,10 @@ class TestGraphDBService:
         mock_cv_node.nodes.get_or_none.assert_called_once_with(uid="cv-to-delete")
         mock_cv.delete.assert_called_once()
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.graph_db_service.CVNode")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.CVNode")
     def test_delete_cv_not_found(
         self, mock_cv_node, mock_db, mock_install, mock_config
     ):
@@ -274,10 +274,10 @@ class TestGraphDBService:
 
         assert "CV with ID nonexistent-cv not found" in str(exc_info.value)
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.graph_db_service.CVNode")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.CVNode")
     def test_delete_cv_error(self, mock_cv_node, mock_db, mock_install, mock_config):
         """Test CV deletion with error"""
         mock_db.cypher_query.return_value = ([], [])
@@ -295,7 +295,7 @@ class TestGraphDBService:
 class TestVectorDBService:
     """Test VectorDBService functionality"""
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_vector_db_service_init_success(self, mock_qdrant_client):
         """Test VectorDBService initialization success"""
         mock_client_instance = MagicMock()
@@ -320,7 +320,7 @@ class TestVectorDBService:
             host="localhost", port=6333, prefer_grpc=True
         )
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_vector_db_service_init_connection_error(self, mock_qdrant_client):
         """Test VectorDBService initialization with connection error"""
         mock_qdrant_client.side_effect = Exception("Failed to connect to Qdrant")
@@ -332,7 +332,7 @@ class TestVectorDBService:
 
         assert "Failed to initialize Qdrant client" in str(exc_info.value)
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_ensure_collection_exists_recreation(self, mock_qdrant_client):
         """Test ensure_collection_exists with collection recreation"""
         mock_client_instance = MagicMock()
@@ -344,7 +344,7 @@ class TestVectorDBService:
 
         mock_client_instance.recreate_collection.assert_called_once()
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_store_vectors_success(self, mock_qdrant_client):
         """Test successful vector storage"""
         mock_client_instance = MagicMock()
@@ -385,7 +385,7 @@ class TestVectorDBService:
         mock_client_instance.delete.assert_called_once()
         mock_client_instance.upsert.assert_called_once()
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_store_vectors_empty_list(self, mock_qdrant_client):
         """Test storing empty vectors list"""
         mock_client_instance = MagicMock()
@@ -401,7 +401,7 @@ class TestVectorDBService:
         # But should not call upsert
         mock_client_instance.upsert.assert_not_called()
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_store_vectors_error(self, mock_qdrant_client):
         """Test vector storage with error"""
         mock_client_instance = MagicMock()
@@ -427,7 +427,7 @@ class TestVectorDBService:
 
         assert "Failed to store vectors" in str(exc_info.value)
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_delete_cv_vectors_success(self, mock_qdrant_client):
         """Test successful CV vectors deletion"""
         mock_client_instance = MagicMock()
@@ -444,7 +444,7 @@ class TestVectorDBService:
         assert result == 3
         mock_client_instance.delete.assert_called_once()
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_delete_cv_vectors_none_found(self, mock_qdrant_client):
         """Test CV vectors deletion when none found"""
         mock_client_instance = MagicMock()
@@ -461,7 +461,7 @@ class TestVectorDBService:
         # Should still call delete even if no vectors found
         mock_client_instance.delete.assert_called_once()
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_delete_cv_vectors_error(self, mock_qdrant_client):
         """Test CV vectors deletion with error"""
         mock_client_instance = MagicMock()
@@ -476,7 +476,7 @@ class TestVectorDBService:
 
         assert "Failed to delete vectors for CV" in str(exc_info.value)
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_vector_id_generation(self, mock_qdrant_client):
         """Test vector ID generation logic"""
         mock_client_instance = MagicMock()
@@ -513,7 +513,7 @@ class TestVectorDBService:
         assert result[0] == "test-cv_0"
         assert result[1] == "test-cv_1"
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_vector_payload_formatting(self, mock_qdrant_client):
         """Test vector payload formatting for Qdrant"""
         mock_client_instance = MagicMock()
@@ -559,10 +559,10 @@ class TestVectorDBService:
 class TestServiceIntegration:
     """Test integration between services"""
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_services_initialization_together(
         self, mock_qdrant, mock_db, mock_install, mock_config
     ):
@@ -586,9 +586,9 @@ class TestServiceIntegration:
         assert issubclass(VectorDBError, Exception)
         assert issubclass(DatabaseConnectionError, Exception)
 
-    @patch("services.graph_db_service.config")
-    @patch("services.graph_db_service.install_all_labels")
-    @patch("services.graph_db_service.db")
+    @patch("cv_storage_service.services.graph_db_service.config")
+    @patch("cv_storage_service.services.graph_db_service.install_all_labels")
+    @patch("cv_storage_service.services.graph_db_service.db")
     def test_graph_service_configuration_from_settings(
         self, mock_db, mock_install, mock_config
     ):
@@ -605,7 +605,7 @@ class TestServiceIntegration:
             # Verify DRIVER_CONFIG was set
             assert hasattr(mock_config, "DRIVER_CONFIG")
 
-    @patch("services.vector_db_service.QdrantClient")
+    @patch("cv_storage_service.services.vector_db_service.QdrantClient")
     def test_vector_service_configuration_options(self, mock_qdrant):
         """Test vector service configuration options"""
         mock_qdrant_instance = MagicMock()

@@ -169,8 +169,8 @@ jobs:
           NEO4J_PASSWORD: testpassword
         working-directory: ${{ env.SERVICE_PATH }}
         run: |
-          pytest tests/unit/test_neo4j_models.py \
-            tests/unit/test_graph_db_service.py \
+          pytest tests/unit/test_models.py \
+            tests/unit/test_services.py \
             -v --tb=short
 
       - name: Test Qdrant collections
@@ -179,7 +179,7 @@ jobs:
           QDRANT_PORT: 6333
         working-directory: ${{ env.SERVICE_PATH }}
         run: |
-          pytest tests/unit/test_vector_db_service.py \
+          pytest tests/unit/test_services.py \
             -v --tb=short
 
   # Security scanning

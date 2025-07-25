@@ -9,8 +9,8 @@ with patch("neomodel.config"):
     with patch("neomodel.install_all_labels"):
         with patch("neomodel.db"):
             with patch("qdrant_client.QdrantClient"):
-                with patch("services.graph_db_service.GraphDBService"):
-                    with patch("services.vector_db_service.VectorDBService"):
+                with patch("cv_storage_service.services.graph_db_service.GraphDBService"):
+                    with patch("cv_storage_service.services.vector_db_service.VectorDBService"):
                         with patch.dict(
                             "os.environ",
                             {
@@ -19,7 +19,7 @@ with patch("neomodel.config"):
                                 "NEO4J_PASSWORD": "test_password",
                             },
                         ):
-                            from utils.errors import (
+                            from cv_storage_service.utils.errors import (
                                 GraphDBError,
                                 VectorDBError,
                                 StorageServiceError,
@@ -33,15 +33,15 @@ class TestStorageRoutes:
     def client(self):
         """Create test client with mocked database services"""
         with (
-            patch("routes.storage_routes.graph_db") as mock_graph_db,
-            patch("routes.storage_routes.vector_db") as mock_vector_db,
+            patch("cv_storage_service.routes.storage_routes.graph_db") as mock_graph_db,
+            patch("cv_storage_service.routes.storage_routes.vector_db") as mock_vector_db,
         ):
             # Setup mock instances
             mock_graph_db.return_value = MagicMock()
             mock_vector_db.return_value = MagicMock()
 
             # Import after mocking to avoid initialization errors
-            from routes.storage_routes import router
+            from cv_storage_service.routes.storage_routes import router
             from fastapi import FastAPI
 
             app = FastAPI()
@@ -498,13 +498,13 @@ class TestEndpointResponseModels:
     def client(self):
         """Create test client with mocked services"""
         with (
-            patch("routes.storage_routes.graph_db") as mock_graph_db,
-            patch("routes.storage_routes.vector_db") as mock_vector_db,
+            patch("cv_storage_service.routes.storage_routes.graph_db") as mock_graph_db,
+            patch("cv_storage_service.routes.storage_routes.vector_db") as mock_vector_db,
         ):
             mock_graph_db.return_value = MagicMock()
             mock_vector_db.return_value = MagicMock()
 
-            from routes.storage_routes import router
+            from cv_storage_service.routes.storage_routes import router
             from fastapi import FastAPI
 
             app = FastAPI()
@@ -577,13 +577,13 @@ class TestEdgeCases:
     def client(self):
         """Create test client with mocked services"""
         with (
-            patch("routes.storage_routes.graph_db") as mock_graph_db,
-            patch("routes.storage_routes.vector_db") as mock_vector_db,
+            patch("cv_storage_service.routes.storage_routes.graph_db") as mock_graph_db,
+            patch("cv_storage_service.routes.storage_routes.vector_db") as mock_vector_db,
         ):
             mock_graph_db.return_value = MagicMock()
             mock_vector_db.return_value = MagicMock()
 
-            from routes.storage_routes import router
+            from cv_storage_service.routes.storage_routes import router
             from fastapi import FastAPI
 
             app = FastAPI()

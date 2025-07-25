@@ -2,7 +2,7 @@
 
 import pytest
 from pydantic import ValidationError
-from models.storage_models import (
+from cv_storage_service.models.storage_models import (
     StoreRequest,
     StoreResponse,
     VectorPayload,

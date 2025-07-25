@@ -13,7 +13,7 @@ class TestApp:
     def client(self):
         """Create test client"""
         # Set up mock settings before importing
-        with patch("config.settings") as mock_settings:
+        with patch("cv_search_service.config.settings") as mock_settings:
             mock_settings.DEBUG = False
             mock_settings.SERVICE_NAME = "cv-search-service"
             mock_settings.PORT = 8003
@@ -21,17 +21,17 @@ class TestApp:
             mock_settings.VECTOR_SIZE = 384
 
             # Mock all services that are initialized during import
-            with patch("services.embedding_service.EmbeddingService"):
-                with patch("services.vector_search.VectorSearchService"):
-                    with patch("services.graph_search.GraphSearchService"):
-                        with patch("services.hybrid_search.HybridSearchService"):
+            with patch("cv_search_service.services.embedding_service.EmbeddingService"):
+                with patch("cv_search_service.services.vector_search.VectorSearchService"):
+                    with patch("cv_search_service.services.graph_search.GraphSearchService"):
+                        with patch("cv_search_service.services.hybrid_search.HybridSearchService"):
                             # Mock the router and other dependencies
-                            with patch("app.search_router"):
-                                with patch("app.limiter"):
-                                    with patch("app.rate_limit_exceeded_handler"):
-                                        with patch("app.init_monitoring"):
-                                            with patch("app.get_metrics"):
-                                                with patch("app.MetricsMiddleware"):
+                            with patch("cv_search_service.app.search_router"):
+                                with patch("cv_search_service.app.limiter"):
+                                    with patch("cv_search_service.app.rate_limit_exceeded_handler"):
+                                        with patch("cv_search_service.app.init_monitoring"):
+                                            with patch("cv_search_service.app.get_metrics"):
+                                                with patch("cv_search_service.app.MetricsMiddleware"):
                                                     # Import after patching
                                                     import importlib
 
@@ -39,13 +39,13 @@ class TestApp:
                                                         importlib.reload(
                                                             sys.modules["app"]
                                                         )
-                                                    from app import app
+                                                    from cv_search_service.app import app
 
                                                     return TestClient(app)
 
     def test_app_creation_and_configuration(self, client):
         """Test FastAPI app is created and configured correctly"""
-        from app import app
+        from cv_search_service.app import app
 
         assert app.title == "cv-search-service"
         assert "CV Search Service" in app.description
@@ -78,7 +78,7 @@ class TestApp:
 
     def test_search_router_included(self, client):
         """Test search router is included"""
-        from app import app
+        from cv_search_service.app import app
 
         routes = [route.path for route in app.routes]
         assert len(routes) > 0
@@ -118,7 +118,7 @@ with patch("uvicorn.run"):
 
     def test_middleware_configuration(self, client):
         """Test middleware is properly configured"""
-        from app import app
+        from cv_search_service.app import app
 
         assert hasattr(app, "user_middleware")
         assert len(app.user_middleware) > 0
@@ -130,14 +130,14 @@ with patch("uvicorn.run"):
 
     def test_rate_limiting_configuration(self, client):
         """Test rate limiting is configured"""
-        from app import app
+        from cv_search_service.app import app
 
         assert hasattr(app.state, "limiter")
         assert app.state.limiter is not None
 
     def test_fastapi_app_properties(self, client):
         """Test FastAPI app has expected properties"""
-        from app import app
+        from cv_search_service.app import app
 
         assert hasattr(app, "title")
         assert hasattr(app, "description")
@@ -146,7 +146,7 @@ with patch("uvicorn.run"):
 
     def test_router_tags(self, client):
         """Test router is included with correct tags"""
-        from app import app
+        from cv_search_service.app import app
 
         routes = list(app.routes)
         assert len(routes) > 0
@@ -156,7 +156,7 @@ with patch("uvicorn.run"):
         response = client.get("/non-existent")
         assert response.status_code == 404
 
-    @patch("config.settings")
+    @patch("cv_search_service.config.settings")
     def test_debug_mode_docs_enabled(self, mock_settings):
         """Test docs endpoints enabled in debug mode"""
         mock_settings.DEBUG = True
@@ -173,7 +173,7 @@ with patch("uvicorn.run"):
         assert app.app.docs_url == "/docs"
         assert app.app.redoc_url == "/redoc"
 
-    @patch("config.settings")
+    @patch("cv_search_service.config.settings")
     def test_production_mode_docs_disabled(self, mock_settings):
         """Test docs endpoints disabled in production mode"""
         mock_settings.DEBUG = False
@@ -192,7 +192,7 @@ with patch("uvicorn.run"):
 
     def test_exception_handler_configuration(self, client):
         """Test exception handlers are configured"""
-        from app import app
+        from cv_search_service.app import app
 
         # Should have rate limit exception handler
         assert len(app.exception_handlers) > 0
@@ -207,12 +207,12 @@ with patch("uvicorn.run"):
 
     def test_app_startup_shutdown(self, client):
         """Test app handles startup and shutdown"""
-        from app import app
+        from cv_search_service.app import app
 
         assert app is not None
         assert hasattr(app, "router")
 
-    @patch("config.settings")
+    @patch("cv_search_service.config.settings")
     def test_different_debug_settings(self, mock_settings):
         """Test app with different debug settings"""
         for debug_value in [True, False]:
@@ -231,7 +231,7 @@ with patch("uvicorn.run"):
 
     def test_app_settings_integration(self, client):
         """Test app integrates with settings"""
-        with patch("config.settings") as mock_settings:
+        with patch("cv_search_service.config.settings") as mock_settings:
             mock_settings.DEBUG = True
             mock_settings.SERVICE_NAME = "test-search-service"
             mock_settings.PORT = 9003
@@ -248,7 +248,7 @@ with patch("uvicorn.run"):
 
     def test_uvicorn_configuration(self):
         """Test uvicorn configuration in main block"""
-        with patch("config.settings") as mock_settings:
+        with patch("cv_search_service.config.settings") as mock_settings:
             mock_settings.DEBUG = True
             mock_settings.PORT = 8888
 

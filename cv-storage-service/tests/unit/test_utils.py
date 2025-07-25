@@ -1,6 +1,6 @@
 """Comprehensive tests for cv-storage-service utils to achieve 95%+ coverage."""
 
-from utils.errors import (
+from cv_storage_service.utils.errors import (
     StorageServiceError,
     GraphDBError,
     VectorDBError,
