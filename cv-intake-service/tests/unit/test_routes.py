@@ -34,8 +34,7 @@ class TestRoutes:
         self.patches["neo4j"] = patch("neo4j.GraphDatabase")
         self.patches["neo4j"].start()
 
-        self.patches["openai"] = patch("openai.OpenAI")
-        self.patches["openai"].start()
+        # Note: cv-intake-service doesn't use openai
 
         self.patches["prometheus"] = patch("prometheus_client.Counter")
         self.patches["prometheus"].start()

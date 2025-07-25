@@ -40,9 +40,7 @@ class TestApp:
         mock_driver = Mock()
         mock_neo4j.driver.return_value = mock_driver
 
-        # Mock OpenAI
-        self.patches["openai"] = patch("openai.OpenAI")
-        self.patches["openai"].start()
+        # Note: cv-intake-service doesn't use openai
 
         # Mock Prometheus
         self.patches["prometheus_counter"] = patch("prometheus_client.Counter")
