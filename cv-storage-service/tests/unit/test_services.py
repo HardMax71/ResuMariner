@@ -9,7 +9,9 @@ with patch("neomodel.config"):
         with patch("neomodel.db"):
             with patch("qdrant_client.QdrantClient"):
                 from cv_storage_service.services.graph_db_service import GraphDBService
-                from cv_storage_service.services.vector_db_service import VectorDBService
+                from cv_storage_service.services.vector_db_service import (
+                    VectorDBService,
+                )
                 from cv_storage_service.utils.errors import (
                     GraphDBError,
                     VectorDBError,

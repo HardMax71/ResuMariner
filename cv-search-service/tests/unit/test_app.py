@@ -22,16 +22,30 @@ class TestApp:
 
             # Mock all services that are initialized during import
             with patch("cv_search_service.services.embedding_service.EmbeddingService"):
-                with patch("cv_search_service.services.vector_search.VectorSearchService"):
-                    with patch("cv_search_service.services.graph_search.GraphSearchService"):
-                        with patch("cv_search_service.services.hybrid_search.HybridSearchService"):
+                with patch(
+                    "cv_search_service.services.vector_search.VectorSearchService"
+                ):
+                    with patch(
+                        "cv_search_service.services.graph_search.GraphSearchService"
+                    ):
+                        with patch(
+                            "cv_search_service.services.hybrid_search.HybridSearchService"
+                        ):
                             # Mock the router and other dependencies
                             with patch("cv_search_service.app.search_router"):
                                 with patch("cv_search_service.app.limiter"):
-                                    with patch("cv_search_service.app.rate_limit_exceeded_handler"):
-                                        with patch("cv_search_service.app.init_monitoring"):
-                                            with patch("cv_search_service.app.get_metrics"):
-                                                with patch("cv_search_service.app.MetricsMiddleware"):
+                                    with patch(
+                                        "cv_search_service.app.rate_limit_exceeded_handler"
+                                    ):
+                                        with patch(
+                                            "cv_search_service.app.init_monitoring"
+                                        ):
+                                            with patch(
+                                                "cv_search_service.app.get_metrics"
+                                            ):
+                                                with patch(
+                                                    "cv_search_service.app.MetricsMiddleware"
+                                                ):
                                                     # Import after patching
                                                     import importlib
 
@@ -39,7 +53,9 @@ class TestApp:
                                                         importlib.reload(
                                                             sys.modules["app"]
                                                         )
-                                                    from cv_search_service.app import app
+                                                    from cv_search_service.app import (
+                                                        app,
+                                                    )
 
                                                     return TestClient(app)
 
