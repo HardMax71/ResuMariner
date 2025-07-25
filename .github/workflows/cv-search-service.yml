@@ -79,7 +79,7 @@ jobs:
         run: |
           sleep 30
           curl -f http://localhost:6333/
-          echo "RETURN 1" | cypher-shell -u neo4j -p testpassword -a bolt://localhost:7687
+          curl -f http://localhost:7474/
 
       - name: Run unit tests with coverage
         env:
@@ -162,7 +162,7 @@ jobs:
         run: |
           sleep 30
           curl -f http://localhost:6333/
-          echo "RETURN 1" | cypher-shell -u neo4j -p testpassword -a bolt://localhost:7687
+          curl -f http://localhost:7474/
 
       - name: Test vector search
         env:
@@ -337,7 +337,7 @@ jobs:
         run: |
           sleep 30
           curl -f http://localhost:6333/
-          echo "RETURN 1" | cypher-shell -u neo4j -p testpassword -a bolt://localhost:7687
+          curl -f http://localhost:7474/
 
       - name: Run service integration tests
         env:
