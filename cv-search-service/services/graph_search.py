@@ -16,21 +16,23 @@ class GraphSearchService:
         try:
             self.driver = GraphDatabase.driver(
                 settings.NEO4J_URI,
-                auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD)
+                auth=(settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD),
             )
             logger.info(f"Connected to Neo4j at {settings.NEO4J_URI}")
         except exceptions.ServiceUnavailable as e:
             logger.error(f"Failed to connect to Neo4j: {str(e)}")
             raise DatabaseError(f"Graph database connection failed: {str(e)}")
 
-    def search(self,
-               skills: Optional[List[str]] = None,
-               technologies: Optional[List[str]] = None,
-               role: Optional[str] = None,
-               company: Optional[str] = None,
-               location: Optional[str] = None,
-               years_experience: Optional[int] = None,
-               limit: int = 10) -> List[Dict[str, Any]]:
+    def search(
+        self,
+        skills: Optional[List[str]] = None,
+        technologies: Optional[List[str]] = None,
+        role: Optional[str] = None,
+        company: Optional[str] = None,
+        location: Optional[str] = None,
+        years_experience: Optional[int] = None,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
         """Search for CVs using graph query with multiple filters
 
         Args:
@@ -179,7 +181,7 @@ class GraphSearchService:
                         "education": record["education"],
                         "years_experience": round(record.get("years_experience", 0), 1),
                         "score": record["score"],
-                        "matches": []  # No text matches for graph search
+                        "matches": [],  # No text matches for graph search
                     }
                     results.append(result)
 

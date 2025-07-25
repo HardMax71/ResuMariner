@@ -9,7 +9,7 @@ from pydantic_ai.settings import ModelSettings
 from utils.errors import LLMServiceError
 
 # Generic type for result models
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class LLMService(Generic[T]):
@@ -19,14 +19,16 @@ class LLMService(Generic[T]):
         """Initialize the LLM service"""
         try:
             # First - setting key value to env vars
-            os.environ[f"{settings.LLM_PROVIDER.upper()}_API_KEY"] = settings.LLM_API_KEY
+            os.environ[f"{settings.LLM_PROVIDER.upper()}_API_KEY"] = (
+                settings.LLM_API_KEY
+            )
 
             # Special case for custom base URLs
             if settings.LLM_BASE_URL:
-                self.model: Model = OpenAIModel(
+                self.model: Model = OpenAIModel(  # type: ignore[call-arg]
                     model_name=settings.LLM_MODEL,
                     base_url=settings.LLM_BASE_URL,
-                    api_key=settings.LLM_API_KEY
+                    api_key=settings.LLM_API_KEY,
                 )
             else:
                 # For all other providers, use infer_model and pass API key
@@ -34,9 +36,9 @@ class LLMService(Generic[T]):
                 model = infer_model(cast(KnownModelName, model_string))
 
                 # Set the API key for the model
-                if hasattr(model, 'api_key'):
+                if hasattr(model, "api_key"):
                     model.api_key = settings.LLM_API_KEY
-                elif hasattr(model, 'client') and hasattr(model.client, 'api_key'):
+                elif hasattr(model, "client") and hasattr(model.client, "api_key"):
                     model.client.api_key = settings.LLM_API_KEY
 
                 self.model = model
@@ -46,7 +48,7 @@ class LLMService(Generic[T]):
                 model=self.model,
                 result_type=result_type,
                 system_prompt=system_prompt,
-                retries=3
+                retries=3,
             )
         except Exception as e:
             raise LLMServiceError(f"Failed to initialize LLM service: {str(e)}")
@@ -56,15 +58,9 @@ class LLMService(Generic[T]):
         try:
             temp = temperature if temperature is not None else settings.TEMPERATURE
 
-            model_settings = ModelSettings(
-                temperature=temp,
-                parallel_tool_calls=False
-            )
+            model_settings = ModelSettings(temperature=temp, parallel_tool_calls=False)
 
-            result = await self.agent.run(
-                prompt,
-                model_settings=model_settings
-            )
+            result = await self.agent.run(prompt, model_settings=model_settings)
 
             return result.data
 

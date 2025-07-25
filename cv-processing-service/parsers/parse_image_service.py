@@ -51,23 +51,22 @@ class ParseImageService(BaseExtractionService):
 
                     # Detect URLs in the extracted text.
                     # This simple regex captures URLs starting with http:// or https://.
-                    found_urls = re.findall(r'(https?://\S+)', extracted_text)
+                    found_urls = re.findall(r"(https?://\S+)", extracted_text)
                     links = []
                     seen_links = set()
                     for url in found_urls:
                         if url not in seen_links:
                             seen_links.add(url)
                             # In OCR, we may not have separate "anchor" text, so we use the URL.
-                            links.append({
-                                "text": url,
-                                "url": url
-                            })
+                            links.append({"text": url, "url": url})
 
-                    pages.append({
-                        "page_number": idx,
-                        "text": extracted_text.strip(),
-                        "links": links
-                    })
+                    pages.append(
+                        {
+                            "page_number": idx,
+                            "text": extracted_text.strip(),
+                            "links": links,
+                        }
+                    )
         except Exception as e:
             raise RuntimeError(f"Error processing image {self.image_path}: {e}")
 
@@ -75,7 +74,7 @@ class ParseImageService(BaseExtractionService):
             "metadata": {
                 "total_pages": len(pages),
                 "file_type": os.path.splitext(self.image_path)[1].lower(),
-                "processed_at": processed_timestamp
+                "processed_at": processed_timestamp,
             },
-            "pages": pages
+            "pages": pages,
         }

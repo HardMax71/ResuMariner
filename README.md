@@ -1,10 +1,25 @@
 <h1 align="center">ResuMariner</h1>
 <p align="center">
-  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/mypy.yml">
-    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/mypy.yml/badge.svg" alt="Mypy Checks" />
+  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/main.yml">
+    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/main.yml/badge.svg" alt="Main CI/CD" />
   </a>
-  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/ruff.yml">
-    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/ruff.yml/badge.svg" alt="Ruff Linting" />
+  <a href="https://www.python.org/">
+    <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version" />
+  </a>
+  <a href="https://codecov.io/gh/HardMax71/ResuMariner">
+    <img src="https://codecov.io/gh/HardMax71/ResuMariner/branch/main/graph/badge.svg" alt="Coverage" />
+  </a>
+  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-intake-service.yml">
+    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-intake-service.yml/badge.svg" alt="Intake Service" />
+  </a>
+  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-processing-service.yml">
+    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-processing-service.yml/badge.svg" alt="Processing Service" />
+  </a>
+  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-storage-service.yml">
+    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-storage-service.yml/badge.svg" alt="Storage Service" />
+  </a>
+  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-search-service.yml">
+    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-search-service.yml/badge.svg" alt="Search Service" />
   </a>
 </p>
 

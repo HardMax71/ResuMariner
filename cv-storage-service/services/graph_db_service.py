@@ -34,13 +34,34 @@ class GraphDBService:
 
     def __init__(self, uri: str, username: str, password: str):
         try:
-            config.DATABASE_URL = f"bolt://{username}:{password}@{uri.replace('bolt://', '')}"
-            install_all_labels()
+            # Build connection URL with proper format
+            if uri.startswith("bolt://"):
+                connection_url = (
+                    f"bolt://{username}:{password}@{uri.replace('bolt://', '')}"
+                )
+            else:
+                connection_url = f"bolt://{username}:{password}@{uri}"
 
-            logger.info(f"Connected to Neo4j at {uri}")
+            config.DATABASE_URL = connection_url
+
+            # Set connection pool configuration
+            from config import settings
+
+            config.DRIVER_CONFIG = {
+                "max_connection_lifetime": settings.NEO4J_MAX_CONNECTION_LIFETIME,
+                "max_connection_pool_size": settings.NEO4J_MAX_CONNECTION_POOL_SIZE,
+                "connection_timeout": settings.NEO4J_CONNECTION_TIMEOUT,
+                "encrypted": False,  # Set to True for production with SSL
+                "trust": "TRUST_ALL_CERTIFICATES",
+            }
+
+            install_all_labels()
+            logger.info(f"Connected to Neo4j at {uri} with connection pooling")
         except Exception as e:
             logger.error(f"Failed to connect to Neo4j: {e}", exc_info=True)
-            raise DatabaseConnectionError(f"Neo4j connection failed: {e}")
+            raise DatabaseConnectionError(
+                f"Neo4j connection failed: {e}", database_type="neo4j"
+            )
 
     def find_existing_cv_by_email(self, email: str) -> Optional[List[CVNode]]:
         """Find an existing CV by email via its connected Contact node."""
@@ -59,7 +80,9 @@ class GraphDBService:
             logger.error(f"Error finding CV for email {email}: {e}", exc_info=True)
             return None
 
-    def delete_cv(self, cv_id: Optional[str] = None, email: Optional[str] = None) -> bool:
+    def delete_cv(
+        self, cv_id: Optional[str] = None, email: Optional[str] = None
+    ) -> bool:
         """
         Delete a CV and all related nodes by either CV ID or email.
 
@@ -137,8 +160,10 @@ class GraphDBService:
             return True
 
         except Exception as e:
-            logger.error(f"Error deleting CV(s) for {id_info if 'id_info' in locals() else 'unknown'}: {e}",
-                         exc_info=True)
+            logger.error(
+                f"Error deleting CV(s) for {id_info if 'id_info' in locals() else 'unknown'}: {e}",
+                exc_info=True,
+            )
             raise GraphDBError(f"Failed to delete CV(s): {e}")
 
     @db.transaction
@@ -159,15 +184,28 @@ class GraphDBService:
             if existing_cvs:
                 for existing_cv in existing_cvs:
                     self.delete_cv(email=email)
-                    logger.info(f"Deleted existing CV with ID {existing_cv.uid} for email {email}")
+                    logger.info(
+                        f"Deleted existing CV with ID {existing_cv.uid} for email {email}"
+                    )
 
             # Convert sections to OGM nodes.
-            personal_info = Converter.dict_to_ogm(cv_data["personal_info"], PersonalInfoNode)
-            professional_profile = Converter.dict_to_ogm(cv_data["professional_profile"], ProfessionalProfileNode)
+            personal_info_data = cv_data.get("personal_info")
+            if not personal_info_data:
+                raise GraphDBError("Missing personal_info in cv_data")
+            personal_info = Converter.dict_to_ogm(personal_info_data, PersonalInfoNode)
+
+            professional_profile_data = cv_data.get("professional_profile")
+            if not professional_profile_data:
+                raise GraphDBError("Missing professional_profile in cv_data")
+            professional_profile = Converter.dict_to_ogm(
+                professional_profile_data, ProfessionalProfileNode
+            )
 
             # Create a new CV node; additional properties (e.g. timestamps) may be set via defaults.
             cv_fields = {"uid": cv_id}
             cv_node = Converter.dict_to_ogm(cv_fields, CVNode)
+            if not cv_node:
+                raise GraphDBError("Failed to create CVNode")
 
             # Connect the sections to the CV.
             cv_node.personal_info.connect(personal_info)
@@ -176,48 +214,57 @@ class GraphDBService:
             # Process skills.
             for skill_name in cv_data.get("skills", []) or []:
                 skill_node = Converter.dict_to_ogm(skill_name, SkillNode)
-                cv_node.skills.connect(skill_node)
+                if skill_node:
+                    cv_node.skills.connect(skill_node)
 
             # Process employment history.
             for job in cv_data.get("employment_history", []) or []:
                 exp = Converter.dict_to_ogm(job, EmploymentHistoryItemNode)
-                cv_node.employment_history.connect(exp)
+                if exp:
+                    cv_node.employment_history.connect(exp)
 
             # Process projects.
             for proj in cv_data.get("projects", []) or []:
                 project = Converter.dict_to_ogm(proj, ProjectNode)
-                cv_node.projects.connect(project)
+                if project:
+                    cv_node.projects.connect(project)
 
             # Process education.
             for edu in cv_data.get("education", []) or []:
                 education = Converter.dict_to_ogm(edu, EducationItemNode)
-                cv_node.education.connect(education)
+                if education:
+                    cv_node.education.connect(education)
 
             # Process courses.
             for course_data in cv_data.get("courses", []) or []:
                 course_node = Converter.dict_to_ogm(course_data, CourseNode)
-                cv_node.courses.connect(course_node)
+                if course_node:
+                    cv_node.courses.connect(course_node)
 
             # Process certifications.
             for cert_data in cv_data.get("certifications", []) or []:
                 cert_node = Converter.dict_to_ogm(cert_data, CertificationNode)
-                cv_node.certifications.connect(cert_node)
+                if cert_node:
+                    cv_node.certifications.connect(cert_node)
 
             # Process language proficiency.
             for lang in cv_data.get("language_proficiency", []) or []:
                 lang_prof_node = Converter.dict_to_ogm(lang, LanguageProficiencyNode)
-                cv_node.language_proficiency.connect(lang_prof_node)
+                if lang_prof_node:
+                    cv_node.language_proficiency.connect(lang_prof_node)
 
             # Process awards.
             for award in cv_data.get("awards", []) or []:
                 award_node = Converter.dict_to_ogm(award, AwardNode)
-                cv_node.awards.connect(award_node)
+                if award_node:
+                    cv_node.awards.connect(award_node)
 
             # Process scientific contributions.
             sci_contrib = cv_data.get("scientific_contributions")
             if sci_contrib:
                 contrib = Converter.dict_to_ogm(sci_contrib, ScientificContributionNode)
-                cv_node.scientific_contributions.connect(contrib)
+                if contrib:
+                    cv_node.scientific_contributions.connect(contrib)
 
             cv_node.save()
             logger.info(f"Stored CV with ID {cv_id} for email {email}")
@@ -237,23 +284,36 @@ class GraphDBService:
         try:
             for cv_id in cv_ids:
                 try:
-                    cv = CVNode.nodes.get(uid=cv_id)
-                    # Navigate the relationships to retrieve PersonalInfo.
+                    cv = CVNode.nodes.get_or_none(uid=cv_id)
+                    if not cv:
+                        logger.warning(f"CV with ID {cv_id} not found.")
+                        continue
+
                     pinfo = cv.personal_info.single()
-                    pinfo_dict = Converter.ogm_to_dict(pinfo, include_relationships=False)
+                    if not pinfo:
+                        logger.warning(f"PersonalInfo not found for CV {cv_id}.")
+                        continue
+
+                    pinfo_dict = Converter.ogm_to_dict(
+                        pinfo, include_relationships=False
+                    )
                     cv_dict = Converter.ogm_to_dict(cv, include_relationships=False)
                     skills = [skill.name for skill in cv.skills.all()]
-                    # Email is stored in the connected Contact node (via PersonalInfo).
-                    contact = pinfo_dict.get("contact", {})
+
+                    contact = pinfo_dict.get("contact") if pinfo_dict else {}
                     result[cv_id] = {
-                        "name": pinfo_dict.get("name"),
-                        "email": contact.get("email"),
-                        "summary": cv_dict.get("summary"),
-                        "desired_role": cv_dict.get("desired_role"),
-                        "skills": skills
+                        "name": pinfo_dict.get("name") if pinfo_dict else "N/A",
+                        "email": contact.get("email") if contact else "N/A",
+                        "summary": cv_dict.get("summary") if cv_dict else "N/A",
+                        "desired_role": cv_dict.get("desired_role")
+                        if cv_dict
+                        else "N/A",
+                        "skills": skills,
                     }
                 except Exception as inner_e:
-                    logger.warning(f"Error retrieving details for CV {cv_id}: {inner_e}")
+                    logger.warning(
+                        f"Error retrieving details for CV {cv_id}: {inner_e}"
+                    )
             return result
         except Exception as e:
             logger.error(f"Error retrieving CV details: {e}", exc_info=True)

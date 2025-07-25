@@ -15,8 +15,7 @@ class LLMContentStructureService:
 
         system_prompt = "You are a CV parser. Extract information from resumes and return structured data exactly matching the schema."
         self.llm_service = LLMService[ResumeStructure](
-            result_type=ResumeStructure,
-            system_prompt=system_prompt
+            result_type=ResumeStructure, system_prompt=system_prompt
         )
 
     def _prepare_prompt(self, text: str, links: List[Dict]) -> str:
@@ -91,7 +90,7 @@ class LLMContentStructureService:
     2. NEVER REPORT 0 UNLESS THE INPUT IS TRULY EMPTY.
 
     Current input stats for reference:
-    - Resume text length: {len(''.join(text.split()))} characters
+    - Resume text length: {len("".join(text.split()))} characters
     - Number of provided links: {len(links)}
 
     Return JSON with the following structure (KEYS IN ENGLISH, VALUES IN ORIGINAL LANGUAGE UNLESS SPECIFIED OTHERWISE):
@@ -101,13 +100,15 @@ class LLMContentStructureService:
     {links}
 
     Resume Text (PROCESS VERBATIM):
-    {text[:settings.MAX_TOKENS_IN_RESUME_TO_PROCESS]}"""
+    {text[: settings.MAX_TOKENS_IN_RESUME_TO_PROCESS]}"""
 
     async def structure_content(self) -> ResumeStructure:
         """Structure content asynchronously"""
         # Extract text and links
-        full_text = "\n".join(p['text'] for p in self.raw_data['pages'])
-        links = [link for page in self.raw_data['pages'] for link in page.get('links', [])]
+        full_text = "\n".join(p["text"] for p in self.raw_data["pages"])
+        links = [
+            link for page in self.raw_data["pages"] for link in page.get("links", [])
+        ]
         try:
             # Prepare prompt and run inference
             prompt = self._prepare_prompt(full_text, links)
@@ -121,7 +122,9 @@ class LLMContentStructureService:
             logging.error(f"Content structuring failed: {str(e)}")
             return await self._handle_error(str(e), full_text, links)
 
-    async def _handle_error(self, error_message: str, text: str, links: List[Dict]) -> ResumeStructure:
+    async def _handle_error(
+        self, error_message: str, text: str, links: List[Dict]
+    ) -> ResumeStructure:
         """Handle errors by trying again with different settings"""
         try:
             # Create a retry agent with more explicit instructions
@@ -131,23 +134,24 @@ class LLMContentStructureService:
             )
 
             retry_service = LLMService[ResumeStructure](
-                result_type=ResumeStructure,
-                system_prompt=retry_system_prompt
+                result_type=ResumeStructure, system_prompt=retry_system_prompt
             )
 
             # Add an explicit instruction for error handling
             enhanced_prompt = (
-                                  "IMPORTANT: Return a valid JSON object matching the ResumeStructure schema exactly.\n\n"
-                                  "Focus on these common issues:\n"
-                                  "1. All required fields must be present\n"
-                                  "2. Format dates as MM.YYYY\n"
-                                  "3. Use null for missing values, not empty strings\n"
-                                  "4. Use exactly the enum values specified\n\n"
-                              ) + self._prepare_prompt(text, links)
+                "IMPORTANT: Return a valid JSON object matching the ResumeStructure schema exactly.\n\n"
+                "Focus on these common issues:\n"
+                "1. All required fields must be present\n"
+                "2. Format dates as MM.YYYY\n"
+                "3. Use null for missing values, not empty strings\n"
+                "4. Use exactly the enum values specified\n\n"
+            ) + self._prepare_prompt(text, links)
 
             # Use await here
             result = await retry_service.run(enhanced_prompt, temperature=0.1)
             return result
 
         except Exception as retry_error:
-            raise ContentStructureError(f"Content structuring failed: {str(retry_error)}")
+            raise ContentStructureError(
+                f"Content structuring failed: {str(retry_error)}"
+            )

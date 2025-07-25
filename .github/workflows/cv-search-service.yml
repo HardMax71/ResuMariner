@@ -1,0 +1,380 @@
+name: CV Search Service CI/CD
+
+on:
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+  push:
+    paths:
+      - 'cv-search-service/**'
+      - '.github/workflows/cv-search-service.yml'
+  pull_request:
+    paths:
+      - 'cv-search-service/**'
+      - '.github/workflows/cv-search-service.yml'
+
+env:
+  SERVICE_NAME: cv-search-service
+  SERVICE_PATH: ./cv-search-service
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # Service-specific tests
+  test-cv-search:
+    name: Test CV Search Service
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    services:
+      neo4j:
+        image: neo4j:5
+        env:
+          NEO4J_AUTH: neo4j/testpassword
+          NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p testpassword 'RETURN 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 7474:7474
+          - 7687:7687
+
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+        options: >-
+          --health-cmd "curl -f http://localhost:6333/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+          pip install -r ${{ env.SERVICE_PATH }}/requirements.txt
+
+      - name: Run service-specific linting
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: |
+          ruff check . --output-format=github
+          ruff format --check .
+
+      - name: Run service-specific type checking
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: |
+          mypy . --ignore-missing-imports
+
+      - name: Wait for services
+        run: |
+          sleep 30
+          curl -f http://localhost:6333/health
+          echo "RETURN 1" | cypher-shell -u neo4j -p testpassword -a bolt://localhost:7687
+
+      - name: Run unit tests with coverage
+        env:
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USERNAME: neo4j
+          NEO4J_PASSWORD: testpassword
+          QDRANT_HOST: localhost
+          QDRANT_PORT: 6333
+          API_KEY: test-api-key-that-is-at-least-16-chars
+          JWT_SECRET: test-jwt-secret-key-that-is-at-least-32-characters-long-for-validation
+          TEST_MODE: unit
+        run: |
+          pytest ${{ env.SERVICE_PATH }}/tests/unit/ \
+            --cov=${{ env.SERVICE_NAME }} \
+            --cov-report=xml:${{ env.SERVICE_NAME }}-coverage.xml \
+            --cov-report=html:${{ env.SERVICE_NAME }}-htmlcov \
+            --cov-report=term-missing \
+            --cov-fail-under=30 \
+            --junitxml=${{ env.SERVICE_NAME }}-results.xml \
+            -v
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./${{ env.SERVICE_NAME }}-coverage.xml
+          flags: ${{ env.SERVICE_NAME }}
+          name: codecov-${{ env.SERVICE_NAME }}
+          fail_ci_if_error: false
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: ${{ env.SERVICE_NAME }}-test-results-${{ matrix.python-version }}
+          path: |
+            ${{ env.SERVICE_NAME }}-results.xml
+            ${{ env.SERVICE_NAME }}-htmlcov/
+
+  # Search algorithm tests
+  search-algorithm-tests:
+    name: Search Algorithm Tests
+    runs-on: ubuntu-latest
+    services:
+      neo4j:
+        image: neo4j:5
+        env:
+          NEO4J_AUTH: neo4j/testpassword
+          NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p testpassword 'RETURN 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 7474:7474
+          - 7687:7687
+
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+        options: >-
+          --health-cmd "curl -f http://localhost:6333/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+          pip install -r ${{ env.SERVICE_PATH }}/requirements.txt
+
+      - name: Wait for services
+        run: |
+          sleep 30
+          curl -f http://localhost:6333/health
+          echo "RETURN 1" | cypher-shell -u neo4j -p testpassword -a bolt://localhost:7687
+
+      - name: Test vector search
+        env:
+          QDRANT_HOST: localhost
+          QDRANT_PORT: 6333
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: |
+          pytest tests/unit/test_vector_search.py \
+            tests/unit/test_embedding_service.py \
+            -v --tb=short
+
+      - name: Test graph search
+        env:
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USERNAME: neo4j
+          NEO4J_PASSWORD: testpassword
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: |
+          pytest tests/unit/test_graph_search.py \
+            -v --tb=short
+
+      - name: Test hybrid search
+        env:
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USERNAME: neo4j
+          NEO4J_PASSWORD: testpassword
+          QDRANT_HOST: localhost
+          QDRANT_PORT: 6333
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: |
+          pytest tests/unit/test_hybrid_search.py \
+            -v --tb=short
+
+  # Security scanning
+  security-scan-cv-search:
+    name: Security Scan CV Search
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety
+          pip install -r ${{ env.SERVICE_PATH }}/requirements.txt
+
+      - name: Run Bandit security scan
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: |
+          bandit -r . -f json -o bandit-${{ env.SERVICE_NAME }}.json
+        continue-on-error: true
+
+      - name: Run Safety vulnerability check
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: |
+          safety check --json --output safety-${{ env.SERVICE_NAME }}.json
+        continue-on-error: true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports-${{ env.SERVICE_NAME }}
+          path: |
+            ${{ env.SERVICE_PATH }}/bandit-${{ env.SERVICE_NAME }}.json
+            ${{ env.SERVICE_PATH }}/safety-${{ env.SERVICE_NAME }}.json
+
+  # Build Docker image for testing
+  build-cv-search:
+    name: Build CV Search Docker
+    runs-on: ubuntu-latest
+    needs: [test-cv-search, search-algorithm-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (local only)
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.SERVICE_PATH }}
+          platforms: linux/amd64
+          push: false
+          tags: ${{ env.SERVICE_NAME }}:test
+          cache-from: type=gha,scope=${{ env.SERVICE_NAME }}
+          cache-to: type=gha,mode=max,scope=${{ env.SERVICE_NAME }}
+
+      - name: Test Docker image
+        run: |
+          docker run --rm ${{ env.SERVICE_NAME }}:test python -c "import sys; print(f'Python {sys.version}')"
+
+  # Container security scanning
+  container-security-cv-search:
+    name: Container Security CV Search
+    runs-on: ubuntu-latest
+    needs: [build-cv-search]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for scanning
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.SERVICE_PATH }}
+          platforms: linux/amd64
+          push: false
+          tags: ${{ env.SERVICE_NAME }}:scan
+          cache-from: type=gha,scope=${{ env.SERVICE_NAME }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.SERVICE_NAME }}:scan
+          format: 'sarif'
+          output: 'trivy-${{ env.SERVICE_NAME }}.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-${{ env.SERVICE_NAME }}.sarif'
+
+  # Service-specific integration tests
+  integration-test-cv-search:
+    name: Integration Test CV Search
+    runs-on: ubuntu-latest
+    needs: [build-cv-search]
+    services:
+      neo4j:
+        image: neo4j:5
+        env:
+          NEO4J_AUTH: neo4j/testpassword
+          NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p testpassword 'RETURN 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 7474:7474
+          - 7687:7687
+
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+        options: >-
+          --health-cmd "curl -f http://localhost:6333/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+
+      - name: Wait for services
+        run: |
+          sleep 30
+          curl -f http://localhost:6333/health
+          echo "RETURN 1" | cypher-shell -u neo4j -p testpassword -a bolt://localhost:7687
+
+      - name: Run service integration tests
+        env:
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USERNAME: neo4j
+          NEO4J_PASSWORD: testpassword
+          QDRANT_HOST: localhost
+          QDRANT_PORT: 6333
+          API_KEY: test-api-key-that-is-at-least-16-chars
+          JWT_SECRET: test-jwt-secret-key-that-is-at-least-32-characters-long-for-validation
+          TEST_MODE: integration
+        run: |
+          pytest tests/integration/test_${{ env.SERVICE_NAME }}_integration.py \
+            --cov=${{ env.SERVICE_NAME }} \
+            --cov-report=xml:${{ env.SERVICE_NAME }}-integration-coverage.xml \
+            --junitxml=${{ env.SERVICE_NAME }}-integration-results.xml \
+            -v
+
+      - name: Upload integration coverage
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./${{ env.SERVICE_NAME }}-integration-coverage.xml
+          flags: integration-${{ env.SERVICE_NAME }}
+          name: codecov-integration-${{ env.SERVICE_NAME }}
+

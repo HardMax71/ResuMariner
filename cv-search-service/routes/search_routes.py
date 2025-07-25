@@ -1,10 +1,15 @@
 import logging
 import time
 
-from fastapi import HTTPException, APIRouter
+from fastapi import HTTPException, APIRouter, Depends, Request
 from models.search_models import (
-    VectorSearchQuery, GraphSearchQuery, HybridSearchQuery,
-    SearchResponse, FilterOptions, SearchResult
+    VectorSearchQuery,
+    GraphSearchQuery,
+    HybridSearchQuery,
+    SearchResponse,
+    FilterOptions,
+    SearchResult,
+    FilterOption,
 )
 from services.embedding_service import EmbeddingService
 from services.graph_search import GraphSearchService
@@ -12,6 +17,7 @@ from services.hybrid_search import HybridSearchService
 from services.vector_search import VectorSearchService
 from utils.errors import SearchServiceError, EmbeddingError, DatabaseError
 from utils.helpers import timed_execution
+from utils.security import validate_api_key, limiter
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +35,11 @@ except Exception as e:
 
 
 @router.post("/search/semantic", response_model=SearchResponse)
+@limiter.limit("20/minute")
 @timed_execution
-async def semantic_search(query: VectorSearchQuery):
+async def semantic_search(
+    request: Request, query: VectorSearchQuery, api_key: str = Depends(validate_api_key)
+):
     """Search for CVs using semantic similarity
 
     This endpoint performs a semantic search based on the meaning of the query text.
@@ -53,7 +62,7 @@ async def semantic_search(query: VectorSearchQuery):
             query_vector=query_vector,
             limit=query.limit,
             min_score=query.min_score,
-            filters=query.filters
+            filters=query.filters,
         )
 
         logger.debug(f"Vector search returned {len(search_results)} raw results")
@@ -75,16 +84,18 @@ async def semantic_search(query: VectorSearchQuery):
                     "score": 0.0,
                     "summary": None,  # These fields may be populated later if available
                     "skills": None,
-                    "experiences": None
+                    "experiences": None,
                 }
 
             # Add this match to the CV's matches list
-            cv_results[cv_id]["matches"].append({
-                "text": hit["text"],
-                "score": hit["score"],
-                "source": hit["source"],
-                "context": hit["context"]
-            })
+            cv_results[cv_id]["matches"].append(
+                {
+                    "text": hit["text"],
+                    "score": hit["score"],
+                    "source": hit["source"],
+                    "context": hit["context"],
+                }
+            )
 
             # Update the overall score (use max score of all matches)
             cv_results[cv_id]["score"] = max(cv_results[cv_id]["score"], hit["score"])
@@ -94,7 +105,7 @@ async def semantic_search(query: VectorSearchQuery):
         formatted_results.sort(key=lambda x: x["score"], reverse=True)
 
         # Limit results to requested number
-        formatted_results = formatted_results[:query.limit]
+        formatted_results = formatted_results[: query.limit]
 
         logger.info(f"Returning {len(formatted_results)} grouped results")
 
@@ -105,7 +116,7 @@ async def semantic_search(query: VectorSearchQuery):
             total=len(formatted_results),
             query=query.query,
             search_type="semantic",
-            execution_time=execution_time
+            execution_time=execution_time,
         )
 
     except EmbeddingError as e:
@@ -120,8 +131,11 @@ async def semantic_search(query: VectorSearchQuery):
 
 
 @router.post("/search/structured", response_model=SearchResponse)
+@limiter.limit("20/minute")
 @timed_execution
-async def structured_search(query: GraphSearchQuery):
+async def structured_search(
+    request: Request, query: GraphSearchQuery, api_key: str = Depends(validate_api_key)
+):
     """Search for CVs using structured criteria
 
     This endpoint performs a structured search based on specific criteria like skills,
@@ -143,7 +157,7 @@ async def structured_search(query: GraphSearchQuery):
             company=query.company,
             location=query.location,
             years_experience=query.years_experience,
-            limit=query.limit
+            limit=query.limit,
         )
 
         execution_time = time.time() - start_time
@@ -153,7 +167,7 @@ async def structured_search(query: GraphSearchQuery):
             total=len(results),
             query="Structured search",
             search_type="structured",
-            execution_time=execution_time
+            execution_time=execution_time,
         )
 
     except DatabaseError as e:
@@ -165,8 +179,11 @@ async def structured_search(query: GraphSearchQuery):
 
 
 @router.post("/search/hybrid", response_model=SearchResponse)
+@limiter.limit("20/minute")
 @timed_execution
-async def hybrid_search_endpoint(query: HybridSearchQuery):
+async def hybrid_search_endpoint(
+    request: Request, query: HybridSearchQuery, api_key: str = Depends(validate_api_key)
+):
     """Search for CVs using hybrid approach
 
     This endpoint combines semantic and structured search for better results.
@@ -187,7 +204,7 @@ async def hybrid_search_endpoint(query: HybridSearchQuery):
             location=query.location,
             vector_weight=query.vector_weight,
             graph_weight=query.graph_weight,
-            limit=query.limit
+            limit=query.limit,
         )
 
         return SearchResponse(
@@ -195,7 +212,7 @@ async def hybrid_search_endpoint(query: HybridSearchQuery):
             total=result["total"],
             query=query.query,
             search_type="hybrid",
-            execution_time=result["execution_time"]
+            execution_time=result["execution_time"],
         )
 
     except SearchServiceError as e:
@@ -207,7 +224,10 @@ async def hybrid_search_endpoint(query: HybridSearchQuery):
 
 
 @router.get("/filters", response_model=FilterOptions)
-async def get_filter_options():
+@limiter.limit("30/minute")
+async def get_filter_options(
+    request: Request, api_key: str = Depends(validate_api_key)
+):
     """Get available filter options for search
 
     This endpoint provides available options for structured search filters,
@@ -219,11 +239,11 @@ async def get_filter_options():
         filter_data = graph_search.get_filter_options()
 
         return FilterOptions(
-            skills=filter_data["skills"],
-            technologies=filter_data["technologies"],
-            roles=filter_data["roles"],
-            companies=filter_data["companies"],
-            locations=filter_data["locations"]
+            skills=[FilterOption(**skill) for skill in filter_data["skills"]],
+            technologies=[FilterOption(**tech) for tech in filter_data["technologies"]],
+            roles=[FilterOption(**role) for role in filter_data["roles"]],
+            companies=[FilterOption(**comp) for comp in filter_data["companies"]],
+            locations=[FilterOption(**loc) for loc in filter_data["locations"]],
         )
 
     except DatabaseError as e:
@@ -231,4 +251,6 @@ async def get_filter_options():
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get filter options: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get filter options: {str(e)}"
+        )

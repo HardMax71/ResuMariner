@@ -25,14 +25,16 @@ class ProcessingService:
 
     def _get_parser(self, file_path: str, file_ext: str):
         """Get appropriate parser for file type"""
-        if file_ext == '.pdf':
+        if file_ext == ".pdf":
             return ParsePdfService(file_path)
-        elif file_ext in ['.jpg', '.jpeg', '.png']:
+        elif file_ext in [".jpg", ".jpeg", ".png"]:
             return ParseImageService(file_path)
         else:
             raise ParserError(f"Unsupported file type: {file_ext}")
 
-    async def process_file(self, file: UploadFile, file_path: str, options: ProcessingOptions) -> ProcessingResult:
+    async def process_file(
+        self, file: UploadFile, file_path: str, options: ProcessingOptions
+    ) -> ProcessingResult:
         """Process a CV file
 
         Args:
@@ -54,7 +56,9 @@ class ProcessingService:
 
             filename_parts = os.path.splitext(file.filename)
             if not filename_parts[1]:
-                raise ValueError(f"Invalid file name or missing extension: {file.filename}")
+                raise ValueError(
+                    f"Invalid file name or missing extension: {file.filename}"
+                )
 
             file_ext = filename_parts[1].lower()
             parser = self._get_parser(file_path, file_ext)
@@ -75,27 +79,38 @@ class ProcessingService:
                     async with httpx.AsyncClient() as client:
                         storage_response = await client.post(
                             f"{settings.STORAGE_SERVICE_URL}/cv",
-                            json={"job_id": cv_id, "cv_data": structured_data.model_dump(mode="json",
-                                                                                         exclude_none=True)},
-                            timeout=60.0
+                            json={
+                                "job_id": cv_id,
+                                "cv_data": structured_data.model_dump(
+                                    mode="json", exclude_none=True
+                                ),
+                            },
+                            timeout=60.0,
                         )
 
                         if storage_response.status_code != 200:
-                            logging.warning(f"Failed to store CV data: {storage_response.text}")
+                            logging.warning(
+                                f"Failed to store CV data: {storage_response.text}"
+                            )
                         else:
                             logging.info(f"CV data stored with ID {cv_id}")
                             metadata["cv_id"] = cv_id
 
-                            embeddings_stored = await self.embedding_service.send_embeddings_to_storage(
-                                cv_id=cv_id,
-                                resume=structured_data
+                            embeddings_stored = (
+                                await self.embedding_service.send_embeddings_to_storage(
+                                    cv_id=cv_id, resume=structured_data
+                                )
                             )
 
                             if embeddings_stored:
-                                logging.info(f"Embeddings stored successfully for CV {cv_id}")
+                                logging.info(
+                                    f"Embeddings stored successfully for CV {cv_id}"
+                                )
                                 metadata["embeddings_stored"] = True
                             else:
-                                logging.warning(f"Failed to store embeddings for CV {cv_id}")
+                                logging.warning(
+                                    f"Failed to store embeddings for CV {cv_id}"
+                                )
                                 metadata["embeddings_stored"] = False
                             # We can still track successful storage of embeddings
                             result = storage_response.json()
@@ -121,12 +136,14 @@ class ProcessingService:
                 structured_data=structured_data.model_dump(mode="json"),
                 review=review_result,
                 processing_time=processing_time,
-                metadata=metadata
+                metadata=metadata,
             )
 
         except ValidationError as e:
             logging.error(f"Validation error: {str(e)}")
-            raise HTTPException(status_code=422, detail=f"Schema validation error: {str(e)}")
+            raise HTTPException(
+                status_code=422, detail=f"Schema validation error: {str(e)}"
+            )
         except BaseProcessingError as e:
             logging.error(f"Processing error: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))

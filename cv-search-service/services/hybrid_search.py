@@ -20,16 +20,18 @@ class HybridSearchService:
         self.graph_search = GraphSearchService()
         self.embedding_service = EmbeddingService()
 
-    def search(self,
-               query: str,
-               skills: Optional[List[str]] = None,
-               technologies: Optional[List[str]] = None,
-               role: Optional[str] = None,
-               company: Optional[str] = None,
-               location: Optional[str] = None,
-               vector_weight: float | None = None,
-               graph_weight: float | None = None,
-               limit: int = 10) -> Dict[str, Any]:
+    def search(
+        self,
+        query: str,
+        skills: Optional[List[str]] = None,
+        technologies: Optional[List[str]] = None,
+        role: Optional[str] = None,
+        company: Optional[str] = None,
+        location: Optional[str] = None,
+        vector_weight: float | None = None,
+        graph_weight: float | None = None,
+        limit: int = 10,
+    ) -> Dict[str, Any]:
         """Perform hybrid search combining vector and graph approaches"""
         start_time = time.time()
 
@@ -54,7 +56,7 @@ class HybridSearchService:
             vector_results = self.vector_search.search(
                 query_vector=query_vector,
                 limit=limit * 2,  # Get more results to allow for filtering
-                filters=vector_filters if vector_filters else None
+                filters=vector_filters if vector_filters else None,
             )
             logger.debug(f"Vector search returned {len(vector_results)} results")
 
@@ -65,17 +67,13 @@ class HybridSearchService:
                 role=role,
                 company=company,
                 location=location,
-                limit=limit * 2  # Get more results to allow for merging
+                limit=limit * 2,  # Get more results to allow for merging
             )
             logger.debug(f"Graph search returned {len(graph_results)} results")
 
             # Combine and rank results
             combined_results = self._combine_results(
-                vector_results,
-                graph_results,
-                vector_weight,
-                graph_weight,
-                limit
+                vector_results, graph_results, vector_weight, graph_weight, limit
             )
 
             # Calculate execution time
@@ -86,19 +84,21 @@ class HybridSearchService:
                 "total": len(combined_results),
                 "execution_time": execution_time,
                 "search_type": "hybrid",
-                "query": query
+                "query": query,
             }
 
         except Exception as e:
             logger.error(f"Hybrid search error: {str(e)}")
             raise SearchServiceError(f"Hybrid search failed: {str(e)}")
 
-    def _combine_results(self,
-                         vector_results: List[Dict[str, Any]],
-                         graph_results: List[Dict[str, Any]],
-                         vector_weight: float,
-                         graph_weight: float,
-                         limit: int) -> List[Dict[str, Any]]:
+    def _combine_results(
+        self,
+        vector_results: List[Dict[str, Any]],
+        graph_results: List[Dict[str, Any]],
+        vector_weight: float,
+        graph_weight: float,
+        limit: int,
+    ) -> List[Dict[str, Any]]:
         """Combine and rank results from vector and graph searches"""
         # Create dictionaries to track combined scores and store CV details
         combined_scores = {}
@@ -124,16 +124,18 @@ class HybridSearchService:
                     "skills": [],
                     "experiences": [],
                     "summary": None,
-                    "score": 0
+                    "score": 0,
                 }
 
             # Add match to the CV's matches list
-            cv_details[cv_id]["matches"].append({
-                "text": result["text"],
-                "score": result["score"],
-                "source": result["source"],
-                "context": result["context"]
-            })
+            cv_details[cv_id]["matches"].append(
+                {
+                    "text": result["text"],
+                    "score": result["score"],
+                    "source": result["source"],
+                    "context": result["context"],
+                }
+            )
 
             # Update the combined score with vector weight
             # For vector results, we take the maximum of all match scores
@@ -157,7 +159,7 @@ class HybridSearchService:
                     "skills": [],
                     "experiences": [],
                     "summary": None,
-                    "score": 0
+                    "score": 0,
                 }
 
             # Update CV details with graph data
@@ -188,8 +190,11 @@ class HybridSearchService:
         # Process each group in priority order
         for cv_group in [both_searches, only_vector, only_graph]:
             # Sort this group by score
-            sorted_group = sorted([(cv_id, combined_scores[cv_id]) for cv_id in cv_group],
-                                  key=lambda x: x[1], reverse=True)
+            sorted_group = sorted(
+                [(cv_id, combined_scores[cv_id]) for cv_id in cv_group],
+                key=lambda x: x[1],
+                reverse=True,
+            )
 
             # Add to final results
             for cv_id, score in sorted_group:

@@ -14,10 +14,10 @@ router = APIRouter()
 
 @router.post("/process", response_model=ProcessingResult)
 async def process_cv(
-        file: UploadFile = File(...),
-        parallel: bool = Form(False),
-        generate_review: bool = Form(True),
-        store_in_db: bool = Form(True)
+    file: UploadFile = File(...),
+    parallel: bool = Form(False),
+    generate_review: bool = Form(True),
+    store_in_db: bool = Form(True),
 ):
     """Process a CV file and return structured data
 
@@ -33,7 +33,9 @@ async def process_cv(
     # Create temp file
     if file.filename is None:
         raise ValueError("File name is missing")
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1])
+    temp_file = tempfile.NamedTemporaryFile(
+        delete=False, suffix=os.path.splitext(file.filename)[1]
+    )
 
     try:
         # Save uploaded file to temp file
@@ -43,9 +45,7 @@ async def process_cv(
 
         # Create options object
         options = ProcessingOptions(
-            parallel=parallel,
-            generate_review=generate_review,
-            store_in_db=store_in_db
+            parallel=parallel, generate_review=generate_review, store_in_db=store_in_db
         )
 
         # Process the file
@@ -69,5 +69,5 @@ async def health_check():
     return {
         "status": "ok",
         "llm_provider": settings.LLM_PROVIDER,
-        "llm_model": settings.LLM_MODEL
+        "llm_model": settings.LLM_MODEL,
     }

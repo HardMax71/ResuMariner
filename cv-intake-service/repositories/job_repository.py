@@ -21,7 +21,7 @@ class JobRepository:
             host=settings.REDIS_HOST,
             port=settings.REDIS_PORT,
             password=settings.REDIS_PASSWORD,
-            decode_responses=True
+            decode_responses=True,
         )
         self.prefix = settings.REDIS_JOB_PREFIX
         self.ttl = timedelta(days=settings.JOB_RETENTION_DAYS)
@@ -38,7 +38,7 @@ class JobRepository:
                 file_path=job_create.file_path,
                 result={},
                 result_url="",
-                error=""
+                error="",
             )
 
             # Convert to dictionary and prepare for Redis
@@ -125,6 +125,7 @@ class JobRepository:
         except Exception as e:
             logger.error(f"Redis update error details: {str(e)}")
             import traceback
+
             traceback.print_exc()
             raise RepositoryError(f"Failed to update job: {str(e)}")
 

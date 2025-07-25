@@ -22,16 +22,28 @@ class VectorDBService:
             vector_size: Dimensionality of vectors to store (384 for all-MiniLM-L6-v2)
         """
         try:
-            self.client = QdrantClient(host=host, port=port)
+            from config import settings
+
+            # Configure client with connection pooling and timeout
+            self.client = QdrantClient(
+                host=host,
+                port=port,
+                timeout=settings.QDRANT_TIMEOUT,
+                prefer_grpc=settings.QDRANT_PREFER_GRPC,
+            )
             self.collection_name = collection_name
             self.vector_size = vector_size
 
             # Initialize collection if it doesn't exist
             self._initialize_collection()
-            logger.info(f"Connected to Qdrant at {host}:{port}, collection: {collection_name}")
+            logger.info(
+                f"Connected to Qdrant at {host}:{port}, collection: {collection_name}"
+            )
         except Exception as e:
             logger.error(f"Failed to connect to Qdrant: {str(e)}")
-            raise DatabaseConnectionError(f"Failed to connect to Qdrant: {str(e)}")
+            raise DatabaseConnectionError(
+                f"Failed to connect to Qdrant: {str(e)}", database_type="qdrant"
+            )
 
     def _initialize_collection(self) -> None:
         """Create collection if it doesn't exist"""
@@ -40,13 +52,14 @@ class VectorDBService:
             collection_names = [collection.name for collection in collections]
 
             if self.collection_name not in collection_names:
-                logger.info(f"Creating new collection '{self.collection_name}' with vector size {self.vector_size}")
+                logger.info(
+                    f"Creating new collection '{self.collection_name}' with vector size {self.vector_size}"
+                )
                 self.client.create_collection(
                     collection_name=self.collection_name,
                     vectors_config=qdrant_models.VectorParams(
-                        size=self.vector_size,
-                        distance=qdrant_models.Distance.COSINE
-                    )
+                        size=self.vector_size, distance=qdrant_models.Distance.COSINE
+                    ),
                 )
 
                 # Create payload indexes for faster filtering
@@ -64,7 +77,7 @@ class VectorDBService:
                 self.client.create_payload_index(
                     collection_name=self.collection_name,
                     field_name=field,
-                    field_schema=qdrant_models.PayloadSchemaType.KEYWORD
+                    field_schema=qdrant_models.PayloadSchemaType.KEYWORD,
                 )
             logger.info(f"Created payload indexes for {', '.join(fields_to_index)}")
         except Exception as e:
@@ -91,7 +104,9 @@ class VectorDBService:
                 if count > 0:
                     logger.info(f"Deleted {count} existing vectors for CV {cv_id}")
             except Exception as e:
-                logger.warning(f"Error when attempting to delete existing vectors: {str(e)}")
+                logger.warning(
+                    f"Error when attempting to delete existing vectors: {str(e)}"
+                )
 
             # Continue with vector storage
             points_to_insert = []
@@ -103,12 +118,16 @@ class VectorDBService:
                 # Extract the vector and validate
                 vector = vector_item.get("vector")
                 if not vector or not isinstance(vector, list):
-                    logger.warning(f"Invalid vector format at index {idx} for CV {cv_id}")
+                    logger.warning(
+                        f"Invalid vector format at index {idx} for CV {cv_id}"
+                    )
                     continue
 
                 if len(vector) != self.vector_size:
-                    logger.warning(f"Vector dimension mismatch at index {idx} for CV {cv_id}: "
-                                   f"Expected {self.vector_size}, got {len(vector)}")
+                    logger.warning(
+                        f"Vector dimension mismatch at index {idx} for CV {cv_id}: "
+                        f"Expected {self.vector_size}, got {len(vector)}"
+                    )
                     continue
 
                 # Prepare payload (all fields except 'vector')
@@ -118,9 +137,7 @@ class VectorDBService:
                 # Create point for insertion
                 points_to_insert.append(
                     qdrant_models.PointStruct(
-                        id=point_id,
-                        vector=vector,
-                        payload=payload
+                        id=point_id, vector=vector, payload=payload
                     )
                 )
 
@@ -130,10 +147,10 @@ class VectorDBService:
                 self.client.upsert(
                     collection_name=self.collection_name,
                     points=points_to_insert,
-                    wait=True
+                    wait=True,
                 )
 
-                return [p.id for p in points_to_insert]
+                return [str(p.id) for p in points_to_insert]
 
             return []
         except Exception as e:
@@ -153,16 +170,14 @@ class VectorDBService:
             filter_obj = qdrant_models.Filter(
                 must=[
                     qdrant_models.FieldCondition(
-                        key="cv_id",
-                        match=qdrant_models.MatchValue(value=cv_id)
+                        key="cv_id", match=qdrant_models.MatchValue(value=cv_id)
                     )
                 ]
             )
 
             # Count existing points
             count_result = self.client.count(
-                collection_name=self.collection_name,
-                count_filter=filter_obj
+                collection_name=self.collection_name, count_filter=filter_obj
             )
             count = count_result.count
 
@@ -170,7 +185,7 @@ class VectorDBService:
                 # Delete points
                 self.client.delete(
                     collection_name=self.collection_name,
-                    points_selector=qdrant_models.FilterSelector(filter=filter_obj)
+                    points_selector=qdrant_models.FilterSelector(filter=filter_obj),
                 )
                 logger.info(f"Deleted {count} vectors for CV {cv_id}")
 

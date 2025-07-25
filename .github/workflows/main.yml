@@ -1,0 +1,316 @@
+name: Main CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "18"
+
+jobs:
+  # Detect which services have changed
+  detect-changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      cv-intake-changed: ${{ steps.changes.outputs.cv-intake }}
+      cv-processing-changed: ${{ steps.changes.outputs.cv-processing }}
+      cv-storage-changed: ${{ steps.changes.outputs.cv-storage }}
+      cv-search-changed: ${{ steps.changes.outputs.cv-search }}
+      shared-changed: ${{ steps.changes.outputs.shared }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            cv-intake:
+              - 'cv-intake-service/**'
+            cv-processing:
+              - 'cv-processing-service/**'
+            cv-storage:
+              - 'cv-storage-service/**'
+            cv-search:
+              - 'cv-search-service/**'
+            shared:
+              - '.github/workflows/**'
+              - 'docker-compose*.yml'
+              - 'requirements*.txt'
+              - 'pytest.ini'
+              - 'mypy.ini'
+              - '*.py'
+
+  # Global code quality checks
+  global-quality:
+    name: Global Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy bandit safety pre-commit
+          pip install -r requirements-test.txt
+
+      - name: Run Ruff linting
+        run: |
+          ruff check . --output-format=github
+        continue-on-error: false
+
+      - name: Run Ruff formatting check
+        run: |
+          ruff format --check .
+
+      - name: Run MyPy type checking
+        run: |
+          mypy cv-intake-service cv-processing-service cv-storage-service cv-search-service --ignore-missing-imports
+
+      - name: Run Bandit security analysis
+        run: |
+          bandit -r cv-intake-service cv-processing-service cv-storage-service cv-search-service -f json -o bandit-report.json
+        continue-on-error: true
+
+      - name: Run Safety vulnerability check
+        run: |
+          safety check --json --output safety-report.json
+        continue-on-error: true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+
+  # Trigger service-specific workflows
+  trigger-cv-intake:
+    name: Trigger CV Intake Service
+    needs: [detect-changes, global-quality]
+    if: needs.detect-changes.outputs.cv-intake-changed == 'true' || needs.detect-changes.outputs.shared-changed == 'true'
+    uses: ./.github/workflows/cv-intake-service.yml
+    secrets: inherit
+
+  trigger-cv-processing:
+    name: Trigger CV Processing Service
+    needs: [detect-changes, global-quality]
+    if: needs.detect-changes.outputs.cv-processing-changed == 'true' || needs.detect-changes.outputs.shared-changed == 'true'
+    uses: ./.github/workflows/cv-processing-service.yml
+    secrets: inherit
+
+  trigger-cv-storage:
+    name: Trigger CV Storage Service
+    needs: [detect-changes, global-quality]
+    if: needs.detect-changes.outputs.cv-storage-changed == 'true' || needs.detect-changes.outputs.shared-changed == 'true'
+    uses: ./.github/workflows/cv-storage-service.yml
+    secrets: inherit
+
+  trigger-cv-search:
+    name: Trigger CV Search Service
+    needs: [detect-changes, global-quality]
+    if: needs.detect-changes.outputs.cv-search-changed == 'true' || needs.detect-changes.outputs.shared-changed == 'true'
+    uses: ./.github/workflows/cv-search-service.yml
+    secrets: inherit
+
+  # Integration tests (run only if any service changed)
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [detect-changes, trigger-cv-intake, trigger-cv-processing, trigger-cv-storage, trigger-cv-search]
+    if: always() && (needs.detect-changes.outputs.cv-intake-changed == 'true' || needs.detect-changes.outputs.cv-processing-changed == 'true' || needs.detect-changes.outputs.cv-storage-changed == 'true' || needs.detect-changes.outputs.cv-search-changed == 'true' || needs.detect-changes.outputs.shared-changed == 'true')
+    services:
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+      neo4j:
+        image: neo4j:5
+        env:
+          NEO4J_AUTH: neo4j/testpassword
+          NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p testpassword 'RETURN 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 7474:7474
+          - 7687:7687
+
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+        options: >-
+          --health-cmd "curl -f http://localhost:6333/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+
+      - name: Wait for services
+        run: |
+          sleep 30
+          curl -f http://localhost:6333/health
+          echo "RETURN 1" | cypher-shell -u neo4j -p testpassword -a bolt://localhost:7687
+
+      - name: Run integration tests
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USERNAME: neo4j
+          NEO4J_PASSWORD: testpassword
+          QDRANT_HOST: localhost
+          QDRANT_PORT: 6333
+          TEST_MODE: integration
+        run: |
+          pytest tests/integration/ \
+            --cov=cv-intake-service \
+            --cov=cv-processing-service \
+            --cov=cv-storage-service \
+            --cov=cv-search-service \
+            --cov-report=xml:integration-coverage.xml \
+            --junitxml=integration-results.xml \
+            -v
+
+      - name: Upload integration coverage
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./integration-coverage.xml
+          flags: integration
+          name: codecov-integration
+
+  # Deployment orchestration
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region us-west-2 --name resumariner-staging
+
+      - name: Deploy all services to staging
+        run: |
+          kubectl set image deployment/cv-intake-service cv-intake-service=resumariner/cv-intake-service:${{ github.sha }} -n staging
+          kubectl set image deployment/cv-processing-service cv-processing-service=resumariner/cv-processing-service:${{ github.sha }} -n staging
+          kubectl set image deployment/cv-storage-service cv-storage-service=resumariner/cv-storage-service:${{ github.sha }} -n staging
+          kubectl set image deployment/cv-search-service cv-search-service=resumariner/cv-search-service:${{ github.sha }} -n staging
+          
+          kubectl rollout status deployment/cv-intake-service -n staging --timeout=300s
+          kubectl rollout status deployment/cv-processing-service -n staging --timeout=300s
+          kubectl rollout status deployment/cv-storage-service -n staging --timeout=300s
+          kubectl rollout status deployment/cv-search-service -n staging --timeout=300s
+
+      - name: Run smoke tests
+        run: |
+          curl -f https://staging.resumariner.com/api/v1/health || exit 1
+          echo "Staging deployment successful"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region us-west-2 --name resumariner-production
+
+      - name: Deploy to production with blue-green strategy
+        run: |
+          kubectl patch deployment cv-intake-service -n production -p '{"spec":{"template":{"spec":{"containers":[{"name":"cv-intake-service","image":"resumariner/cv-intake-service:${{ github.sha }}"}]}}}}'
+          kubectl patch deployment cv-processing-service -n production -p '{"spec":{"template":{"spec":{"containers":[{"name":"cv-processing-service","image":"resumariner/cv-processing-service:${{ github.sha }}"}]}}}}'
+          kubectl patch deployment cv-storage-service -n production -p '{"spec":{"template":{"spec":{"containers":[{"name":"cv-storage-service","image":"resumariner/cv-storage-service:${{ github.sha }}"}]}}}}'
+          kubectl patch deployment cv-search-service -n production -p '{"spec":{"template":{"spec":{"containers":[{"name":"cv-search-service","image":"resumariner/cv-search-service:${{ github.sha }}"}]}}}}'
+          
+          kubectl rollout status deployment/cv-intake-service -n production --timeout=600s
+          kubectl rollout status deployment/cv-processing-service -n production --timeout=600s
+          kubectl rollout status deployment/cv-storage-service -n production --timeout=600s
+          kubectl rollout status deployment/cv-search-service -n production --timeout=600s
+
+      - name: Run production health checks
+        run: |
+          sleep 30
+          curl -f https://api.resumariner.com/health || exit 1
+          echo "Production deployment successful"
+
+      - name: Notify Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        if: always()

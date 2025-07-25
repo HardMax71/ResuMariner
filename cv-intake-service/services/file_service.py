@@ -14,8 +14,13 @@ logger = logging.getLogger(__name__)
 class FileService:
     """Service for managing file uploads and storage"""
 
-    # In-memory tracking of temporary files for cleanup
+    # In-memory tracking of temporary files for cleanup (job_id -> file_path)
     _temp_files: Dict[str, str] = {}
+
+    @classmethod
+    def clear_temp_files(cls):
+        """Clear all tracked temporary files (for testing)"""
+        cls._temp_files.clear()
 
     @staticmethod
     async def save_uploaded_file(file: UploadFile, job_id: str) -> str:
@@ -34,7 +39,7 @@ class FileService:
             if not is_valid:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid file type. Allowed extensions: {', '.join(settings.ALLOWED_FILE_EXTENSIONS)}"
+                    detail=f"Invalid file type. Allowed extensions: {', '.join(settings.ALLOWED_FILE_EXTENSIONS)}",
                 )
 
             # Ensure temp directory exists
@@ -88,20 +93,23 @@ class FileService:
             from botocore.exceptions import ClientError
 
             # Initialize S3 client
-            s3 = boto3.client('s3',
-                              aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                              aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                              region_name=settings.S3_REGION,
-                              endpoint_url=settings.S3_ENDPOINT_URL if settings.S3_ENDPOINT_URL else None
-                              )
+            s3 = boto3.client(
+                "s3",
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.S3_REGION,
+                endpoint_url=settings.S3_ENDPOINT_URL
+                if settings.S3_ENDPOINT_URL
+                else None,
+            )
 
             # Check if bucket exists
             bucket_name = settings.S3_BUCKET_NAME
             try:
                 s3.head_bucket(Bucket=bucket_name)
             except ClientError as e:
-                error_code = e.response.get('Error', {}).get('Code')
-                if error_code == '404':
+                error_code = e.response.get("Error", {}).get("Code")
+                if error_code == "404":
                     logger.info(f"Bucket {bucket_name} doesn't exist, creating...")
                     s3.create_bucket(Bucket=bucket_name)
                 else:
@@ -116,7 +124,9 @@ class FileService:
 
         except ImportError:
             logger.error("boto3 not installed. Please install boto3 to use S3 storage")
-            raise FileServiceError("boto3 not installed. Please install boto3 to use S3 storage")
+            raise FileServiceError(
+                "boto3 not installed. Please install boto3 to use S3 storage"
+            )
         except Exception as e:
             logger.error(f"Error uploading to S3: {str(e)}")
             raise FileServiceError(f"Failed to upload file to S3: {str(e)}")
@@ -129,7 +139,9 @@ class FileService:
         return is_valid, file_ext
 
     @staticmethod
-    def get_durable_file_path(job_id: str, file_ext: str | None = None) -> Optional[str]:
+    def get_durable_file_path(
+        job_id: str, file_ext: str | None = None
+    ) -> Optional[str]:
         """
         Get the path to a durably stored file if it exists.
         This is used when retrieving files after processing.
@@ -150,7 +162,9 @@ class FileService:
         elif settings.DURABLE_STORAGE == "s3":
             # For S3, we need to know the extension
             if file_ext is None:
-                logger.warning(f"Cannot get S3 file path without knowing the extension for job {job_id}")
+                logger.warning(
+                    f"Cannot get S3 file path without knowing the extension for job {job_id}"
+                )
                 return None
 
             # Return a marker for S3 files
@@ -179,7 +193,9 @@ class FileService:
                 # Remove from tracking
                 del FileService._temp_files[job_id]
         except Exception as e:
-            logger.warning(f"Error cleaning up temporary file for job {job_id}: {str(e)}")
+            logger.warning(
+                f"Error cleaning up temporary file for job {job_id}: {str(e)}"
+            )
 
     @staticmethod
     def download_from_s3(s3_key: str) -> str:
@@ -191,16 +207,21 @@ class FileService:
             import boto3
 
             # Create a temporary file path
-            temp_path = os.path.join(settings.TEMP_DIR, f"s3_{uuid.uuid4()}_{os.path.basename(s3_key)}")
+            temp_path = os.path.join(
+                settings.TEMP_DIR, f"s3_{uuid.uuid4()}_{os.path.basename(s3_key)}"
+            )
             os.makedirs(os.path.dirname(temp_path), exist_ok=True)
 
             # Download from S3
-            s3 = boto3.client('s3',
-                              aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                              aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                              region_name=settings.S3_REGION,
-                              endpoint_url=settings.S3_ENDPOINT_URL if settings.S3_ENDPOINT_URL else None
-                              )
+            s3 = boto3.client(
+                "s3",
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.S3_REGION,
+                endpoint_url=settings.S3_ENDPOINT_URL
+                if settings.S3_ENDPOINT_URL
+                else None,
+            )
 
             s3.download_file(settings.S3_BUCKET_NAME, s3_key, temp_path)
             logger.debug(f"Downloaded S3 file {s3_key} to {temp_path}")

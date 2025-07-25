@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingService:
-    _instance: ClassVar[Optional['EmbeddingService']] = None
+    _instance: ClassVar[Optional["EmbeddingService"]] = None
     model: SentenceTransformer
     vector_size: int
 
@@ -19,10 +19,13 @@ class EmbeddingService:
             cls._instance = super(EmbeddingService, cls).__new__(cls)
             try:
                 cls._instance.model = SentenceTransformer(settings.EMBEDDING_MODEL)
-                cls._instance.vector_size = cls._instance.model.get_sentence_embedding_dimension()
+                cls._instance.vector_size = (
+                    cls._instance.model.get_sentence_embedding_dimension()
+                )
                 logger.info(
                     f"Embedding model loaded: {settings.EMBEDDING_MODEL} "
-                    f"with dimension {cls._instance.vector_size}")
+                    f"with dimension {cls._instance.vector_size}"
+                )
             except Exception as e:
                 logger.error(f"Failed to load embedding model: {str(e)}")
                 raise EmbeddingError(f"Failed to initialize embedding model: {str(e)}")

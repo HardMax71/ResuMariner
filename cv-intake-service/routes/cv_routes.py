@@ -1,10 +1,20 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, File, UploadFile, BackgroundTasks, HTTPException
-from models.job import JobResponse, JobStatus
+from fastapi import (
+    APIRouter,
+    File,
+    UploadFile,
+    BackgroundTasks,
+    HTTPException,
+    Depends,
+    Request,
+)
+from pydantic import ValidationError
+from models.job import JobResponse, JobStatus, FileUpload
 from services.file_service import FileService
 from services.job_service import JobService
+from utils.security import validate_api_key, limiter
 
 router = APIRouter()
 job_service = JobService()
@@ -12,19 +22,36 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("/upload", response_model=JobResponse)
-async def upload_cv_for_processing(background_tasks: BackgroundTasks,
-                                   file: UploadFile = File(...)):
+@limiter.limit("5/minute")
+async def upload_cv_for_processing(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    api_key: str = Depends(validate_api_key),
+):
     if not file or not file.filename:
         raise HTTPException(
             status_code=400,
             detail="No filename provided",
         )
     try:
-        is_valid, file_ext = FileService.validate_file_type(file.filename)
-        if not is_valid:
-            raise HTTPException(status_code=400, detail=f"Unsupported file type: {file_ext}")
-        if not file_ext:
-            raise HTTPException(status_code=400, detail="File extension is missing")
+        # Read file content for validation
+        content = await file.read()
+        await file.seek(0)  # Reset file pointer
+
+        # Validate using Pydantic model
+        try:
+            FileUpload.from_upload_file(file, content)
+        except ValidationError as e:
+            error_msg = "; ".join(
+                [
+                    f"{'.'.join(str(x) for x in error['loc'])}: {error['msg']}"
+                    for error in e.errors()
+                ]
+            )
+            raise HTTPException(
+                status_code=400, detail=f"File validation failed: {error_msg}"
+            )
 
         job_id = str(uuid.uuid4())
         file_path = await FileService.save_uploaded_file(file, job_id)
@@ -36,38 +63,49 @@ async def upload_cv_for_processing(background_tasks: BackgroundTasks,
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to process upload: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process upload: {str(e)}"
+        )
 
 
 @router.get("/status/{job_id}", response_model=JobResponse)
-async def get_job_status(job_id: str):
+@limiter.limit("30/minute")
+async def get_job_status(
+    request: Request, job_id: str, api_key: str = Depends(validate_api_key)
+):
     try:
         job = await job_service.get_job(job_id)
         if not job:
-            raise HTTPException(status_code=404,
-                                detail=f"Job {job_id} not found")
+            raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
         return job_service.to_response(job)
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get job status: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get job status: {str(e)}"
+        )
 
 
 @router.get("/results/{job_id}")
-async def get_job_results(job_id: str):
+@limiter.limit("20/minute")
+async def get_job_results(
+    request: Request, job_id: str, api_key: str = Depends(validate_api_key)
+):
     try:
         job = await job_service.get_job(job_id)
         if not job:
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-        logger.info(f"Job {job_id}: status={job.status}, result type={type(job.result)}")
-        if hasattr(job.result, 'keys'):
+        logger.info(
+            f"Job {job_id}: status={job.status}, result type={type(job.result)}"
+        )
+        if hasattr(job.result, "keys"):
             logger.info(f"Result keys: {job.result.keys() if job.result else 'None'}")
 
         if job.status != JobStatus.COMPLETED:
             raise HTTPException(
                 status_code=400,
-                detail=f"Job is not completed. Current status: {job.status}"
+                detail=f"Job is not completed. Current status: {job.status}",
             )
 
         # Return empty dict if result is None or empty
@@ -77,10 +115,13 @@ async def get_job_results(job_id: str):
 
         # Make sure job.result is a dictionary before returning
         if not isinstance(job.result, dict):
-            logger.info(f"Job {job_id} result is not a dictionary, type: {type(job.result)}")
+            logger.info(
+                f"Job {job_id} result is not a dictionary, type: {type(job.result)}"
+            )
             # Try to convert to dict if it's a string
             if isinstance(job.result, str) and job.result.strip():
                 import json
+
                 try:
                     return json.loads(job.result)
                 except json.JSONDecodeError:
@@ -95,4 +136,6 @@ async def get_job_results(job_id: str):
         raise
     except Exception as e:
         logger.error(f"Error getting job results for {job_id}: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to get job results: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get job results: {str(e)}"
+        )

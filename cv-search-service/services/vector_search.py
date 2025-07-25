@@ -16,20 +16,23 @@ class VectorSearchService:
         """Initialize the vector search service"""
         try:
             self.client = QdrantClient(
-                host=settings.QDRANT_HOST,
-                port=settings.QDRANT_PORT
+                host=settings.QDRANT_HOST, port=settings.QDRANT_PORT
             )
             self.collection_name = settings.QDRANT_COLLECTION
-            logger.info(f"Connected to Qdrant at {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
+            logger.info(
+                f"Connected to Qdrant at {settings.QDRANT_HOST}:{settings.QDRANT_PORT}"
+            )
         except Exception as e:
             logger.error(f"Failed to connect to Qdrant: {str(e)}")
             raise DatabaseError(f"Vector database connection failed: {str(e)}")
 
-    def search(self,
-               query_vector: List[float],
-               limit: int = 10,
-               min_score: float = 0.0,
-               filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    def search(
+        self,
+        query_vector: List[float],
+        limit: int = 10,
+        min_score: float = 0.0,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
         """Search for similar vectors"""
         try:
             # Convert filters to Qdrant format
@@ -40,20 +43,20 @@ class VectorSearchService:
                     if isinstance(value, list):
                         conditions.append(
                             qdrant_models.FieldCondition(
-                                key=key,
-                                match=qdrant_models.MatchAny(any=value)
+                                key=key, match=qdrant_models.MatchAny(any=value)
                             )
                         )
                     else:
                         conditions.append(
                             qdrant_models.FieldCondition(
-                                key=key,
-                                match=qdrant_models.MatchValue(value=value)
+                                key=key, match=qdrant_models.MatchValue(value=value)
                             )
                         )
 
                 if conditions:
-                    filter_obj = qdrant_models.Filter(must=conditions)
+                    filter_obj = qdrant_models.Filter(must=conditions)  # type: ignore[arg-type]
+                else:
+                    filter_obj = None
 
             # Execute search
             results = self.client.search(
@@ -61,7 +64,7 @@ class VectorSearchService:
                 query_vector=query_vector,
                 limit=limit,
                 query_filter=filter_obj,
-                score_threshold=min_score
+                score_threshold=min_score,
             )
 
             # Format results
@@ -73,7 +76,7 @@ class VectorSearchService:
                     "email": hit.payload.get("email", ""),
                     "source": hit.payload.get("source", "unknown"),
                     "context": hit.payload.get("context", ""),
-                    "score": hit.score
+                    "score": hit.score,
                 }
                 for hit in results
             ]

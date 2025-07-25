@@ -52,33 +52,35 @@ class ParsePdfService(BaseExtractionService):
                                         "x0": x0,
                                         "top": page_height - y1,
                                         "x1": x1,
-                                        "bottom": page_height - y0
+                                        "bottom": page_height - y0,
                                     }
                                     anchor_texts = []
                                     for word in words:
                                         # Check for intersection between the word's bounding box and the link rectangle
-                                        if (word["x0"] <= converted_rect["x1"] and word["x1"] >= converted_rect["x0"] and
-                                            word["top"] <= converted_rect["bottom"] and word["bottom"] >= converted_rect["top"]):
+                                        if (
+                                            word["x0"] <= converted_rect["x1"]
+                                            and word["x1"] >= converted_rect["x0"]
+                                            and word["top"] <= converted_rect["bottom"]
+                                            and word["bottom"] >= converted_rect["top"]
+                                        ):
                                             anchor_texts.append(word["text"].strip())
                                     final_text = " ".join(anchor_texts).strip()
-                                    if final_text and (final_text, uri) not in seen_links:
+                                    if (
+                                        final_text
+                                        and (final_text, uri) not in seen_links
+                                    ):
                                         seen_links.add((final_text, uri))
-                                        links.append({
-                                            "text": final_text,
-                                            "url": uri
-                                        })
+                                        links.append({"text": final_text, "url": uri})
 
-                    pages.append({
-                        "page_number": i + 1,
-                        "text": page_text,
-                        "links": links
-                    })
+                    pages.append(
+                        {"page_number": i + 1, "text": page_text, "links": links}
+                    )
 
         return {
             "metadata": {
                 "total_pages": len(pages),
                 "file_type": file_type,
-                "processed_at": processed_timestamp
+                "processed_at": processed_timestamp,
             },
-            "pages": pages
+            "pages": pages,
         }

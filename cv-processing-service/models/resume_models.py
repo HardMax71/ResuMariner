@@ -9,8 +9,8 @@ from pydantic_extra_types.phone_numbers import PhoneNumber
 
 # -- Common data types ---
 
-DATE_MMYYYY_REGEX = r'^(?:(0[1-9]|1[0-2])\.\d{4}|\d{4})$'
-DATE_MMYYYY_OR_CURRENT_REGEX = r'^(?:(0[1-9]|1[0-2])\.\d{4}|\d{4}|current)$'
+DATE_MMYYYY_REGEX = r"^(?:(0[1-9]|1[0-2])\.\d{4}|\d{4})$"
+DATE_MMYYYY_OR_CURRENT_REGEX = r"^(?:(0[1-9]|1[0-2])\.\d{4}|\d{4}|current)$"
 
 
 class WorkMode(str, Enum):
@@ -42,6 +42,7 @@ edu_status_values = [mode for mode in EducationStatus]
 
 # --- Reused pydantic models ---
 
+
 class Location(BaseModel):
     city: str | None = Field(..., description="City")
     state: str | None = Field(..., description="State")
@@ -50,273 +51,220 @@ class Location(BaseModel):
 
 # --- Personal Info Section Models ---
 
+
 class ContactLinks(BaseModel):
     telegram: HttpUrl | None = Field(
         None,
-        description="verbatim URL MUST START WITH with http(s)://t.me or alike if exists else null"
+        description="verbatim URL MUST START WITH with http(s)://t.me or alike if exists else null",
     )
     linkedin: HttpUrl | None = Field(
         None,
-        description="verbatim URL MUST START WITH with http(s):// if exists else null"
+        description="verbatim URL MUST START WITH with http(s):// if exists else null",
     )
     github: HttpUrl | None = Field(
         None,
-        description="verbatim URL MUST START WITH with http(s):// if exists else null"
+        description="verbatim URL MUST START WITH with http(s):// if exists else null",
     )
     other_links: dict[str, HttpUrl] | None = Field(
         None,
-        description="Other links - if exists, must be a dict of links, where each key is a link name and each value is a valid HTTP URL starting with http(s)://"
+        description="Other links - if exists, must be a dict of links, where each key is a link name and each value is a valid HTTP URL starting with http(s)://",
     )
 
 
 class Contact(BaseModel):
-    email: EmailStr = Field(
-        ...,
-        description="verbatim email"
-    )
+    email: EmailStr = Field(..., description="verbatim email")
     phone: PhoneNumber | None = Field(
         None,
-        description="exact phone string or null if placeholder (+XXXX.., +123456789 or alike) found"
+        description="exact phone string or null if placeholder (+XXXX.., +123456789 or alike) found",
     )
-    links: ContactLinks | None = Field(
-        ...,
-        description="Various contact links"
-    )
+    links: ContactLinks | None = Field(..., description="Various contact links")
 
 
 class WorkAuthorization(BaseModel):
     citizenship: str | None = Field(
-        None,
-        description="citizenship if mentioned else null"
+        None, description="citizenship if mentioned else null"
     )
     work_permit: bool | None = Field(
-        None,
-        description="true/false/null if insufficient data"
+        None, description="true/false/null if insufficient data"
     )
     visa_sponsorship_required: bool | None = Field(
-        None,
-        description="true/false/null if insufficient data"
+        None, description="true/false/null if insufficient data"
     )
 
 
 class Demographics(BaseModel):
     current_location: Location | None = Field(
-        ...,
-        description="Current location with city, state, and country"
+        ..., description="Current location with city, state, and country"
     )
     work_authorization: WorkAuthorization = Field(
         ...,
-        description="Work authorization details including citizenship, work permit, and visa sponsorship."
+        description="Work authorization details including citizenship, work permit, and visa sponsorship.",
     )
 
 
 class PersonalInfo(BaseModel):
     name: str = Field(
         ...,
-        description="Exact name header, formatted as 'John Doe' (first letter capitalized, others lowercase unless properly cased). If provided in all caps, adjust formatting accordingly."
+        description="Exact name header, formatted as 'John Doe' (first letter capitalized, others lowercase unless properly cased). If provided in all caps, adjust formatting accordingly.",
     )
     resume_lang: str = Field(
-        ...,
-        description="ISO 639-1 code of the language used in the resume"
+        ..., description="ISO 639-1 code of the language used in the resume"
     )
     contact: Contact = Field(
-        ...,
-        description="Contact information including email, phone, and links."
+        ..., description="Contact information including email, phone, and links."
     )
     demographics: Demographics = Field(
         ...,
-        description="Demographic information including current location and work authorization."
+        description="Demographic information including current location and work authorization.",
     )
 
 
 # --- Professional Profile Section Models ---
 
+
 class Preferences(BaseModel):
     role: str = Field(
-        ...,
-        description="Desired position, with first letter capitalized"
+        ..., description="Desired position, with first letter capitalized"
     )
     employment_types: list[EmploymentType] = Field(
         default_factory=lambda: employment_type_values,
         description="Preferred employment types such as full-time, part-time, contract; "
-                    "example: [\"full-time\", \"part-time\"]"
+        'example: ["full-time", "part-time"]',
     )
     work_modes: list[WorkMode] = Field(
         default_factory=lambda: work_mode_values,
         description="preferred work modes such as remote, onsite, hybrid; "
-                    "example: [\"remote\", \"onsite\"]"
+        'example: ["remote", "onsite"]',
     )
-    salary: str | None = Field(
-        ...,
-        description="exact salary text"
-    )
+    salary: str | None = Field(..., description="exact salary text")
 
 
 class ProfessionalProfile(BaseModel):
-    summary: str | None = Field(
-        ...,
-        description="exact summary text"
-    )
+    summary: str | None = Field(..., description="exact summary text")
     preferences: Preferences = Field(
         ...,
-        description="Job preferences including role, employment types, locations, and salary."
+        description="Job preferences including role, employment types, locations, and salary.",
     )
 
 
 # --- Employment History Section Models ---
 
+
 class EmploymentDuration(BaseModel):
-    date_format: str = Field(
-        ...,
-        description="original date format"
-    )
+    date_format: str = Field(..., description="original date format")
     start: str = Field(
         pattern=DATE_MMYYYY_REGEX,
         description="start month and year in MM.YYYY format OR just year in YYYY format if month not specified; "
-                    "must not be null"
+        "must not be null",
     )
     end: str = Field(
         pattern=DATE_MMYYYY_OR_CURRENT_REGEX,
         description="end month and year in MM.YYYY format or just year in YYYY format if month not specified, "
-                    "'current' if still working; must not be null"
+        "'current' if still working; must not be null",
     )
     duration_months: int = Field(
         ...,
         ge=0,
-        description="exact number of months as integer >= 0, if 'current time' or alike is mentioned, calculate till current date"
+        description="exact number of months as integer >= 0, if 'current time' or alike is mentioned, calculate till current date",
     )
 
 
 class Skill(BaseModel):
-    name: str = Field(
-        ...,
-        description="Exact skill name"
-    )
+    name: str = Field(..., description="Exact skill name")
 
 
 class CompanyInfo(BaseModel):
-    name: str = Field(
-        ...,
-        description="Exact company name"
-    )
-    url: Optional[HttpUrl] = Field(
-        None,
-        description="Company website URL"
-    )
+    name: str = Field(..., description="Exact company name")
+    url: Optional[HttpUrl] = Field(None, description="Company website URL")
 
 
 class KeyPointInfo(BaseModel):
-    text: str = Field(
-        ...,
-        description="The text of the key point"
-    )
+    text: str = Field(..., description="The text of the key point")
 
 
 class Technology(BaseModel):
     name: str = Field(
         ...,
-        description="Exact technology name, preserving original capitalization and version details as needed"
+        description="Exact technology name, preserving original capitalization and version details as needed",
     )
 
 
 class EmploymentHistoryItem(BaseModel):
     company: CompanyInfo = Field(
-        ...,
-        description="Company information as a nested object"
+        ..., description="Company information as a nested object"
     )
-    position: str = Field(
-        ...,
-        description="verbatim job title"
-    )
+    position: str = Field(..., description="verbatim job title")
     employment_type: EmploymentType = Field(
         default=EmploymentType.FULL_TIME,
         description=f"employment type - exactly one of: {employment_type_values}; "
-                    f"by default - full-time"
+        f"by default - full-time",
     )
     work_mode: WorkMode = Field(
         default=WorkMode.ONSITE,
         description=f"work mode - exactly one of: {work_mode_values}; "
-                    f"by default - onsite"
+        f"by default - onsite",
     )
     duration: EmploymentDuration = Field(
         ...,
-        description="Duration details including date format, start, end, and duration in months."
+        description="Duration details including date format, start, end, and duration in months.",
     )
-    location: Location = Field(
-        ...,
-        description="Job location with city and country"
-    )
+    location: Location = Field(..., description="Job location with city and country")
     key_points: List[KeyPointInfo] = Field(
-        ...,
-        description="List of key point objects with text and optional index"
+        ..., description="List of key point objects with text and optional index"
     )
     tech_stack: List[Technology] = Field(
         ...,
-        description="List of Technology objects representing the tech stack. Each technology preserves its original capitalization and includes version details if applicable."
+        description="List of Technology objects representing the tech stack. Each technology preserves its original capitalization and includes version details if applicable.",
     )
 
 
 # --- Projects Section Model ---
 
+
 class Project(BaseModel):
-    title: str = Field(
-        ...,
-        description="exact title"
-    )
-    url: HttpUrl | None = Field(
-        None,
-        description="if mentioned, exact url else null"
-    )
+    title: str = Field(..., description="exact title")
+    url: HttpUrl | None = Field(None, description="if mentioned, exact url else null")
     tech_stack: List[Technology] = Field(
         ...,
-        description="List of Technology objects representing the tech stack. Each technology preserves its original capitalization and includes version details if applicable."
+        description="List of Technology objects representing the tech stack. Each technology preserves its original capitalization and includes version details if applicable.",
     )
     key_points: List[KeyPointInfo] = Field(
-        ...,
-        description="List of key point objects with text and optional order index"
+        ..., description="List of key point objects with text and optional order index"
     )
 
 
 # --- Education Section Models ---
 
+
 class InstitutionInfo(BaseModel):
-    name: str = Field(
-        ...,
-        description="Exact institution name"
-    )
+    name: str = Field(..., description="Exact institution name")
 
 
 class Coursework(BaseModel):
-    text: str = Field(
-        ...,
-        description="Detailed description of a coursework item"
-    )
+    text: str = Field(..., description="Detailed description of a coursework item")
 
 
 class EducationExtra(BaseModel):
     text: str = Field(
         ...,
-        description="Detailed description of an additional educational achievement or extra detail (e.g., GPA, awards)"
+        description="Detailed description of an additional educational achievement or extra detail (e.g., GPA, awards)",
     )
 
 
 class EducationItem(BaseModel):
     institution: InstitutionInfo = Field(
-        ...,
-        description="Institution information as a nested object"
+        ..., description="Institution information as a nested object"
     )
     qualification: str | None = Field(
         ...,
         description="academic degree (e.g., Bachelor, Master; do not include field details; "
-                    "if no degree mentioned - that's not education; put it into courses)"
+        "if no degree mentioned - that's not education; put it into courses)",
     )
     field: str = Field(
-        ...,
-        description="exact study field (e.g., Chemistry, Computer Science)"
+        ..., description="exact study field (e.g., Chemistry, Computer Science)"
     )
     location: Location | None = Field(
-        ...,
-        description="Location details with city, state, and country"
+        ..., description="Location details with city, state, and country"
     )
     start: str | None = Field(
         None,
@@ -329,122 +277,83 @@ class EducationItem(BaseModel):
         pattern=DATE_MMYYYY_OR_CURRENT_REGEX,
     )
     status: EducationStatus = Field(
-        ...,
-        description=f"Exactly one of: {edu_status_values}"
+        ..., description=f"Exactly one of: {edu_status_values}"
     )
     coursework: List[Coursework] | None = Field(
         ...,
-        description="List of Coursework objects representing detailed course work information"
+        description="List of Coursework objects representing detailed course work information",
     )
     extras: List[EducationExtra] | None = Field(
         ...,
-        description="List of EducationExtra objects representing additional achievements, courses, GPA, etc."
+        description="List of EducationExtra objects representing additional achievements, courses, GPA, etc.",
     )
 
 
 # --- Courses Section Model ---
 
+
 class Course(BaseModel):
-    name: str = Field(
-        ...,
-        description="exact course name"
-    )
-    organization: str = Field(
-        ...,
-        description="exact organization name"
-    )
+    name: str = Field(..., description="exact course name")
+    organization: str = Field(..., description="exact organization name")
     year: int | None = Field(
-        None,
-        description="YYYY (integer) or null if not specified"
+        None, description="YYYY (integer) or null if not specified"
     )
-    course_url: HttpUrl | None = Field(
-        None,
-        description="url to course or null"
-    )
+    course_url: HttpUrl | None = Field(None, description="url to course or null")
     certificate_url: HttpUrl | None = Field(
-        None,
-        description="url to completion certificate or null"
+        None, description="url to completion certificate or null"
     )
 
 
 # --- Certifications Section Model ---
 
+
 class Certification(BaseModel):
-    name: str = Field(
-        ...,
-        description="exact name"
-    )
-    issue_org: str | None = Field(
-        None,
-        description="exact name or null"
-    )
+    name: str = Field(..., description="exact name")
+    issue_org: str | None = Field(None, description="exact name or null")
     issue_year: int | None = Field(
-        ...,
-        description="Issue year in YYYY (integer) or null"
+        ..., description="Issue year in YYYY (integer) or null"
     )
-    certificate_link: HttpUrl | None = Field(
-        None,
-        description="url or null"
-    )
+    certificate_link: HttpUrl | None = Field(None, description="url or null")
 
 
 # --- Language Proficiency Section Models ---
 
+
 class Language(BaseModel):
-    name: str = Field(
-        ...,
-        description="exact language name"
-    )
+    name: str = Field(..., description="exact language name")
 
 
 class LanguageProficiencyItem(BaseModel):
-    language: Language = Field(
-        ...,
-        description="exact language name"
-    )
-    self_assessed: str = Field(
-        ...,
-        description="verbatim level"
-    )
+    language: Language = Field(..., description="exact language name")
+    self_assessed: str = Field(..., description="verbatim level")
     cefr: str = Field(
-        pattern=r'^(A1|A2|B1|B2|C1|C2|Native)$',
-        description="Language knowledge level in CEFR, one of: A1|A2|B1|B2|C1|C2|Native"
+        pattern=r"^(A1|A2|B1|B2|C1|C2|Native)$",
+        description="Language knowledge level in CEFR, one of: A1|A2|B1|B2|C1|C2|Native",
     )
 
 
 # --- Validation Metadata Section Models ---
 
+
 class Anomaly(BaseModel):
-    text_fragment: str = Field(
-        ...,
-        description="exact text"
-    )
-    issue: str = Field(
-        ...,
-        description="description"
-    )
-    resolution: str = Field(
-        ...,
-        description="action taken"
-    )
+    text_fragment: str = Field(..., description="exact text")
+    issue: str = Field(..., description="description")
+    resolution: str = Field(..., description="action taken")
 
 
 class ValidationMetadata(BaseModel):
     text_characters_processed: int = Field(
-        ...,
-        description="Number of text characters processed"
+        ..., description="Number of text characters processed"
     )
-    links_processed: int = Field(
-        ...,
-        description="Number of links processed"
-    )
+    links_processed: int = Field(..., description="Number of links processed")
     anomalies: List[Anomaly] = Field(
         ...,
-        description="List of anomalies with text fragment, issue description, and resolution"
+        description="List of anomalies with text fragment, issue description, and resolution",
     )
 
 
 # --- Awards Section Model ---
+
 
 class AwardType(str, Enum):
     HACKATHON = "hackathon"
@@ -458,38 +367,31 @@ award_type_values = [type for type in AwardType]
 
 
 class Award(BaseModel):
-    name: str = Field(
-        ...,
-        description="Exact name of the award/achievement"
-    )
+    name: str = Field(..., description="Exact name of the award/achievement")
     award_type: AwardType = Field(
-        ...,
-        description=f"Type of award - exactly one of: {award_type_values}"
+        ..., description=f"Type of award - exactly one of: {award_type_values}"
     )
     organization: str = Field(
-        ...,
-        description="Organization/event that issued the award"
+        ..., description="Organization/event that issued the award"
     )
     year: int | None = Field(
-        None,
-        description="Year received (YYYY as integer) or null if not specified"
+        None, description="Year received (YYYY as integer) or null if not specified"
     )
     position: str | None = Field(
         None,
         description="Position/ranking achieved (e.g., '1st place', 'Finalist') "
-                    "or null if not applicable"
+        "or null if not applicable",
     )
     description: str | None = Field(
-        None,
-        description="Brief description of the award or achievement"
+        None, description="Brief description of the award or achievement"
     )
     url: HttpUrl | None = Field(
-        None,
-        description="URL to award verification or event page"
+        None, description="URL to award verification or event page"
     )
 
 
 # --- Scientific Contributions Section Models ---
+
 
 class PublicationType(str, Enum):
     JOURNAL_ARTICLE = "journal_article"
@@ -504,96 +406,83 @@ publication_type_values = [type for type in PublicationType]
 
 
 class ScientificContribution(BaseModel):
-    title: str = Field(
-        ...,
-        description="Exact title of the publication"
-    )
+    title: str = Field(..., description="Exact title of the publication")
     publication_type: PublicationType = Field(
         ...,
-        description=f"Type of publication - exactly one of: {publication_type_values}"
+        description=f"Type of publication - exactly one of: {publication_type_values}",
     )
     year: int | None = Field(
-        None,
-        description="Year published (YYYY as integer) or null if not specified"
+        None, description="Year published (YYYY as integer) or null if not specified"
     )
     venue: str | None = Field(
-        None,
-        description="Journal name, conference, or publisher"
+        None, description="Journal name, conference, or publisher"
     )
     doi: str | None = Field(
-        None,
-        description="Digital Object Identifier (DOI) if available"
+        None, description="Digital Object Identifier (DOI) if available"
     )
-    url: HttpUrl | None = Field(
-        None,
-        description="URL to publication or null"
-    )
-    description: str | None = Field(
-        None,
-        description="Brief description if provided"
-    )
+    url: HttpUrl | None = Field(None, description="URL to publication or null")
+    description: str | None = Field(None, description="Brief description if provided")
 
 
 # --- Top-Level Resume Structure Model ---
+
 
 class ResumeStructure(BaseModel):
     personal_info: PersonalInfo = Field(
         ...,
         description="Personal information section containing name, resume language, "
-                    "contact, and demographics."
+        "contact, and demographics.",
     )
     professional_profile: ProfessionalProfile = Field(
-        ...,
-        description="Professional profile including summary and job preferences."
+        ..., description="Professional profile including summary and job preferences."
     )
     skills: List[Skill] = Field(
-        ...,
-        description="List of Skill objects, each representing an exact skill name"
+        ..., description="List of Skill objects, each representing an exact skill name"
     )
     employment_history: List[EmploymentHistoryItem] = Field(
         ...,
         description="List of employment history items with company, position, duration, "
-                    "and related details."
+        "and related details.",
     )
     projects: List[Project] | None = Field(
         None,
-        description="List of projects. If no qualifying projects are mentioned, set to null."
+        description="List of projects. If no qualifying projects are mentioned, set to null.",
     )
     education: List[EducationItem] | None = Field(
-        ...,
-        description="List of educational background items."
+        ..., description="List of educational background items."
     )
     courses: List[Course] | None = Field(
         ...,
-        description="List of courses completed. May be null if nothing is specified."
+        description="List of courses completed. May be null if nothing is specified.",
     )
     certifications: List[Certification] | None = Field(
         ...,
-        description="List of certifications with issue details. May be null if nothing is specified."
+        description="List of certifications with issue details. May be null if nothing is specified.",
     )
     language_proficiency: List[LanguageProficiencyItem] | None = Field(
         ...,
         description="List of language proficiencies with levels and certifications. "
-                    "May be null if nothing is specified."
+        "May be null if nothing is specified.",
     )
     awards: List[Award] | None = Field(
         None,
         description="List of awards, hackathons, competitions, and other achievements. "
-                    "May be null if nothing is specified."
+        "May be null if nothing is specified.",
     )
     scientific_contributions: List[ScientificContribution] | None = Field(
         None,
         description="Scientific and research contributions including publications, patents, "
-                    "and research profiles. May be null if nothing is specified."
+        "and research profiles. May be null if nothing is specified.",
     )
     validation_metadata: ValidationMetadata = Field(
         ...,
         description="Metadata for validation including text characters processed, links processed, "
-                    "and any anomalies."
+        "and any anomalies.",
     )
 
 
 # ------
+
 
 # Define Pydantic models for section correction responses
 class CorrectionValuePair(BaseModel):
@@ -609,20 +498,27 @@ class Correction(BaseModel):
 
 
 class SectionResponse(BaseModel):
-    corrections: List[Correction] = Field(default_factory=list,
-                                          description="List of corrections made to the section")
+    corrections: List[Correction] = Field(
+        default_factory=list, description="List of corrections made to the section"
+    )
     fixed_section: dict = Field(description="The corrected section data")
 
 
 class ReviewItem(BaseModel):
     """Structured review item with three levels of recommendations"""
-    MUST: Optional[str] = Field(None, description="Critical issues that must be addressed")
-    SHOULD: Optional[str] = Field(None, description="Recommendations that should be considered")
+
+    MUST: Optional[str] = Field(
+        None, description="Critical issues that must be addressed"
+    )
+    SHOULD: Optional[str] = Field(
+        None, description="Recommendations that should be considered"
+    )
     ADVISE: Optional[str] = Field(None, description="Optional advice for improvement")
 
 
 class ReviewResponse(BaseModel):
     """Complete review response containing all resume sections"""
+
     personal_info: Optional[ReviewItem] = None
     professional_profile: Optional[ReviewItem] = None
     skills: Optional[ReviewItem] = None

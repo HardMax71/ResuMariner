@@ -42,8 +42,7 @@ class ReviewService:
                     Your response must strictly follow the required Pydantic model structure."""
 
         self.llm_service = LLMService[ReviewResponse](
-            result_type=ReviewResponse,
-            system_prompt=system_prompt
+            result_type=ReviewResponse, system_prompt=system_prompt
         )
 
         # Cache full text for reuse
@@ -66,12 +65,12 @@ class ReviewService:
                     "Report only missing or incorrectly formatted fields."
                 ),
                 "SHOULD": "Check for consistent capitalization in names and clarity in contact details. Only report discrepancies if found.",
-                "ADVISE": "Recommend improvements only if key information is absent or ambiguous."
+                "ADVISE": "Recommend improvements only if key information is absent or ambiguous.",
             },
             "professional_profile": {
                 "MUST": "Ensure career summary and preferences reflect realistic objectives. Report only omissions or unclear statements.",
                 "SHOULD": "Check for clarity and consistency in employment types and desired roles. Report any inconsistencies.",
-                "ADVISE": "Recommend additional details that would strengthen the professional profile."
+                "ADVISE": "Recommend additional details that would strengthen the professional profile.",
             },
             "skills": {
                 "MUST": (
@@ -80,7 +79,7 @@ class ReviewService:
                     "Report missing key skills if evident."
                 ),
                 "SHOULD": "Check skill grouping and formatting. Report organizational issues.",
-                "ADVISE": "Recommend improvements in skill categorization based on career goals."
+                "ADVISE": "Recommend improvements in skill categorization based on career goals.",
             },
             "employment_history": {
                 "MUST": (
@@ -92,44 +91,44 @@ class ReviewService:
                     "'Accomplished [X] as measured by [Y], by doing [Z]'. "
                     "Report format inconsistencies."
                 ),
-                "ADVISE": "Suggest adding quantifiable achievements where appropriate."
+                "ADVISE": "Suggest adding quantifiable achievements where appropriate.",
             },
             "projects": {
                 "MUST": "If projects section exists, ensure relevance and completeness.",
                 "SHOULD": "Review project descriptions for clarity and consistency.",
-                "ADVISE": "Recommend additional details for underspecified projects."
+                "ADVISE": "Recommend additional details for underspecified projects.",
             },
             "education": {
                 "MUST": "Ensure educational details (institution, qualification, field, dates) are complete.",
                 "SHOULD": "Check date formats, degree naming conventions, and coursework relevance.",
-                "ADVISE": "For students/new grads, recommend highlighting relevant coursework or thesis."
+                "ADVISE": "For students/new grads, recommend highlighting relevant coursework or thesis.",
             },
             "courses": {
                 "MUST": "Ensure mentioned course entries include name, organization, and completion year."
-                        "Having any courses mentioned is advised but not mandatory.",
+                "Having any courses mentioned is advised but not mandatory.",
                 "SHOULD": "Check consistency in course naming and formatting. Verify URLs are valid.",
-                "ADVISE": "Recommend adding course URLs or completion certificate links if missing."
+                "ADVISE": "Recommend adding course URLs or completion certificate links if missing.",
             },
             "certifications": {
                 "MUST": "Verify dates and issuing organizations for certificates, if any certificates are present.",
                 "SHOULD": "Review relevance and currency of certifications.",
-                "ADVISE": "Suggest removing outdated certifications or adding relevant new ones."
+                "ADVISE": "Suggest removing outdated certifications or adding relevant new ones.",
             },
             "language_proficiency": {
                 "MUST": "For international experience, verify standardized proficiency levels (CEFR).",
                 "SHOULD": "Check consistency in language naming and levels.",
-                "ADVISE": "Recommend adding language skills for candidates with international experience."
+                "ADVISE": "Recommend adding language skills for candidates with international experience.",
             },
             "awards": {
                 "MUST": "Verify award names, organizations, and dates are complete.",
                 "SHOULD": "Ensure award descriptions are clear and relevant.",
-                "ADVISE": "Suggest highlighting most prestigious or relevant awards."
+                "ADVISE": "Suggest highlighting most prestigious or relevant awards.",
             },
             "scientific_contributions": {
                 "MUST": "Verify publication details, authors, and dates for accuracy.",
                 "SHOULD": "Check formatting consistency across publications and patents.",
-                "ADVISE": "Recommend organizing publications by impact or relevance."
-            }
+                "ADVISE": "Recommend organizing publications by impact or relevance.",
+            },
         }
 
     async def iterative_review(self) -> ReviewResponse:
@@ -140,7 +139,9 @@ class ReviewService:
         """
         try:
             review_rules = self._get_review_rules()
-            keys = [k for k in self.structured_data.keys() if k != 'validation_metadata']
+            keys = [
+                k for k in self.structured_data.keys() if k != "validation_metadata"
+            ]
 
             # Prepare structured content for each section
             section_blocks = []
@@ -150,16 +151,16 @@ class ReviewService:
                     section_data = json.dumps(
                         {key: self.structured_data.get(key)},
                         ensure_ascii=False,
-                        default=str
+                        default=str,
                     )
 
                     section_block = f"""
                     SECTION: {key.upper()}
 
                     Review Guidelines:
-                    - MUST: {rules.get('MUST', 'Check for critical errors or missing information.')}
-                    - SHOULD: {rules.get('SHOULD', 'Check for improvements to structure and clarity.')}
-                    - ADVISE: {rules.get('ADVISE', 'Suggest optional enhancements.')}
+                    - MUST: {rules.get("MUST", "Check for critical errors or missing information.")}
+                    - SHOULD: {rules.get("SHOULD", "Check for improvements to structure and clarity.")}
+                    - ADVISE: {rules.get("ADVISE", "Suggest optional enhancements.")}
 
                     Section Content:
                     {section_data}
@@ -174,7 +175,7 @@ class ReviewService:
             CURRENT DATE: {self.current_date}
 
             Full Resume Text:
-            {self.full_text[:settings.MAX_TOKENS_IN_RESUME_TO_PROCESS]} 
+            {self.full_text[: settings.MAX_TOKENS_IN_RESUME_TO_PROCESS]} 
 
             RESUME SECTIONS TO REVIEW:
             {all_sections}

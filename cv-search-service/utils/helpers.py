@@ -20,7 +20,9 @@ def timed_execution(func):
         if isinstance(result, dict) and "execution_time" not in result:
             result["execution_time"] = execution_time
 
-        logger.debug(f"Function {func.__name__} executed in {execution_time:.4f} seconds")
+        logger.debug(
+            f"Function {func.__name__} executed in {execution_time:.4f} seconds"
+        )
         return result
 
     @wraps(func)
@@ -33,7 +35,9 @@ def timed_execution(func):
         if isinstance(result, dict) and "execution_time" not in result:
             result["execution_time"] = execution_time
 
-        logger.debug(f"Function {func.__name__} executed in {execution_time:.4f} seconds")
+        logger.debug(
+            f"Function {func.__name__} executed in {execution_time:.4f} seconds"
+        )
         return result
 
     # Choose the appropriate wrapper based on whether the function is async
@@ -43,7 +47,9 @@ def timed_execution(func):
         return sync_wrapper
 
 
-def combine_search_results(vector_results, graph_results, vector_weight, graph_weight, limit):
+def combine_search_results(
+    vector_results, graph_results, vector_weight, graph_weight, limit
+):
     """Combine and rank results from different search methods
 
     Args:
@@ -89,16 +95,18 @@ def combine_search_results(vector_results, graph_results, vector_weight, graph_w
                 "skills": [],
                 "experiences": [],
                 "summary": None,
-                "score": 0
+                "score": 0,
             }
 
         # Add match to the CV's matches list
-        cv_details[cv_id]["matches"].append({
-            "text": result["text"],
-            "score": result["score"],
-            "source": result["source"],
-            "context": result["context"]
-        })
+        cv_details[cv_id]["matches"].append(
+            {
+                "text": result["text"],
+                "score": result["score"],
+                "source": result["source"],
+                "context": result["context"],
+            }
+        )
 
         # Update the combined score - for vector results, use the maximum match score
         match_score = result["score"] * vector_weight
@@ -121,7 +129,7 @@ def combine_search_results(vector_results, graph_results, vector_weight, graph_w
                 "skills": [],
                 "experiences": [],
                 "summary": None,
-                "score": 0
+                "score": 0,
             }
 
         # Add additional details from graph search
@@ -148,8 +156,11 @@ def combine_search_results(vector_results, graph_results, vector_weight, graph_w
     # First add CVs from both searches, sorted by score
     for cv_set in [both_searches, only_vector, only_graph]:
         # Sort CVs in this set by score
-        sorted_cvs = sorted([(cv_id, combined_scores[cv_id]) for cv_id in cv_set],
-                            key=lambda x: x[1], reverse=True)
+        sorted_cvs = sorted(
+            [(cv_id, combined_scores[cv_id]) for cv_id in cv_set],
+            key=lambda x: x[1],
+            reverse=True,
+        )
 
         # Add to final results
         for cv_id, score in sorted_cvs:
