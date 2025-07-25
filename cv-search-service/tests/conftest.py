@@ -3,7 +3,6 @@ Configuration for pytest in cv-search-service.
 """
 
 import os
-from pathlib import Path
 
 # Set environment variables for testing
 os.environ.update(
