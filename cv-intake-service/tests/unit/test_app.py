@@ -40,10 +40,6 @@ class TestApp:
         mock_driver = Mock()
         mock_neo4j.driver.return_value = mock_driver
 
-        # Mock Qdrant
-        self.patches["qdrant"] = patch("qdrant_client.QdrantClient")
-        self.patches["qdrant"].start()
-
         # Mock OpenAI
         self.patches["openai"] = patch("openai.OpenAI")
         self.patches["openai"].start()
@@ -205,7 +201,6 @@ class TestApp:
                     "services": {
                         "redis": {"status": "healthy"},
                         "neo4j": {"status": "healthy"},
-                        "qdrant": {"status": "healthy"},
                     },
                 }
 

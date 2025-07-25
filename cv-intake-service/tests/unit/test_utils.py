@@ -284,16 +284,13 @@ class TestUtilsHealthChecks:
         # Mock all external dependencies
         self.patches["redis"] = patch("redis.Redis")
         self.patches["neo4j"] = patch("neo4j.GraphDatabase")
-        self.patches["qdrant"] = patch("qdrant_client.QdrantClient")
 
         mock_redis = self.patches["redis"].start()
         mock_neo4j = self.patches["neo4j"].start()
-        mock_qdrant = self.patches["qdrant"].start()
 
         # Setup successful connections
         mock_redis.from_url.return_value.ping.return_value = True
         mock_neo4j.driver.return_value.verify_connectivity.return_value = None
-        mock_qdrant.return_value.get_collections.return_value = Mock()
 
     def teardown_method(self):
         """Cleanup patches"""

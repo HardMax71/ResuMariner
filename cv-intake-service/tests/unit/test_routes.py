@@ -34,9 +34,6 @@ class TestRoutes:
         self.patches["neo4j"] = patch("neo4j.GraphDatabase")
         self.patches["neo4j"].start()
 
-        self.patches["qdrant"] = patch("qdrant_client.QdrantClient")
-        self.patches["qdrant"].start()
-
         self.patches["openai"] = patch("openai.OpenAI")
         self.patches["openai"].start()
 
