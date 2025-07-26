@@ -82,6 +82,7 @@ jobs:
           curl -f http://localhost:7474/
 
       - name: Run unit tests with coverage
+        working-directory: ${{ env.SERVICE_PATH }}
         env:
           NEO4J_URI: bolt://localhost:7687
           NEO4J_USERNAME: neo4j
@@ -89,8 +90,9 @@ jobs:
           QDRANT_HOST: localhost
           QDRANT_PORT: 6333
           TEST_MODE: unit
+          PYTHONPATH: .
         run: |
-          pytest ${{ env.SERVICE_PATH }}/tests/unit/ \
+          pytest tests/unit/ \
             --cov=${{ env.SERVICE_NAME }} \
             --cov-report=xml:${{ env.SERVICE_NAME }}-coverage.xml \
             --cov-report=html:${{ env.SERVICE_NAME }}-htmlcov \
@@ -167,6 +169,7 @@ jobs:
           NEO4J_URI: bolt://localhost:7687
           NEO4J_USERNAME: neo4j
           NEO4J_PASSWORD: testpassword
+          PYTHONPATH: .
         working-directory: ${{ env.SERVICE_PATH }}
         run: |
           pytest tests/unit/test_models.py \
@@ -177,6 +180,7 @@ jobs:
         env:
           QDRANT_HOST: localhost
           QDRANT_PORT: 6333
+          PYTHONPATH: .
         working-directory: ${{ env.SERVICE_PATH }}
         run: |
           pytest tests/unit/test_services.py \
@@ -326,6 +330,7 @@ jobs:
           curl -f http://localhost:7474/
 
       - name: Run service integration tests
+        working-directory: ${{ env.SERVICE_PATH }}
         env:
           NEO4J_URI: bolt://localhost:7687
           NEO4J_USERNAME: neo4j
@@ -333,6 +338,7 @@ jobs:
           QDRANT_HOST: localhost
           QDRANT_PORT: 6333
           TEST_MODE: integration
+          PYTHONPATH: .
         run: |
           pytest tests/integration/test_${{ env.SERVICE_NAME }}_integration.py \
             --cov=${{ env.SERVICE_NAME }} \
