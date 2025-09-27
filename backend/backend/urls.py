@@ -26,12 +26,10 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("silk/", include("silk.urls", namespace="silk")),
     path("metrics", metrics_view),
-
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
-
     # Host-based routing via Traefik; include without extra path prefixes
     path("", include("search.urls")),
     path("", include("processor.urls")),

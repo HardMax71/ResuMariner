@@ -43,9 +43,9 @@ class ProcessingService:
         logger.info("ProcessingService initialized with batch-optimized EmbeddingService")
 
     async def process_resume(
-            self,
-            file_path: str,
-            job_id: str,
+        self,
+        file_path: str,
+        job_id: str,
     ) -> ProcessingResult:
         """
         Process a resume file through the complete pipeline.
@@ -68,10 +68,7 @@ class ProcessingService:
 
         # Create metadata
         metadata = ProcessingMetadata(
-            filename=file_info["name"],
-            file_ext=file_info["ext"],
-            source=source,
-            page_count=len(parsed_doc.pages)
+            filename=file_info["name"], file_ext=file_info["ext"], source=source, page_count=len(parsed_doc.pages)
         )
 
         if settings.WORKER_STORE_IN_DB:
@@ -81,11 +78,7 @@ class ProcessingService:
         if settings.WORKER_GENERATE_REVIEW:
             review = await self._generate_review(parsed_doc, resume, job_id, metadata)
 
-        return ProcessingResult(
-            resume=resume,
-            review=review,
-            metadata=metadata
-        )
+        return ProcessingResult(resume=resume, review=review, metadata=metadata)
 
     def _prepare_file_path(self, file_path: str) -> tuple[str, str]:
         """
@@ -116,10 +109,7 @@ class ProcessingService:
         if not path.suffix:
             raise ValueError(f"Invalid file name or missing extension: {path.name}")
 
-        return {
-            "name": path.name,
-            "ext": path.suffix.lower()
-        }
+        return {"name": path.name, "ext": path.suffix.lower()}
 
     def _get_parser(self, file_path: str, file_ext: str):
         parser_type = get_parser_type(file_ext)
@@ -137,12 +127,7 @@ class ProcessingService:
         result = await content_organizer.structure_content()
         return result
 
-    async def _store_to_databases(
-            self,
-            resume: Resume,
-            job_id: str,
-            metadata: ProcessingMetadata
-    ) -> None:
+    async def _store_to_databases(self, resume: Resume, job_id: str, metadata: ProcessingMetadata) -> None:
         """
         Store resume in graph and vector databases.
 
@@ -156,12 +141,7 @@ class ProcessingService:
             logger.error("Error storing data for job %s: %s", job_id, e)
             metadata.storage_error = str(e)
 
-    def _store_to_graph(
-            self,
-            resume: Resume,
-            job_id: str,
-            metadata: ProcessingMetadata
-    ) -> None:
+    def _store_to_graph(self, resume: Resume, job_id: str, metadata: ProcessingMetadata) -> None:
         graph = GraphDBService()
         success = graph.upsert_resume(resume)
 
@@ -173,12 +153,7 @@ class ProcessingService:
             metadata.graph_operation = "failed"
             raise Exception(f"Failed to store resume {resume.uid} in Neo4j")
 
-    def _store_embeddings(
-            self,
-            resume: Resume,
-            resume_id: str,
-            metadata: ProcessingMetadata
-    ) -> None:
+    def _store_embeddings(self, resume: Resume, resume_id: str, metadata: ProcessingMetadata) -> None:
         logger.info("Starting embedding storage for resume %s", resume_id)
         vectors = self._generate_embeddings_from_resume(resume)
         if not vectors:
@@ -196,11 +171,7 @@ class ProcessingService:
         metadata.embeddings_count = len(stored_ids)
 
     async def _generate_review(
-            self,
-            parsed_doc: ParsedDocument,
-            resume: Resume,
-            job_id: str,
-            metadata: ProcessingMetadata
+        self, parsed_doc: ParsedDocument, resume: Resume, job_id: str, metadata: ProcessingMetadata
     ) -> ReviewResult | None:
         try:
             review_service = ReviewService(parsed_doc, resume)
@@ -242,9 +213,13 @@ class ProcessingService:
             "skills": [s.name for s in resume.skills],
             "technologies": list(set(all_techs)),  # dedupe
             "companies": list({emp.company.name for emp in resume.employment_history if emp.company}),
-            "role": resume.professional_profile.preferences.role if resume.professional_profile and resume.professional_profile.preferences else None,
-            "location": resume.personal_info.demographics.current_location.city if resume.personal_info.demographics and resume.personal_info.demographics.current_location else None,
-            "years_experience": sum(emp.duration.duration_months for emp in resume.employment_history) // 12
+            "role": resume.professional_profile.preferences.role
+            if resume.professional_profile and resume.professional_profile.preferences
+            else None,
+            "location": resume.personal_info.demographics.current_location.city
+            if resume.personal_info.demographics and resume.personal_info.demographics.current_location
+            else None,
+            "years_experience": sum(emp.duration.duration_months for emp in resume.employment_history) // 12,
         }
 
         vectors = [
@@ -253,7 +228,7 @@ class ProcessingService:
                 text=text_data.text,
                 source=text_data.source,
                 context=text_data.context,
-                **vector_metadata  # type: ignore[arg-type]
+                **vector_metadata,  # type: ignore[arg-type]
             )
             for embedding, text_data in zip(embeddings, text_data_list, strict=False)
         ]
@@ -270,7 +245,9 @@ class ProcessingService:
         results.extend(EmbeddingTextData(s.name, "skill", None) for s in resume.skills)
 
         for employment in resume.employment_history:
-            results.extend(EmbeddingTextData(kp.text, "employment", employment.position) for kp in employment.key_points)
+            results.extend(
+                EmbeddingTextData(kp.text, "employment", employment.position) for kp in employment.key_points
+            )
 
         for project in resume.projects:
             results.extend(EmbeddingTextData(kp.text, "project", project.title) for kp in (project.key_points or []))

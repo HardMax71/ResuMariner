@@ -22,13 +22,13 @@ class HybridSearchService:
         self.embedding_service = EmbeddingService()
 
     def search(
-            self,
-            query: str,
-            filters: SearchFilters,
-            vector_weight: float = settings.DEFAULT_VECTOR_WEIGHT,
-            graph_weight: float = settings.DEFAULT_GRAPH_WEIGHT,
-            limit: int = 10,
-            max_matches_per_result: int = 10,
+        self,
+        query: str,
+        filters: SearchFilters,
+        vector_weight: float = settings.DEFAULT_VECTOR_WEIGHT,
+        graph_weight: float = settings.DEFAULT_GRAPH_WEIGHT,
+        limit: int = 10,
+        max_matches_per_result: int = 10,
     ) -> list[ResumeSearchResult]:
         """
         Perform hybrid search combining vector and graph approaches.
@@ -48,22 +48,25 @@ class HybridSearchService:
             limit=limit * 2,
         )
 
-        return self._combine_results(vector_results, graph_results, vector_weight, graph_weight, limit, max_matches_per_result)
+        return self._combine_results(
+            vector_results, graph_results, vector_weight, graph_weight, limit, max_matches_per_result
+        )
 
     def _combine_results(
-            self,
-            vector_results: list[VectorHit],
-            graph_results: list[ResumeSearchResult],
-            vector_weight: float,
-            graph_weight: float,
-            limit: int,
-            max_matches_per_result: int,
+        self,
+        vector_results: list[VectorHit],
+        graph_results: list[ResumeSearchResult],
+        vector_weight: float,
+        graph_weight: float,
+        limit: int,
+        max_matches_per_result: int,
     ) -> list[ResumeSearchResult]:
         """Combine and score results from both search methods."""
 
         @dataclass
         class Agg:
             """Internal aggregation helper."""
+
             resume_id: str
             name: str = "Unknown"
             email: str = ""
@@ -87,20 +90,11 @@ class HybridSearchService:
 
             agg = by_cv.get(resume_id)
             if agg is None:
-                agg = Agg(
-                    resume_id=resume_id,
-                    name=vr.name or "Unknown",
-                    email=vr.email or ""
-                )
+                agg = Agg(resume_id=resume_id, name=vr.name or "Unknown", email=vr.email or "")
                 by_cv[resume_id] = agg
 
             # Add match from vector result
-            agg.matches.append({
-                "text": vr.text,
-                "score": vr.score,
-                "source": vr.source,
-                "context": vr.context or ""
-            })
+            agg.matches.append({"text": vr.text, "score": vr.score, "source": vr.source, "context": vr.context or ""})
             agg.vector_max = max(agg.vector_max, vr.score)
             agg.has_vector = True
 
@@ -112,11 +106,7 @@ class HybridSearchService:
 
             agg = by_cv.get(resume_id)
             if agg is None:
-                agg = Agg(
-                    resume_id=resume_id,
-                    name=gr.name,
-                    email=gr.email
-                )
+                agg = Agg(resume_id=resume_id, name=gr.name, email=gr.email)
                 by_cv[resume_id] = agg
 
             # Update with graph result data
@@ -131,12 +121,7 @@ class HybridSearchService:
 
             # Process matches if any
             for m in gr.matches:
-                agg.matches.append({
-                    "text": m.text,
-                    "score": m.score,
-                    "source": m.source,
-                    "context": m.context or ""
-                })
+                agg.matches.append({"text": m.text, "score": m.score, "source": m.source, "context": m.context or ""})
 
             agg.graph_sum += gr.score
             agg.has_graph = True
@@ -171,30 +156,34 @@ class HybridSearchService:
                 # Convert matches to VectorHit objects
                 vector_hits = []
                 for m in agg.matches:
-                    vector_hits.append(VectorHit(
-                        resume_id=agg.resume_id,
-                        text=m["text"],
-                        score=m["score"],
-                        source=m["source"],
-                        context=m.get("context"),
-                        name=agg.name,
-                        email=agg.email
-                    ))
+                    vector_hits.append(
+                        VectorHit(
+                            resume_id=agg.resume_id,
+                            text=m["text"],
+                            score=m["score"],
+                            source=m["source"],
+                            context=m.get("context"),
+                            name=agg.name,
+                            email=agg.email,
+                        )
+                    )
 
-                out.append(ResumeSearchResult(
-                    resume_id=agg.resume_id,
-                    name=agg.name,
-                    email=agg.email,
-                    score=score,
-                    matches=vector_hits,
-                    summary=agg.summary,
-                    skills=agg.skills or None,
-                    experiences=agg.experiences or None,
-                    education=agg.education or None,
-                    years_experience=None,
-                    location=None,
-                    desired_role=None
-                ))
+                out.append(
+                    ResumeSearchResult(
+                        resume_id=agg.resume_id,
+                        name=agg.name,
+                        email=agg.email,
+                        score=score,
+                        matches=vector_hits,
+                        summary=agg.summary,
+                        skills=agg.skills or None,
+                        experiences=agg.experiences or None,
+                        education=agg.education or None,
+                        years_experience=None,
+                        location=None,
+                        desired_role=None,
+                    )
+                )
                 if len(out) >= remaining:
                     break
             return out

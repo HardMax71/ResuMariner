@@ -10,10 +10,7 @@ from django.conf import settings
 from processor.utils.circuit_breaker import create_custom_circuit_breaker
 
 s3_circuit_breaker = create_custom_circuit_breaker(
-    name="s3_storage",
-    fail_max=3,
-    reset_timeout=45,
-    exclude=[ValueError, FileNotFoundError]
+    name="s3_storage", fail_max=3, reset_timeout=45, exclude=[ValueError, FileNotFoundError]
 )
 
 logger = logging.getLogger(__name__)
@@ -92,6 +89,7 @@ class FileService:
         if not file_ext:
             pattern = os.path.join(settings.UPLOAD_DIR, f"{job_id}.*")
             import glob
+
             files = glob.glob(pattern)
             for file_path in files:
                 try:
@@ -114,7 +112,7 @@ class FileService:
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             region_name=settings.AWS_S3_REGION_NAME,
-            endpoint_url=settings.AWS_S3_ENDPOINT_URL if settings.AWS_S3_ENDPOINT_URL else None
+            endpoint_url=settings.AWS_S3_ENDPOINT_URL if settings.AWS_S3_ENDPOINT_URL else None,
         )
 
         bucket_name = settings.AWS_STORAGE_BUCKET_NAME
@@ -125,21 +123,15 @@ class FileService:
                 s3.delete_object(Bucket=bucket_name, Key=key)
                 logger.info("Deleted S3 object %s from bucket %s", key, bucket_name)
             except ClientError as e:
-                if e.response['Error']['Code'] != '404':
+                if e.response["Error"]["Code"] != "404":
                     logger.warning("Error deleting S3 object %s: %s", key, e)
         else:
             try:
-                response = s3.list_objects_v2(
-                    Bucket=bucket_name,
-                    Prefix=job_id
-                )
-                if 'Contents' in response:
-                    objects = [{'Key': obj['Key']} for obj in response['Contents']]
+                response = s3.list_objects_v2(Bucket=bucket_name, Prefix=job_id)
+                if "Contents" in response:
+                    objects = [{"Key": obj["Key"]} for obj in response["Contents"]]
                     if objects:
-                        s3.delete_objects(
-                            Bucket=bucket_name,
-                            Delete={'Objects': objects}
-                        )
+                        s3.delete_objects(Bucket=bucket_name, Delete={"Objects": objects})
                         logger.info("Deleted %d S3 objects with prefix %s", len(objects), job_id)
             except ClientError as e:
                 logger.warning("Error deleting S3 objects with prefix %s: %s", job_id, e)
@@ -155,7 +147,7 @@ class FileService:
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             region_name=settings.AWS_S3_REGION_NAME,
-            endpoint_url=settings.AWS_S3_ENDPOINT_URL if settings.AWS_S3_ENDPOINT_URL else None
+            endpoint_url=settings.AWS_S3_ENDPOINT_URL if settings.AWS_S3_ENDPOINT_URL else None,
         )
         s3.download_file(settings.AWS_STORAGE_BUCKET_NAME, s3_key, temp_path)
         return temp_path

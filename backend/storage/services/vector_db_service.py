@@ -35,9 +35,7 @@ class VectorDBService:
         names = [c.name for c in collections]
         if self.collection_name in names:
             return
-        logger.info(
-            "Creating collection %s with vector size %s", self.collection_name, self.vector_size
-        )
+        logger.info("Creating collection %s with vector size %s", self.collection_name, self.vector_size)
         self.client.create_collection(
             collection_name=self.collection_name,
             vectors_config=qdrant_models.VectorParams(
@@ -47,8 +45,15 @@ class VectorDBService:
         )
         # Index fields for filtering
         keyword_fields = [
-            "resume_id", "name", "source", "email",
-            "skills", "technologies", "companies", "role", "location"
+            "resume_id",
+            "name",
+            "source",
+            "email",
+            "skills",
+            "technologies",
+            "companies",
+            "role",
+            "location",
         ]
         for field in keyword_fields:
             self.client.create_payload_index(
@@ -66,11 +71,7 @@ class VectorDBService:
     def delete_resume_vectors(self, resume_id: str) -> int:
         """Delete all vectors for a resume and return count deleted."""
         f = qdrant_models.Filter(
-            must=[
-                qdrant_models.FieldCondition(
-                    key="resume_id", match=qdrant_models.MatchValue(value=resume_id)
-                )
-            ]
+            must=[qdrant_models.FieldCondition(key="resume_id", match=qdrant_models.MatchValue(value=resume_id))]
         )
         # Count existing
         count_result = self.client.count(
@@ -118,11 +119,9 @@ class VectorDBService:
                 "companies": v.companies,
                 "role": v.role,
                 "location": v.location,
-                "years_experience": v.years_experience
+                "years_experience": v.years_experience,
             }
-            points.append(
-                qdrant_models.PointStruct(id=pid, vector=vec, payload=payload)
-            )
+            points.append(qdrant_models.PointStruct(id=pid, vector=vec, payload=payload))
 
         if not points:
             return []

@@ -32,9 +32,9 @@ class GraphSearchService:
         logger.info("Connected to Neo4j at %s", settings.NEO4J_URI)
 
     def search(
-            self,
-            filters: SearchFilters,
-            limit: int = 10,
+        self,
+        filters: SearchFilters,
+        limit: int = 10,
     ) -> list[ResumeSearchResult]:
         query = """
         MATCH (resume:ResumeNode)
@@ -231,10 +231,7 @@ class GraphSearchService:
 
             # Build kwargs dict from records
             kwargs = {
-                record["category"]: [
-                    FilterOption(value=item["value"], count=item["count"])
-                    for item in record["items"]
-                ]
+                record["category"]: [FilterOption(value=item["value"], count=item["count"]) for item in record["items"]]
                 for record in records
             }
 

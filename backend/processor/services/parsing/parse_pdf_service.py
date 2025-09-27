@@ -16,6 +16,7 @@ from .base_extraction_service import BaseExtractionService
 @dataclass
 class PDFWord:
     """Word extracted by pdfplumber with position data."""
+
     text: str
     x0: float
     x1: float
@@ -26,6 +27,7 @@ class PDFWord:
 @dataclass
 class PDFBounds:
     """PDF coordinate bounds for a region."""
+
     x0: float
     x1: float
     top: float
@@ -49,7 +51,7 @@ class ParsePdfService(BaseExtractionService):
                 reader = PdfReader(pdf_file)
 
                 for page_num, (plumber_page, pypdf_page) in enumerate(
-                        zip(pdf_doc.pages, reader.pages, strict=False), start=1
+                    zip(pdf_doc.pages, reader.pages, strict=False), start=1
                 ):
                     text = plumber_page.extract_text()
                     links = self._extract_links(plumber_page, pypdf_page)
@@ -66,16 +68,7 @@ class ParsePdfService(BaseExtractionService):
         seen_links = set()
         raw_words = plumber_page.extract_words()
         # Only extract the fields we actually use
-        words = [
-            PDFWord(
-                text=w['text'],
-                x0=w['x0'],
-                x1=w['x1'],
-                top=w['top'],
-                bottom=w['bottom']
-            )
-            for w in raw_words
-        ]
+        words = [PDFWord(text=w["text"], x0=w["x0"], x1=w["x1"], top=w["top"], bottom=w["bottom"]) for w in raw_words]
 
         for annotation in annots:
             link = self._process_annotation(annotation, plumber_page, words)
@@ -86,7 +79,7 @@ class ParsePdfService(BaseExtractionService):
         return links
 
     def _process_annotation(
-            self, annotation: PdfObject, page: pdfplumber.page.Page, words: list[PDFWord]
+        self, annotation: PdfObject, page: pdfplumber.page.Page, words: list[PDFWord]
     ) -> Link | None:
         # get_object() resolves indirect references
         annot_obj = annotation.get_object()
@@ -117,22 +110,14 @@ class ParsePdfService(BaseExtractionService):
         uri = action_dict.get("/URI")
         return str(uri) if uri else None
 
-    def _find_anchor_text(
-            self, rect: list[float], page_height: float, words: list[PDFWord]
-    ) -> str:
+    def _find_anchor_text(self, rect: list[float], page_height: float, words: list[PDFWord]) -> str:
         bounds = self._convert_coordinates(rect, page_height)
 
-        matching_words = [
-            word.text.strip()
-            for word in words
-            if self._word_in_bounds(word, bounds)
-        ]
+        matching_words = [word.text.strip() for word in words if self._word_in_bounds(word, bounds)]
 
         return " ".join(matching_words).strip()
 
-    def _convert_coordinates(
-            self, rect: list[float], page_height: float
-    ) -> PDFBounds:
+    def _convert_coordinates(self, rect: list[float], page_height: float) -> PDFBounds:
         x0, y0, x1, y1 = rect
         return PDFBounds(
             x0=x0,
@@ -142,12 +127,7 @@ class ParsePdfService(BaseExtractionService):
         )
 
     def _word_in_bounds(self, word: PDFWord, bounds: PDFBounds) -> bool:
-        return (
-                word.x0 <= bounds.x1
-                and word.x1 >= bounds.x0
-                and word.top <= bounds.bottom
-                and word.bottom >= bounds.top
-        )
+        return word.x0 <= bounds.x1 and word.x1 >= bounds.x0 and word.top <= bounds.bottom and word.bottom >= bounds.top
 
     def _build_response(self, pages: list[Page]) -> ParsedDocument:
         return ParsedDocument(

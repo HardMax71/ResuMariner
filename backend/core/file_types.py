@@ -8,18 +8,21 @@ This module provides a single source of truth for:
 - Parser associations
 - File type categories
 """
+
 from enum import StrEnum
 from typing import TypedDict
 
 
 class FileCategory(StrEnum):
     """Categories of files we process."""
+
     DOCUMENT = "document"
     IMAGE = "image"
 
 
 class ParserType(StrEnum):
     """Available parser types."""
+
     PDF = "pdf"
     IMAGE = "image"
     # DOCX = "docx"  # Future: when DOCX parser is implemented
@@ -27,6 +30,7 @@ class ParserType(StrEnum):
 
 class FileTypeSpec(TypedDict):
     """Specification for a file type."""
+
     media_type: str
     signature: bytes | None
     parser: ParserType
@@ -76,27 +80,16 @@ FILE_TYPE_REGISTRY: dict[str, FileTypeSpec] = {
 
 # Derived constants for backward compatibility
 ALLOWED_EXTENSIONS = set(FILE_TYPE_REGISTRY.keys())
-ALLOWED_IMAGE_EXTENSIONS = {
-    ext for ext, spec in FILE_TYPE_REGISTRY.items()
-    if spec["category"] == FileCategory.IMAGE
-}
+ALLOWED_IMAGE_EXTENSIONS = {ext for ext, spec in FILE_TYPE_REGISTRY.items() if spec["category"] == FileCategory.IMAGE}
 ALLOWED_DOCUMENT_EXTENSIONS = {
-    ext for ext, spec in FILE_TYPE_REGISTRY.items()
-    if spec["category"] == FileCategory.DOCUMENT
+    ext for ext, spec in FILE_TYPE_REGISTRY.items() if spec["category"] == FileCategory.DOCUMENT
 }
 
 # Media type mappings for easy lookup
-MEDIA_TYPE_MAPPING = {
-    ext: spec["media_type"]
-    for ext, spec in FILE_TYPE_REGISTRY.items()
-}
+MEDIA_TYPE_MAPPING = {ext: spec["media_type"] for ext, spec in FILE_TYPE_REGISTRY.items()}
 
 # File signatures for validation
-FILE_SIGNATURES = {
-    ext: spec["signature"]
-    for ext, spec in FILE_TYPE_REGISTRY.items()
-    if spec["signature"] is not None
-}
+FILE_SIGNATURES = {ext: spec["signature"] for ext, spec in FILE_TYPE_REGISTRY.items() if spec["signature"] is not None}
 
 # Security patterns (centralized from serializers)
 DANGEROUS_CHARS = {"<", ">", ":", '"', "|", "?", "*", "\\", "/", "\x00"}

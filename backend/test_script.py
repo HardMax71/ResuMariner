@@ -44,9 +44,7 @@ class CVProcessingTest:
                 )
 
                 if response.status_code not in (200, 202):
-                    print(
-                        f"Upload failed with status {response.status_code}: {response.text}"
-                    )
+                    print(f"Upload failed with status {response.status_code}: {response.text}")
                     sys.exit(1)
 
                 upload_result = response.json()
@@ -64,14 +62,10 @@ class CVProcessingTest:
             retry_interval = 2  # seconds
 
             for _ in tqdm(range(max_retries)):
-                response = requests.get(
-                    f"{self.backend_url}/api/v1/jobs/{job_id}/", timeout=10
-                )
+                response = requests.get(f"{self.backend_url}/api/v1/jobs/{job_id}/", timeout=10)
 
                 if response.status_code != 200:
-                    print(
-                        f"Status check failed: {response.status_code} - {response.text}"
-                    )
+                    print(f"Status check failed: {response.status_code} - {response.text}")
                     time.sleep(retry_interval)
                     continue
 
@@ -79,7 +73,7 @@ class CVProcessingTest:
                 if status.get("status") == "completed":
                     print("\nJob completed! Fetching results...")
 
-                    result_response = requests.get(status['result_url'], timeout=120)
+                    result_response = requests.get(status["result_url"], timeout=120)
                     print(f"Fetching result from: {status['result_url']}")
                     result_data = result_response.json()
 
@@ -138,9 +132,11 @@ class CVProcessingTest:
             params["top_skills"] = skill_names[:3]
 
         # Extract role from professional_profile.preferences
-        if (self.resume.professional_profile and
-            self.resume.professional_profile.preferences and
-            self.resume.professional_profile.preferences.role):
+        if (
+            self.resume.professional_profile
+            and self.resume.professional_profile.preferences
+            and self.resume.professional_profile.preferences.role
+        ):
             params["role"] = self.resume.professional_profile.preferences.role
 
         # Extract location from demographics
@@ -159,11 +155,7 @@ class CVProcessingTest:
 
         # Extract companies from employment history
         if self.resume.employment_history:
-            companies = [
-                emp.company.name
-                for emp in self.resume.employment_history
-                if emp.company
-            ]
+            companies = [emp.company.name for emp in self.resume.employment_history if emp.company]
             if companies:
                 params["companies"] = companies
                 params["latest_company"] = companies[0]  # Assuming most recent is first
@@ -186,11 +178,7 @@ class CVProcessingTest:
 
         # Calculate years of experience from employment_history
         if self.resume.employment_history:
-            total_months = sum(
-                emp.duration.duration_months
-                for emp in self.resume.employment_history
-                if emp.duration
-            )
+            total_months = sum(emp.duration.duration_months for emp in self.resume.employment_history if emp.duration)
             params["years_experience"] = total_months // 12
 
         return params
@@ -204,13 +192,9 @@ class CVProcessingTest:
 
             print(f"Sending to: {self.backend_url}/search/semantic/")
             print(f"Payload: {json.dumps(search_payload, indent=2, ensure_ascii=False)}")
-            response = requests.post(
-                f"{self.backend_url}/search/semantic/", json=search_payload, timeout=30
-            )
+            response = requests.post(f"{self.backend_url}/search/semantic/", json=search_payload, timeout=30)
             if response.status_code != 200:
-                print(
-                    f"Semantic search failed: {response.status_code} - {response.text}"
-                )
+                print(f"Semantic search failed: {response.status_code} - {response.text}")
                 return None
 
             search_results = response.json()
@@ -242,9 +226,7 @@ class CVProcessingTest:
             if skills:
                 filters_payload["skills"] = skills if isinstance(skills, list) else [skills]
             if technologies:
-                filters_payload["technologies"] = (
-                    technologies if isinstance(technologies, list) else [technologies]
-                )
+                filters_payload["technologies"] = technologies if isinstance(technologies, list) else [technologies]
             if role:
                 filters_payload["role"] = role
             if company:
@@ -260,13 +242,9 @@ class CVProcessingTest:
 
             print(f"Sending to: {self.backend_url}/search/structured/")
             print(f"Payload: {json.dumps(search_payload, indent=2, ensure_ascii=False)}")
-            response = requests.post(
-                f"{self.backend_url}/search/structured/", json=search_payload, timeout=30
-            )
+            response = requests.post(f"{self.backend_url}/search/structured/", json=search_payload, timeout=30)
             if response.status_code != 200:
-                print(
-                    f"Structured search failed: {response.status_code} - {response.text}"
-                )
+                print(f"Structured search failed: {response.status_code} - {response.text}")
                 return None
 
             search_results = response.json()
@@ -307,9 +285,7 @@ class CVProcessingTest:
             if skills:
                 filters_payload["skills"] = skills if isinstance(skills, list) else [skills]
             if technologies:
-                filters_payload["technologies"] = (
-                    technologies if isinstance(technologies, list) else [technologies]
-                )
+                filters_payload["technologies"] = technologies if isinstance(technologies, list) else [technologies]
             if role:
                 filters_payload["role"] = role
             if company:
@@ -322,9 +298,7 @@ class CVProcessingTest:
 
             print(f"Sending to: {self.backend_url}/search/hybrid/")
             print(f"Payload: {json.dumps(search_payload, indent=2, ensure_ascii=False)}")
-            response = requests.post(
-                f"{self.backend_url}/search/hybrid/", json=search_payload, timeout=30
-            )
+            response = requests.post(f"{self.backend_url}/search/hybrid/", json=search_payload, timeout=30)
             if response.status_code != 200:
                 print(f"Hybrid search failed: {response.status_code} - {response.text}")
                 return None
@@ -348,9 +322,7 @@ class CVProcessingTest:
             print(f"Retrieving filter options from: {self.backend_url}/filters/")
             response = requests.get(f"{self.backend_url}/filters/", timeout=30)
             if response.status_code != 200:
-                print(
-                    f"Failed to get filter options: {response.status_code} - {response.text}"
-                )
+                print(f"Failed to get filter options: {response.status_code} - {response.text}")
                 return None
             filter_options = response.json()
             return filter_options
@@ -406,8 +378,8 @@ class CVProcessingTest:
         # Prefer raw output of each result for clarity/debuggability
         for idx, result in enumerate(results):
             # Normalize legacy key and ensure name displays correctly
-            if 'person_name' in result and 'name' not in result:
-                result['name'] = result.get('person_name')
+            if "person_name" in result and "name" not in result:
+                result["name"] = result.get("person_name")
             print(json.dumps(result, indent=2, ensure_ascii=False))
             if idx < len(results) - 1:
                 print("-" * 40)
@@ -561,29 +533,21 @@ class CVProcessingTest:
         for method, count in method_counts.items():
             print(f"  {method}: {count} results")
         print("\nCVs found by multiple methods:")
-        for cv_id, data in sorted(
-            cv_counts.items(), key=lambda x: x[1]["total"], reverse=True
-        ):
+        for cv_id, data in sorted(cv_counts.items(), key=lambda x: x[1]["total"], reverse=True):
             if data["total"] > 1:
                 print(f"  CV ID: {cv_id}")
-                print(
-                    f"    Found by {data['total']} methods: {', '.join(data['methods'])}"
-                )
+                print(f"    Found by {data['total']} methods: {', '.join(data['methods'])}")
         print("=" * 80)
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Fully automated CV processing and search testing"
-    )
+    parser = argparse.ArgumentParser(description="Fully automated CV processing and search testing")
     parser.add_argument(
         "--filename",
         default="./test_inputs/Max_Azatian_CV.pdf",
         help="Name of the file to process",
     )
-    parser.add_argument(
-        "--backend-url", default="http://localhost:8000", help="URL for backend service"
-    )
+    parser.add_argument("--backend-url", default="http://localhost:8000", help="URL for backend service")
     parser.add_argument("--search", action="store_true", help="Run search tests")
     parser.add_argument("--review", action="store_true", help="Show review data")
     parser.add_argument(

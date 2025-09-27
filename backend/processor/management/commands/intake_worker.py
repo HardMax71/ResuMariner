@@ -9,12 +9,7 @@ class Command(BaseCommand):
     help = "Run intake worker"
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "worker_type",
-            nargs="?",
-            default="processing",
-            choices=list(WORKER_REGISTRY.keys())
-        )
+        parser.add_argument("worker_type", nargs="?", default="processing", choices=list(WORKER_REGISTRY.keys()))
 
     def handle(self, *args, **options):
         worker_type = options["worker_type"]

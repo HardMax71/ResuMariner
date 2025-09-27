@@ -21,30 +21,15 @@ REQUEST_DURATION = Histogram(
 )
 
 # Redis Queue metrics
-REDIS_QUEUE_LENGTH = Gauge(
-    "redis_queue_length",
-    "Number of jobs in main queue"
-)
+REDIS_QUEUE_LENGTH = Gauge("redis_queue_length", "Number of jobs in main queue")
 
-REDIS_CLEANUP_QUEUE_LENGTH = Gauge(
-    "redis_cleanup_queue_length",
-    "Number of jobs in cleanup queue"
-)
+REDIS_CLEANUP_QUEUE_LENGTH = Gauge("redis_cleanup_queue_length", "Number of jobs in cleanup queue")
 
-REDIS_SCHEDULED_RETRIES = Gauge(
-    "redis_scheduled_retries",
-    "Number of scheduled retry jobs"
-)
+REDIS_SCHEDULED_RETRIES = Gauge("redis_scheduled_retries", "Number of scheduled retry jobs")
 
-REDIS_ACTIVE_JOBS = Gauge(
-    "redis_active_jobs",
-    "Number of currently active jobs"
-)
+REDIS_ACTIVE_JOBS = Gauge("redis_active_jobs", "Number of currently active jobs")
 
-REDIS_MEMORY_USAGE = Gauge(
-    "redis_memory_usage_bytes",
-    "Redis memory usage in bytes"
-)
+REDIS_MEMORY_USAGE = Gauge("redis_memory_usage_bytes", "Redis memory usage in bytes")
 
 # Embedding service metrics
 EMBEDDING_API_CALLS = Counter(

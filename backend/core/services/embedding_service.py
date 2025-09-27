@@ -32,10 +32,7 @@ class EmbeddingService:
         self._validate_config()
 
         self.circuit_breaker = create_custom_circuit_breaker(
-            name="embedding_api",
-            fail_max=3,
-            reset_timeout=30,
-            exclude=[httpx.InvalidURL]
+            name="embedding_api", fail_max=3, reset_timeout=30, exclude=[httpx.InvalidURL]
         )
 
     def _validate_config(self):
@@ -77,11 +74,7 @@ class EmbeddingService:
         embeddings = self.encode_batch([text])
         return embeddings[0]
 
-    def encode_batch(
-        self,
-        texts: list[str],
-        skip_empty: bool = True
-    ) -> list[list[float]]:
+    def encode_batch(self, texts: list[str], skip_empty: bool = True) -> list[list[float]]:
         """
         Batch encode multiple texts efficiently.
         This should be the primary method for encoding multiple texts.
@@ -117,12 +110,9 @@ class EmbeddingService:
 
         # Process in chunks for API limits and reliability
         for i in range(0, len(valid_texts), self.max_batch_size):
-            chunk = valid_texts[i:i + self.max_batch_size]
+            chunk = valid_texts[i : i + self.max_batch_size]
 
-            payload = {
-                "model": self.model,
-                "input": chunk
-            }
+            payload = {"model": self.model, "input": chunk}
 
             chunk_embeddings = self.circuit_breaker(self._call_embedding_api)(payload, len(chunk))
             embeddings.extend(chunk_embeddings)
@@ -160,4 +150,3 @@ class EmbeddingService:
             batch_label = "large" if batch_size > 20 else "small"
             EMBEDDING_API_CALLS.labels(status="error", batch_size=batch_label).inc()
             raise
-

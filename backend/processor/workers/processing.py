@@ -68,27 +68,20 @@ class ProcessingWorker(BaseWorker):
             self.redis_queue.mark_job_processing(task_id)
             await self.job_service.mark_processing(job_id)
 
-            result = await self.processing_service.process_resume(
-                file_path=file_path,
-                job_id=job_id
-            )
+            result = await self.processing_service.process_resume(file_path=file_path, job_id=job_id)
 
             # Convert ProcessingResult to dict for storage
             result_dict = {
                 "resume": result.resume.model_dump(),
                 "review": result.review.model_dump() if result.review else None,  # ReviewResult is Pydantic model
-                "metadata": asdict(result.metadata)
+                "metadata": asdict(result.metadata),
             }
 
             self.redis_queue.mark_job_completed(task_id, result_dict)
             await self.job_service.complete(job_id, result_dict)
 
             processing_time = time.time() - start_time
-            self.logger.info(
-                "Job %s completed successfully in %.2fs",
-                job_id,
-                processing_time
-            )
+            self.logger.info("Job %s completed successfully in %.2fs", job_id, processing_time)
 
             self._schedule_cleanup(job_id)
 
@@ -100,17 +93,11 @@ class ProcessingWorker(BaseWorker):
     def _schedule_cleanup(self, job_id: str):
         try:
             from processor.models import CleanupTask
+
             cleanup_delay = settings.JOB_CLEANUP_DELAY_HOURS
-            cleanup_task = CleanupTask(
-                job_id=job_id,
-                cleanup_time=time.time() + (cleanup_delay * 3600)
-            )
+            cleanup_task = CleanupTask(job_id=job_id, cleanup_time=time.time() + (cleanup_delay * 3600))
             self.redis_queue.schedule_cleanup(cleanup_task)
-            self.logger.info(
-                "Scheduled cleanup for job %s in %d hours",
-                job_id,
-                cleanup_delay
-            )
+            self.logger.info("Scheduled cleanup for job %s in %d hours", job_id, cleanup_delay)
         except Exception as e:
             self.logger.warning("Failed to schedule cleanup for job %s: %s", job_id, e)
 

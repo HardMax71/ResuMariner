@@ -92,9 +92,7 @@ class WorkAuthorizationNode(StructuredNode):
 
 class DemographicsNode(StructuredNode):
     current_location = RelationshipTo("LocationNode", "HAS_LOCATION")
-    work_authorization = RelationshipTo(
-        "WorkAuthorizationNode", "HAS_WORK_AUTHORIZATION"
-    )
+    work_authorization = RelationshipTo("WorkAuthorizationNode", "HAS_WORK_AUTHORIZATION")
 
 
 class PersonalInfoNode(StructuredNode):
@@ -106,9 +104,7 @@ class PersonalInfoNode(StructuredNode):
 
 class PreferencesNode(StructuredNode):
     role = StringProperty(required=True)
-    employment_types = ArrayProperty(
-        base_property=StringProperty(choices=EMPLOYMENT_TYPE_CHOICES)
-    )
+    employment_types = ArrayProperty(base_property=StringProperty(choices=EMPLOYMENT_TYPE_CHOICES))
     work_modes = ArrayProperty(base_property=StringProperty(choices=WORK_MODE_CHOICES))
     salary = StringProperty()
 
@@ -227,21 +223,13 @@ class ResumeNode(StructuredNode):
     updated_at = DateTimeProperty(default=datetime.now)
 
     personal_info = RelationshipTo("PersonalInfoNode", "HAS_PERSONAL_INFO")
-    professional_profile = RelationshipTo(
-        "ProfessionalProfileNode", "HAS_PROFESSIONAL_PROFILE"
-    )
+    professional_profile = RelationshipTo("ProfessionalProfileNode", "HAS_PROFESSIONAL_PROFILE")
     skills = RelationshipTo("SkillNode", "HAS_SKILL")
-    employment_history = RelationshipTo(
-        "EmploymentHistoryItemNode", "HAS_EMPLOYMENT_HISTORY"
-    )
+    employment_history = RelationshipTo("EmploymentHistoryItemNode", "HAS_EMPLOYMENT_HISTORY")
     projects = RelationshipTo("ProjectNode", "HAS_PROJECT")
     education = RelationshipTo("EducationItemNode", "HAS_EDUCATION")
     courses = RelationshipTo("CourseNode", "HAS_COURSE")
     certifications = RelationshipTo("CertificationNode", "HAS_CERTIFICATION")
     awards = RelationshipTo("AwardNode", "HAS_AWARD")
-    scientific_contributions = RelationshipTo(
-        "ScientificContributionNode", "HAS_SCIENTIFIC_CONTRIBUTION"
-    )
-    language_proficiency = RelationshipTo(
-        "LanguageProficiencyNode", "HAS_LANGUAGE_PROFICIENCY"
-    )
+    scientific_contributions = RelationshipTo("ScientificContributionNode", "HAS_SCIENTIFIC_CONTRIBUTION")
+    language_proficiency = RelationshipTo("LanguageProficiencyNode", "HAS_LANGUAGE_PROFICIENCY")

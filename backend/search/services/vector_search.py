@@ -29,7 +29,9 @@ class VectorSearchService:
             qdrant_models.FieldCondition(
                 key=key,
                 match=(
-                    qdrant_models.MatchAny(any=value) if isinstance(value, list) else qdrant_models.MatchValue(value=value)
+                    qdrant_models.MatchAny(any=value)
+                    if isinstance(value, list)
+                    else qdrant_models.MatchValue(value=value)
                 ),
             )
             for key, value in filter_dict.items()
@@ -47,7 +49,6 @@ class VectorSearchService:
             with_vectors=False,
         )
 
-
         results = []
         for point in response.points:
             if not point.payload:
@@ -57,14 +58,16 @@ class VectorSearchService:
             if not resume_id:  # Skip if no resume_id
                 continue
 
-            results.append(VectorHit(
-                resume_id=resume_id,
-                text=point.payload.get("text", ""),
-                score=point.score,
-                source=point.payload.get("source", "unknown"),
-                context=point.payload.get("context"),
-                name=point.payload.get("name"),
-                email=point.payload.get("email")
-            ))
+            results.append(
+                VectorHit(
+                    resume_id=resume_id,
+                    text=point.payload.get("text", ""),
+                    score=point.score,
+                    source=point.payload.get("source", "unknown"),
+                    context=point.payload.get("context"),
+                    name=point.payload.get("name"),
+                    email=point.payload.get("email"),
+                )
+            )
 
         return results

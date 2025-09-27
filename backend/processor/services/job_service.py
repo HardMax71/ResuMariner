@@ -31,16 +31,9 @@ class JobService:
     async def create_job(self, file_path: str) -> Job:
         """Create a new job entry."""
         job_id = str(uuid.uuid4())
-        job = Job(
-            job_id=job_id,
-            file_path=file_path
-        )
+        job = Job(job_id=job_id, file_path=file_path)
 
-        await self.redis.set(
-            self._get_key(job_id),
-            job.model_dump_json(),
-            ex=int(self.ttl.total_seconds())
-        )
+        await self.redis.set(self._get_key(job_id), job.model_dump_json(), ex=int(self.ttl.total_seconds()))
 
         logger.info(f"Created job {job_id} for file {file_path}")
         return job
@@ -60,11 +53,7 @@ class JobService:
         cursor = 0
 
         while len(jobs) < limit:
-            cursor, keys = await self.redis.scan(
-                cursor=cursor,
-                match=pattern,
-                count=min(100, limit - len(jobs))
-            )
+            cursor, keys = await self.redis.scan(cursor=cursor, match=pattern, count=min(100, limit - len(jobs)))
 
             for key in keys:
                 job_json = await self.redis.get(key)
@@ -81,12 +70,12 @@ class JobService:
         return jobs
 
     async def update_job(
-            self,
-            job_id: str,
-            status: JobStatus,
-            updates: dict | None = None,
-            result: dict | None = None,
-            error: str | None = None,
+        self,
+        job_id: str,
+        status: JobStatus,
+        updates: dict | None = None,
+        result: dict | None = None,
+        error: str | None = None,
     ) -> Job | None:
         job = await self.get_job(job_id)
         if not job:
@@ -107,11 +96,7 @@ class JobService:
 
         job.update(**changes)
 
-        await self.redis.set(
-            self._get_key(job_id),
-            job.model_dump_json(),
-            ex=int(self.ttl.total_seconds())
-        )
+        await self.redis.set(self._get_key(job_id), job.model_dump_json(), ex=int(self.ttl.total_seconds()))
 
         return job
 
@@ -125,11 +110,7 @@ class JobService:
         return await self.update_job(job_id, status=JobStatus.FAILED, error=error)
 
     async def save_job(self, job: Job) -> None:
-        await self.redis.set(
-            self._get_key(job.job_id),
-            job.model_dump_json(),
-            ex=int(self.ttl.total_seconds())
-        )
+        await self.redis.set(self._get_key(job.job_id), job.model_dump_json(), ex=int(self.ttl.total_seconds()))
 
     async def delete_job(self, job_id: str) -> bool:
         result = await self.redis.delete(self._get_key(job_id))

@@ -36,10 +36,7 @@ class GraphDBService:
         install_all_labels()
         logger.info("Connected to Neo4j at %s", settings.NEO4J_URI)
 
-    def upsert_resume(
-            self,
-            resume: Resume
-    ) -> bool:
+    def upsert_resume(self, resume: Resume) -> bool:
         try:
             existing_node = ResumeNode.nodes.get_or_none(uid=resume.uid) if resume.uid else None
 

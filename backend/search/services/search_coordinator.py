@@ -38,10 +38,7 @@ class SearchCoordinator:
             raise ValueError(f"Unknown search type: {request.search_type}")
 
         return SearchResponse(
-            results=results,
-            query=request.query or "",
-            search_type=request.search_type,
-            total_found=len(results)
+            results=results, query=request.query or "", search_type=request.search_type, total_found=len(results)
         )
 
     def _semantic_search(self, request: SearchRequest) -> list[ResumeSearchResult]:
@@ -54,7 +51,7 @@ class SearchCoordinator:
             query_vector=query_vector,
             limit=request.limit * 5,  # Over-fetch for grouping
             min_score=request.min_score,
-            filters=None
+            filters=None,
         )
 
         grouped = self._group_vector_hits_by_resume_id(vector_hits)
@@ -72,24 +69,21 @@ class SearchCoordinator:
                 # Use complete data from graph
                 result = resume_map[resume_id]
                 # Update with vector search data, limiting matches if specified
-                result.matches = hits[:request.max_matches_per_result]
+                result.matches = hits[: request.max_matches_per_result]
                 result.score = max(hit.score for hit in hits)
             else:
                 # Fallback if not found in graph (shouldn't happen normally)
-                limited_hits = hits[:request.max_matches_per_result]
+                limited_hits = hits[: request.max_matches_per_result]
                 result = ResumeSearchResult.from_matches(resume_id, limited_hits)
 
             results.append(result)
 
         # Sort by score and limit
         results.sort(key=lambda r: r.score, reverse=True)
-        return results[:request.limit]
+        return results[: request.limit]
 
     def _structured_search(self, request: SearchRequest) -> list[ResumeSearchResult]:
-        return self.graph_search.search(
-            filters=request.filters,
-            limit=request.limit
-        )
+        return self.graph_search.search(filters=request.filters, limit=request.limit)
 
     def _hybrid_search(self, request: SearchRequest) -> list[ResumeSearchResult]:
         return self.hybrid_search.search(
@@ -98,7 +92,7 @@ class SearchCoordinator:
             vector_weight=request.vector_weight,
             graph_weight=request.graph_weight,
             limit=request.limit,
-            max_matches_per_result=request.max_matches_per_result
+            max_matches_per_result=request.max_matches_per_result,
         )
 
     def _group_vector_hits_by_resume_id(self, hits: list[VectorHit]) -> dict[str, list[VectorHit]]:

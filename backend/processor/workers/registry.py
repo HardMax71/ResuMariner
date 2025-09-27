@@ -1,4 +1,3 @@
-
 from collections.abc import Callable
 
 from .base import BaseWorker

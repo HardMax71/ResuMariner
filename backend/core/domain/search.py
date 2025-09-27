@@ -36,6 +36,7 @@ class FilterOptionsResult:
 @dataclass
 class VectorHit:
     """Single vector match from Qdrant with full metadata"""
+
     resume_id: str
     text: str
     score: float
@@ -48,6 +49,7 @@ class VectorHit:
 @dataclass
 class ResumeSearchResult:
     """Aggregated search result for a single resume"""
+
     resume_id: str
     name: str
     email: str
@@ -71,13 +73,7 @@ class ResumeSearchResult:
     def from_matches(cls, resume_id: str, hits: list[VectorHit]) -> "ResumeSearchResult":
         """Create ResumeSearchResult from vector matches when not found in graph"""
         if not hits:
-            return cls(
-                resume_id=resume_id,
-                name="Unknown",
-                email="",
-                score=0.0,
-                matches=[]
-            )
+            return cls(resume_id=resume_id, name="Unknown", email="", score=0.0, matches=[])
 
         # Get name and email from first hit if available
         first_hit = hits[0]
@@ -86,13 +82,14 @@ class ResumeSearchResult:
             name=first_hit.name or "Unknown",
             email=first_hit.email or "",
             score=max(hit.score for hit in hits),
-            matches=hits
+            matches=hits,
         )
 
 
 @dataclass
 class SearchRequest:
     """Unified search request model"""
+
     search_type: SearchType
     filters: SearchFilters = field(default_factory=SearchFilters)
     query: str | None = None  # useful for semantic and hybrid search
@@ -108,6 +105,7 @@ class SearchRequest:
 @dataclass
 class SearchResponse:
     """Complete search response with metadata"""
+
     results: list[ResumeSearchResult]
     query: str | None  # Optional for structured search
     search_type: SearchType

@@ -30,4 +30,3 @@ class VectorStoreRequestSerializer(serializers.Serializer):
 class VectorStoreResponseSerializer(serializers.Serializer):
     status = serializers.CharField()
     vector_count = serializers.IntegerField()
-

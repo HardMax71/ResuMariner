@@ -20,4 +20,3 @@ class StorageRouteTests(TestCase):
     def test_delete_resume_endpoint_not_registered(self) -> None:
         response = self.client.delete("/storage/resume/sample-id/delete")
         self.assertEqual(response.status_code, 404)
-

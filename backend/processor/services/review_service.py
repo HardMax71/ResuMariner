@@ -26,11 +26,7 @@ class ReviewService:
         self.file_type = parsed_document.file_type
         self.processed_at = parsed_document.processed_at
 
-        self.llm_service = LLMService(
-            system_prompt=self._get_system_prompt(),
-            result_type=ReviewResult,
-            mode="text"
-        )
+        self.llm_service = LLMService(system_prompt=self._get_system_prompt(), result_type=ReviewResult, mode="text")
 
     def _get_system_prompt(self) -> str:
         return """
@@ -63,11 +59,7 @@ class ReviewService:
         # Only include sections that exist in the resume
         for key, criteria in REVIEW_CRITERIA.items():
             if key in self.structured_data and self.structured_data[key]:
-                section_data = json.dumps(
-                    {key: self.structured_data[key]},
-                    ensure_ascii=False,
-                    default=str
-                )
+                section_data = json.dumps({key: self.structured_data[key]}, ensure_ascii=False, default=str)
 
                 sections_to_review.append(f"""
                 SECTION: {criteria.section_name}
@@ -86,7 +78,7 @@ class ReviewService:
         Document type: {self.file_type}, Processed: {self.processed_at}
 
         Full Resume Text:
-        {self.full_text[:settings.MAX_TOKENS_IN_RESUME_TO_PROCESS]}
+        {self.full_text[: settings.MAX_TOKENS_IN_RESUME_TO_PROCESS]}
 
         SECTIONS TO REVIEW:
         {"".join(sections_to_review)}

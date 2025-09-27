@@ -15,8 +15,10 @@ class LLMContentStructureService:
         self.raw_data = pdf_parser_output
         self.current_date = datetime.now().strftime("%B %d, %Y")
 
-        system_prompt = ("You are a resume parser. Extract information from resumes and return structured data "
-                         "exactly matching the schema.")
+        system_prompt = (
+            "You are a resume parser. Extract information from resumes and return structured data "
+            "exactly matching the schema."
+        )
         self.llm_service = LLMService(system_prompt=system_prompt, result_type=Resume)
 
     def _prepare_prompt(self, text: str, links: list[dict]) -> str:
@@ -117,11 +119,7 @@ Resume Text (PROCESS VERBATIM):
 
     async def structure_content(self) -> Resume:
         full_text = "\n".join(p.text for p in self.raw_data.pages)
-        links = [
-            {"text": link.text, "url": link.url}
-            for page in self.raw_data.pages
-            for link in page.links
-        ]
+        links = [{"text": link.text, "url": link.url} for page in self.raw_data.pages for link in page.links]
         try:
             prompt = self._prepare_prompt(full_text, links)
             result = await self.llm_service.run(prompt)
@@ -132,9 +130,7 @@ Resume Text (PROCESS VERBATIM):
             logging.error(f"Content structuring failed: {str(e)}")
             return await self._handle_error(full_text, links)
 
-    async def _handle_error(
-            self, text: str, links: list[dict]
-    ) -> Resume:
+    async def _handle_error(self, text: str, links: list[dict]) -> Resume:
         retry_system_prompt = (
             "You are a specialized resume parser. Extract exact information from resumes "
             "and return a fully compliant JSON object matching the schema. "
@@ -143,13 +139,13 @@ Resume Text (PROCESS VERBATIM):
         retry_service = LLMService(system_prompt=retry_system_prompt, result_type=Resume)
 
         enhanced_prompt = (
-                              "IMPORTANT: Return a valid JSON object matching the Resume schema exactly.\n\n"
-                              "Focus on these common issues:\n"
-                              "1. All required fields must be present\n"
-                              "2. Format dates as MM.YYYY\n"
-                              "3. Use null for missing values, not empty strings\n"
-                              "4. Use exactly the enum values specified\n\n"
-                          ) + self._prepare_prompt(text, links)
+            "IMPORTANT: Return a valid JSON object matching the Resume schema exactly.\n\n"
+            "Focus on these common issues:\n"
+            "1. All required fields must be present\n"
+            "2. Format dates as MM.YYYY\n"
+            "3. Use null for missing values, not empty strings\n"
+            "4. Use exactly the enum values specified\n\n"
+        ) + self._prepare_prompt(text, links)
 
         result = await retry_service.run(enhanced_prompt, temperature=0.1)
         return result  # type: ignore[no-any-return]

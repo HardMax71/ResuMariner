@@ -59,6 +59,7 @@ class Location(BaseModel):
     state: str | None = None
     country: str | None = None
 
+
 class ContactLinks(BaseModel):
     telegram: str | None = None
     linkedin: str | None = None
@@ -89,19 +90,19 @@ class PersonalInfo(BaseModel):
     contact: Contact
     demographics: Demographics | None = None
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def accept_legacy_demographics(cls, v: dict):
-        if isinstance(v, dict) and ('current_location' in v or 'work_authorization' in v):
-            demo = v.get('demographics') or {}
-            if 'current_location' in v and 'current_location' not in demo:
-                demo['current_location'] = v.pop('current_location')
-            if 'work_authorization' in v and 'work_authorization' not in demo:
-                demo['work_authorization'] = v.pop('work_authorization')
-            v['demographics'] = demo
-        if isinstance(v, dict) and 'links' in v.get('contact', {}):
-            links = v['contact'].pop('links')
-            v['contact']['links'] = links
+        if isinstance(v, dict) and ("current_location" in v or "work_authorization" in v):
+            demo = v.get("demographics") or {}
+            if "current_location" in v and "current_location" not in demo:
+                demo["current_location"] = v.pop("current_location")
+            if "work_authorization" in v and "work_authorization" not in demo:
+                demo["work_authorization"] = v.pop("work_authorization")
+            v["demographics"] = demo
+        if isinstance(v, dict) and "links" in v.get("contact", {}):
+            links = v["contact"].pop("links")
+            v["contact"]["links"] = links
         return v
 
 
@@ -110,6 +111,7 @@ class JobPreferences(BaseModel):
     employment_types: list[EmploymentType] = Field(default_factory=list)
     work_modes: list[WorkMode] = Field(default_factory=list)
     salary: str | None = None
+
 
 class CompanyInfo(BaseModel):
     name: str
@@ -145,24 +147,24 @@ class EmploymentHistoryItem(BaseModel):
     key_points: list[KeyPoint] = Field(default_factory=list)
     technologies: list[Technology] = Field(default_factory=list)
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def accept_legacy_employment(cls, v: dict):
-        if 'company' in v and isinstance(v['company'], str):
-            v['company'] = {"name": v['company']}
-        if 'tech_stack' in v and 'technologies' not in v:
-            v['technologies'] = v.pop('tech_stack')
-        if 'start_date' in v or 'end_date' in v or 'date_format' in v or 'duration_months' in v:
-            v['duration'] = {
-                'date_format': v.pop('date_format', 'MM.YYYY'),
-                'start': v.pop('start_date', ''),
-                'end': v.pop('end_date', ''),
-                'duration_months': v.pop('duration_months', 0),
+        if "company" in v and isinstance(v["company"], str):
+            v["company"] = {"name": v["company"]}
+        if "tech_stack" in v and "technologies" not in v:
+            v["technologies"] = v.pop("tech_stack")
+        if "start_date" in v or "end_date" in v or "date_format" in v or "duration_months" in v:
+            v["duration"] = {
+                "date_format": v.pop("date_format", "MM.YYYY"),
+                "start": v.pop("start_date", ""),
+                "end": v.pop("end_date", ""),
+                "duration_months": v.pop("duration_months", 0),
             }
-        if 'key_points' in v:
-            v['key_points'] = [kp if isinstance(kp, dict) else {'text': kp} for kp in v['key_points']]
-        if 'technologies' in v:
-            v['technologies'] = [t if isinstance(t, dict) else {'name': t} for t in v['technologies']]
+        if "key_points" in v:
+            v["key_points"] = [kp if isinstance(kp, dict) else {"text": kp} for kp in v["key_points"]]
+        if "technologies" in v:
+            v["technologies"] = [t if isinstance(t, dict) else {"name": t} for t in v["technologies"]]
         return v
 
 
@@ -172,15 +174,15 @@ class Project(BaseModel):
     technologies: list[Technology] = Field(default_factory=list)
     key_points: list[KeyPoint] = Field(default_factory=list)
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def accept_legacy_project(cls, v: dict):
-        if 'tech_stack' in v and 'technologies' not in v:
-            v['technologies'] = v.pop('tech_stack')
-        if 'technologies' in v:
-            v['technologies'] = [t if isinstance(t, dict) else {'name': t} for t in v['technologies']]
-        if 'key_points' in v:
-            v['key_points'] = [kp if isinstance(kp, dict) else {'text': kp} for kp in v['key_points']]
+        if "tech_stack" in v and "technologies" not in v:
+            v["technologies"] = v.pop("tech_stack")
+        if "technologies" in v:
+            v["technologies"] = [t if isinstance(t, dict) else {"name": t} for t in v["technologies"]]
+        if "key_points" in v:
+            v["key_points"] = [kp if isinstance(kp, dict) else {"text": kp} for kp in v["key_points"]]
         return v
 
 
@@ -207,19 +209,19 @@ class EducationItem(BaseModel):
     coursework: list[Coursework] = Field(default_factory=list)
     extras: list[EducationExtra] = Field(default_factory=list)
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def accept_legacy_education(cls, v: dict):
-        if 'institution' in v and isinstance(v['institution'], str):
-            v['institution'] = {'name': v['institution']}
-        if 'start_date' in v and 'start' not in v:
-            v['start'] = v.pop('start_date')
-        if 'end_date' in v and 'end' not in v:
-            v['end'] = v.pop('end_date')
-        if 'coursework' in v:
-            v['coursework'] = [c if isinstance(c, dict) else {'text': c} for c in v['coursework']]
-        if 'extras' in v:
-            v['extras'] = [e if isinstance(e, dict) else {'text': e} for e in v['extras']]
+        if "institution" in v and isinstance(v["institution"], str):
+            v["institution"] = {"name": v["institution"]}
+        if "start_date" in v and "start" not in v:
+            v["start"] = v.pop("start_date")
+        if "end_date" in v and "end" not in v:
+            v["end"] = v.pop("end_date")
+        if "coursework" in v:
+            v["coursework"] = [c if isinstance(c, dict) else {"text": c} for c in v["coursework"]]
+        if "extras" in v:
+            v["extras"] = [e if isinstance(e, dict) else {"text": e} for e in v["extras"]]
         return v
 
 
@@ -247,11 +249,11 @@ class LanguageProficiency(BaseModel):
     self_assessed: str
     cefr: str
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def accept_legacy_language(cls, v: dict):
-        if isinstance(v, dict) and isinstance(v.get('language'), str):
-            v['language'] = {'name': v['language']}
+        if isinstance(v, dict) and isinstance(v.get("language"), str):
+            v["language"] = {"name": v["language"]}
         return v
 
 
@@ -301,16 +303,16 @@ class Resume(BaseModel):
     awards: list[Award] = Field(default_factory=list)
     scientific_contributions: list[ScientificContribution] = Field(default_factory=list)
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def accept_legacy_profile(cls, v: dict):
-        if 'professional_profile' not in v and ('summary' in v or 'preferences' in v):
-            v['professional_profile'] = {
-                'summary': v.pop('summary', None),
-                'preferences': v.pop('preferences', None),
+        if "professional_profile" not in v and ("summary" in v or "preferences" in v):
+            v["professional_profile"] = {
+                "summary": v.pop("summary", None),
+                "preferences": v.pop("preferences", None),
             }
-        if 'skills' in v:
-            v['skills'] = [s if isinstance(s, dict) else {'name': s} for s in v['skills']]
+        if "skills" in v:
+            v["skills"] = [s if isinstance(s, dict) else {"name": s} for s in v["skills"]]
         return v
 
     def years_of_experience(self) -> float:

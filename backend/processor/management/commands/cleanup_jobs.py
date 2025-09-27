@@ -14,26 +14,13 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--days",
-            type=int,
-            default=settings.JOB_RETENTION_DAYS,
-            help="Delete jobs older than this many days"
+            "--days", type=int, default=settings.JOB_RETENTION_DAYS, help="Delete jobs older than this many days"
         )
+        parser.add_argument("--all", action="store_true", help="Delete all completed/failed jobs regardless of age")
         parser.add_argument(
-            "--all",
-            action="store_true",
-            help="Delete all completed/failed jobs regardless of age"
+            "--dry-run", action="store_true", help="Show what would be deleted without actually deleting"
         )
-        parser.add_argument(
-            "--dry-run",
-            action="store_true",
-            help="Show what would be deleted without actually deleting"
-        )
-        parser.add_argument(
-            "--force",
-            action="store_true",
-            help="Delete jobs even if still processing"
-        )
+        parser.add_argument("--force", action="store_true", help="Delete jobs even if still processing")
 
     def handle(self, *args, **options):
         days = options["days"]
@@ -79,41 +66,25 @@ class Command(BaseCommand):
 
             if should_delete:
                 if dry_run:
-                    self.stdout.write(
-                        f"  Would delete: {job_id} "
-                        f"(status: {status}, created: {created_at})"
-                    )
+                    self.stdout.write(f"  Would delete: {job_id} (status: {status}, created: {created_at})")
                 else:
                     try:
                         success = await cleanup_service.cleanup_job(job_id)
                         if success:
                             self.stdout.write(
-                                self.style.SUCCESS(
-                                    f"  Deleted: {job_id} "
-                                    f"(status: {status}, created: {created_at})"
-                                )
+                                self.style.SUCCESS(f"  Deleted: {job_id} (status: {status}, created: {created_at})")
                             )
                             total_deleted += 1
                         else:
-                            self.stdout.write(
-                                self.style.ERROR(f"  Failed to delete {job_id}")
-                            )
+                            self.stdout.write(self.style.ERROR(f"  Failed to delete {job_id}"))
                     except Exception as e:
-                        self.stdout.write(
-                            self.style.ERROR(f"  Failed to delete {job_id}: {e}")
-                        )
+                        self.stdout.write(self.style.ERROR(f"  Failed to delete {job_id}: {e}"))
             else:
                 if status not in [JobStatus.COMPLETED, JobStatus.FAILED] and not force:
-                    self.stdout.write(
-                        f"  Skipped: {job_id} (still {status})"
-                    )
+                    self.stdout.write(f"  Skipped: {job_id} (still {status})")
                     total_skipped += 1
 
         if dry_run:
-            self.stdout.write(
-                self.style.WARNING(f"\nDRY RUN: Would delete {total_deleted} jobs")
-            )
+            self.stdout.write(self.style.WARNING(f"\nDRY RUN: Would delete {total_deleted} jobs"))
         else:
-            self.stdout.write(
-                self.style.SUCCESS(f"\nDeleted {total_deleted} jobs, skipped {total_skipped}")
-            )
+            self.stdout.write(self.style.SUCCESS(f"\nDeleted {total_deleted} jobs, skipped {total_skipped}"))

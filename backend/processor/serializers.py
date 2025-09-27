@@ -82,10 +82,7 @@ class JobCreateSerializer(serializers.Serializer):
 
 
 class JobUpdateSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(
-        choices=[s.value for s in JobStatus],
-        required=False
-    )
+    status = serializers.ChoiceField(choices=[s.value for s in JobStatus], required=False)
     result = serializers.JSONField(required=False)
     result_url = serializers.URLField(required=False, allow_blank=True)
     error = serializers.CharField(required=False, allow_blank=True)
@@ -94,10 +91,7 @@ class JobUpdateSerializer(serializers.Serializer):
 
 class JobSerializer(serializers.Serializer):
     job_id = serializers.CharField()
-    status = serializers.ChoiceField(
-        choices=[s.value for s in JobStatus],
-        default=JobStatus.PENDING
-    )
+    status = serializers.ChoiceField(choices=[s.value for s in JobStatus], default=JobStatus.PENDING)
     file_path = serializers.CharField()
     created_at = serializers.DateTimeField(default=datetime.now)
     updated_at = serializers.DateTimeField(default=datetime.now)
@@ -111,9 +105,7 @@ class JobSerializer(serializers.Serializer):
 
 class JobResponseSerializer(serializers.Serializer):
     job_id = serializers.CharField()
-    status = serializers.ChoiceField(
-        choices=[s.value for s in JobStatus]
-    )
+    status = serializers.ChoiceField(choices=[s.value for s in JobStatus])
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
     result_url = serializers.URLField(required=False, allow_null=True)

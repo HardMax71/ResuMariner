@@ -42,7 +42,7 @@ class RedisJobQueue:
             enqueued_at=datetime.now().isoformat(),
             retries=0,
             max_retries=settings.REDIS_MAX_RETRIES,
-            options=task_data.get("options") if task_data else None
+            options=task_data.get("options") if task_data else None,
         )
 
         task_key = f"{self.task_key_prefix}{task_id}"
@@ -92,7 +92,7 @@ class RedisJobQueue:
         max_retries = int(job_data.get("max_retries", settings.REDIS_MAX_RETRIES))
         if retry and retries < max_retries:
             retries += 1
-            delay = min(60 * (2 ** retries), 300)
+            delay = min(60 * (2**retries), 300)
             pipeline = self.redis_client.pipeline()
             pipeline.hset(task_key, "retries", retries)
             pipeline.hset(task_key, "last_error", error)

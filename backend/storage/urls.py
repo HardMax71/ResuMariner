@@ -8,4 +8,3 @@ urlpatterns = [
     path("vectors", StoreVectorsView.as_view()),
     path("resume/<str:resume_id>/delete", DeleteResumeView.as_view()),
 ]
-

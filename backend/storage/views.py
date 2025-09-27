@@ -29,13 +29,10 @@ class UpsertResumeView(APIView):
 
             if not success:
                 return Response(
-                    {"error": "Failed to store resume in Neo4j"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    {"error": "Failed to store resume in Neo4j"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
-            resp = {
-                "graph_id": resume.uid or "unknown"
-            }
+            resp = {"graph_id": resume.uid or "unknown"}
             return Response(resp, status=status.HTTP_200_OK)
 
 
@@ -46,7 +43,7 @@ class GetResumeView(APIView):
             resumes = svc.get_resumes([resume_id])
             if not resumes or resume_id not in resumes:
                 return Response({"detail": "Resume not found"}, status=status.HTTP_404_NOT_FOUND)
-            resume_dict = resumes[resume_id].model_dump(exclude_none=True, mode='json')
+            resume_dict = resumes[resume_id].model_dump(exclude_none=True, mode="json")
             return Response(resume_dict)
 
 

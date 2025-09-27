@@ -41,7 +41,7 @@ class CleanupWorker(BaseWorker):
         current_time = time.time()
         cleaned = False
 
-        for task in cleanup_tasks[:self.cleanup_batch_size]:
+        for task in cleanup_tasks[: self.cleanup_batch_size]:
             job_id = task.job_id
             cleanup_time = task.cleanup_time
 
@@ -140,4 +140,3 @@ class CleanupWorker(BaseWorker):
     async def shutdown(self):
         """No cleanup needed."""
         pass
-

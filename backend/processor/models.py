@@ -21,9 +21,7 @@ class Job(BaseModel):
     user_id: str | None = None
 
     class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+        json_encoders = {datetime: lambda v: v.isoformat()}
 
     def update(self, **kwargs) -> None:
         """Update job fields and set updated_at."""
@@ -36,6 +34,7 @@ class Job(BaseModel):
 @dataclass
 class QueuedTask:
     """Represents a task queued in Redis for processing."""
+
     task_id: str
     job_id: str
     file_path: str
@@ -114,5 +113,6 @@ class QueuedTask:
 @dataclass
 class CleanupTask:
     """Represents a cleanup task in Redis."""
+
     job_id: str
     cleanup_time: float

@@ -20,19 +20,14 @@ class UploadCVView(APIView):
     async def post(self, request: Request) -> Response:
         serializer = FileUploadSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response({"detail": serializer.errors},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
         file = serializer.validated_data["file"]
         job_id = str(uuid.uuid4())
 
         try:
             file.seek(0)
-            temp_path = FileService.save_validated_content(
-                file.read(),
-                file.name,
-                job_id
-            )
+            temp_path = FileService.save_validated_content(file.read(), file.name, job_id)
 
             service = JobService()
             job = await service.create_job(temp_path)
@@ -41,10 +36,7 @@ class UploadCVView(APIView):
             response_data = JobResponseSerializer(job.model_dump()).data
             return Response(response_data, status=status.HTTP_202_ACCEPTED)
         except Exception as e:
-            return Response(
-                {"detail": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class JobStatusView(APIView):
@@ -57,7 +49,7 @@ class JobStatusView(APIView):
         # Add result_url to response
         job_data = job.model_dump()
         if job.status == JobStatus.COMPLETED:
-            job_data['result_url'] = request.build_absolute_uri(f"/api/v1/jobs/{job_id}/result/")
+            job_data["result_url"] = request.build_absolute_uri(f"/api/v1/jobs/{job_id}/result/")
 
         serializer = JobResponseSerializer(job_data)
         return Response(serializer.data)
@@ -87,11 +79,9 @@ class CleanupJobsView(APIView):
         cleanup = CleanupService()
         deleted_count = await cleanup.cleanup_old_jobs(days=days, force=force)
 
-        return Response({
-            "status": "success",
-            "deleted_count": deleted_count,
-            "retention_days": days
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {"status": "success", "deleted_count": deleted_count, "retention_days": days}, status=status.HTTP_200_OK
+        )
 
 
 class HealthView(APIView):

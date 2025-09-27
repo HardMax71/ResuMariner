@@ -27,10 +27,7 @@ class SemanticSearchView(APIView):
     def post(self, request: Request) -> Response:
         query_serializer = VectorSearchQuerySerializer(data=request.data)
         if not query_serializer.is_valid():
-            return Response(
-                query_serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(query_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         search_request = query_serializer.validated_data
         logger.info("Performing semantic search for query: %s", search_request.query)
@@ -39,10 +36,7 @@ class SemanticSearchView(APIView):
             search_response = self.coordinator.search(search_request)
         except Exception as e:
             logger.error(f"Semantic search failed: {e}")
-            return Response(
-                {"error": "Search failed"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Search failed"}, status=status.HTTP_400_BAD_REQUEST)
 
         response_data = asdict(search_response)
         response_serializer = SearchResponseSerializer(data=response_data)
@@ -59,10 +53,7 @@ class StructuredSearchView(APIView):
     def post(self, request: Request) -> Response:
         query_serializer = GraphSearchQuerySerializer(data=request.data)
         if not query_serializer.is_valid():
-            return Response(
-                query_serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(query_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         search_request = query_serializer.validated_data
 
@@ -70,10 +61,7 @@ class StructuredSearchView(APIView):
             search_response = self.coordinator.search(search_request)
         except Exception as e:
             logger.error(f"Structured search failed: {e}")
-            return Response(
-                {"error": "Search failed"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": "Search failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         response_data = asdict(search_response)
         response_serializer = SearchResponseSerializer(data=response_data)
@@ -90,10 +78,7 @@ class HybridSearchView(APIView):
     def post(self, request: Request) -> Response:
         query_serializer = HybridSearchQuerySerializer(data=request.data)
         if not query_serializer.is_valid():
-            return Response(
-                query_serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(query_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         search_request = query_serializer.validated_data
 
@@ -101,10 +86,7 @@ class HybridSearchView(APIView):
             search_response = self.coordinator.search(search_request)
         except Exception as e:
             logger.error(f"Hybrid search failed: {e}")
-            return Response(
-                {"error": "Search failed"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": "Search failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         response_data = asdict(search_response)
         response_serializer = SearchResponseSerializer(data=response_data)
