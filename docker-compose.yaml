@@ -6,10 +6,12 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.backend.address=:8000"
       - "--entrypoints.internal.address=:8081"
     ports:
-      - "80:80"       # External traffic: intake, search, and dashboard (via web entrypoint)
-      - "8080:8080"   # Exposes Traefik dashboard on traefik.localhost via web entrypoint
+      - "80:80"
+      - "8000:8000"
+      - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -17,9 +19,6 @@ services:
       - internal-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)"
-      - "traefik.http.routers.traefik-dashboard.entrypoints=web"
-      - "traefik.http.routers.traefik-dashboard.service=api@internal"
 
   neo4j:
     image: neo4j:latest
@@ -69,7 +68,6 @@ services:
       - redis_data:/data
     networks:
       - internal-network
-    # Redis is non-HTTP so no Traefik labels are added.
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -127,223 +125,59 @@ services:
       - "traefik.http.routers.grafana.entrypoints=internal"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
-  cv-storage-service:
-    build: ./cv-storage-service
+  backend:
+    build: ./backend
+    command: sh -c "./.venv/bin/python manage.py migrate --noinput && ./.venv/bin/python manage.py collectstatic --noinput || true && ./.venv/bin/python manage.py runserver 0.0.0.0:8000"
     expose:
-      - "8002"
-    environment:
-      - SERVICE_NAME=cv-storage-service
-      - DEBUG=${DEBUG:-false}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
-      - NEO4J_USERNAME=${NEO4J_USERNAME:-neo4j}
-      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-secure_default_password}
-      - NEO4J_DATABASE=${NEO4J_DATABASE:-neo4j}
-      - NEO4J_MAX_CONNECTION_LIFETIME=${NEO4J_MAX_CONNECTION_LIFETIME:-3600}
-      - NEO4J_MAX_CONNECTION_POOL_SIZE=${NEO4J_MAX_CONNECTION_POOL_SIZE:-50}
-      - NEO4J_CONNECTION_TIMEOUT=${NEO4J_CONNECTION_TIMEOUT:-30}
-      - QDRANT_HOST=${QDRANT_HOST:-qdrant}
-      - QDRANT_PORT=${QDRANT_PORT:-6333}
-      - QDRANT_COLLECTION=${QDRANT_COLLECTION:-cv_key_points}
-      - VECTOR_SIZE=${VECTOR_SIZE:-384}
-      - QDRANT_TIMEOUT=${QDRANT_TIMEOUT:-30}
-      - QDRANT_PREFER_GRPC=${QDRANT_PREFER_GRPC:-true}
+      - "8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - cv_temp:/tmp/cv_uploads
+    env_file:
+      - ./backend/.env
     networks:
+      - public-network
       - internal-network
     depends_on:
       neo4j:
         condition: service_healthy
       qdrant:
         condition: service_started
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cv-storage-service.rule=Host(`storage.internal.localhost`)"
-      - "traefik.http.routers.cv-storage-service.entrypoints=internal"
-      - "traefik.http.services.cv-storage-service.loadbalancer.server.port=8002"
-
-  cv-intake-service:
-    build: ./cv-intake-service
-    volumes:
-      - ./uploads:/app/uploads
-    environment:
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      - PROCESSING_SERVICE_URL=${PROCESSING_SERVICE_URL:-http://cv-processing-service:8001}
-      - STORAGE_SERVICE_URL=${STORAGE_SERVICE_URL:-http://cv-storage-service:8002}
-      - UPLOAD_DIR=${UPLOAD_DIR:-/app/uploads}
-      - TEMP_DIR=${TEMP_DIR:-/tmp/cv_uploads}
-      - DURABLE_STORAGE=${DURABLE_STORAGE:-none}
-      - API_KEY=${API_KEY}
-      - JWT_SECRET=${JWT_SECRET}
-      - ENABLE_ASYNC_PROCESSING=${ENABLE_ASYNC_PROCESSING:-true}
-      - JAEGER_HOST=${JAEGER_HOST:-jaeger}
-      - JAEGER_PORT=${JAEGER_PORT:-6831}
-      - TRACING_ENABLED=${TRACING_ENABLED:-true}
-      - METRICS_ENABLED=${METRICS_ENABLED:-true}
-    networks:
-      - public-network
-      - internal-network
-    depends_on:
       redis:
         condition: service_started
-      cv-processing-service:
-        condition: service_healthy
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cv-intake-service.rule=Host(`intake.localhost`)"
-      - "traefik.http.routers.cv-intake-service.entrypoints=web"
-      - "traefik.http.services.cv-intake-service.loadbalancer.server.port=8000"
-      - "traefik.http.services.cv-intake-service.loadbalancer.healthcheck.path=/health"
-      - "traefik.http.services.cv-intake-service.loadbalancer.healthcheck.interval=10s"
-  
-  cv-intake-worker:
-    build: ./cv-intake-service
-    command: python worker.py processing
+      - "traefik.http.routers.backend.rule=Host(`localhost`)"
+      - "traefik.http.routers.backend.entrypoints=backend"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+
+  backend-worker-processing:
+    build: ./backend
+    command: sh -c "sleep 10 && ./.venv/bin/python manage.py intake_worker processing"
     volumes:
       - ./uploads:/app/uploads
-    environment:
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      - PROCESSING_SERVICE_URL=${PROCESSING_SERVICE_URL:-http://cv-processing-service:8001}
-      - STORAGE_SERVICE_URL=${STORAGE_SERVICE_URL:-http://cv-storage-service:8002}
-      - UPLOAD_DIR=${UPLOAD_DIR:-/app/uploads}
-      - TEMP_DIR=${TEMP_DIR:-/tmp/cv_uploads}
-      - DURABLE_STORAGE=${DURABLE_STORAGE:-none}
-      - API_KEY=${API_KEY}
-      - JWT_SECRET=${JWT_SECRET}
+      - cv_temp:/tmp/cv_uploads
+    env_file:
+      - ./backend/.env
     networks:
       - internal-network
     depends_on:
       redis:
         condition: service_started
-      cv-processing-service:
-        condition: service_healthy
-    deploy:
-      replicas: 3
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
-  
-  cv-cleanup-worker:
-    build: ./cv-intake-service
-    command: python worker.py cleanup
+
+  backend-worker-cleanup:
+    build: ./backend
+    command: sh -c "sleep 10 && ./.venv/bin/python manage.py intake_worker cleanup"
     volumes:
       - ./uploads:/app/uploads
-    environment:
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      - UPLOAD_DIR=${UPLOAD_DIR:-/app/uploads}
-      - TEMP_DIR=${TEMP_DIR:-/tmp/cv_uploads}
+      - cv_temp:/tmp/cv_uploads
+    env_file:
+      - ./backend/.env
     networks:
       - internal-network
     depends_on:
       redis:
         condition: service_started
-    deploy:
-      replicas: 1
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
-
-  cv-processing-service:
-    build: ./cv-processing-service
-    environment:
-      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
-      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
-      - LLM_API_KEY=${LLM_API_KEY:-}
-      - LLM_BASE_URL=${LLM_BASE_URL:-}
-      - PARALLEL_PROCESSING=${PARALLEL_PROCESSING:-false}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-all-MiniLM-L6-v2}
-      - TEMPERATURE=${TEMPERATURE:-0.0}
-      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-180}
-      - MAX_RETRIES=${MAX_RETRIES:-3}
-      - JAEGER_HOST=${JAEGER_HOST:-jaeger}
-      - JAEGER_PORT=${JAEGER_PORT:-6831}
-      - TRACING_ENABLED=${TRACING_ENABLED:-true}
-      - METRICS_ENABLED=${METRICS_ENABLED:-true}
-
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - internal-network
-    depends_on:
-      - cv-storage-service
-    # No direct public routing. It’s available in Traefik via its internal router (accessible only on internal entrypoint)
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cv-processing-service.rule=Host(`processing.internal.localhost`)"
-      - "traefik.http.routers.cv-processing-service.entrypoints=internal"
-      - "traefik.http.services.cv-processing-service.loadbalancer.server.port=8001"
-
-  cv-search-service:
-    build: ./cv-search-service
-    environment:
-      - SERVICE_NAME=cv-search-service
-      - DEBUG=${DEBUG:-false}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
-      - NEO4J_USERNAME=${NEO4J_USERNAME:-neo4j}
-      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-secure_default_password}
-      - NEO4J_DATABASE=${NEO4J_DATABASE:-neo4j}
-      - NEO4J_MAX_CONNECTION_LIFETIME=${NEO4J_MAX_CONNECTION_LIFETIME:-3600}
-      - NEO4J_MAX_CONNECTION_POOL_SIZE=${NEO4J_MAX_CONNECTION_POOL_SIZE:-50}
-      - NEO4J_CONNECTION_TIMEOUT=${NEO4J_CONNECTION_TIMEOUT:-30}
-      - QDRANT_HOST=${QDRANT_HOST:-qdrant}
-      - QDRANT_PORT=${QDRANT_PORT:-6333}
-      - QDRANT_COLLECTION=${QDRANT_COLLECTION:-cv_key_points}
-      - QDRANT_TIMEOUT=${QDRANT_TIMEOUT:-30}
-      - QDRANT_PREFER_GRPC=${QDRANT_PREFER_GRPC:-true}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-all-MiniLM-L6-v2}
-      - VECTOR_SIZE=${VECTOR_SIZE:-384}
-      - DEFAULT_VECTOR_WEIGHT=${DEFAULT_VECTOR_WEIGHT:-0.7}
-      - DEFAULT_GRAPH_WEIGHT=${DEFAULT_GRAPH_WEIGHT:-0.3}
-      - CACHE_ENABLED=${CACHE_ENABLED:-true}
-      - CACHE_TTL=${CACHE_TTL:-3600}
-      - PORT=${PORT:-8003}
-      - API_KEY=${API_KEY}
-      - JWT_SECRET=${JWT_SECRET}
-      - JAEGER_HOST=${JAEGER_HOST:-jaeger}
-      - JAEGER_PORT=${JAEGER_PORT:-6831}
-      - TRACING_ENABLED=${TRACING_ENABLED:-true}
-      - METRICS_ENABLED=${METRICS_ENABLED:-true}
-    networks:
-      - public-network
-      - internal-network
-    depends_on:
-      - neo4j
-      - qdrant
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 1G
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cv-search-service.rule=Host(`search.localhost`)"
-      - "traefik.http.routers.cv-search-service.entrypoints=web"
-      - "traefik.http.services.cv-search-service.loadbalancer.server.port=8003"
-      - "traefik.http.services.cv-search-service.loadbalancer.healthcheck.path=/health"
-      - "traefik.http.services.cv-search-service.loadbalancer.healthcheck.interval=10s"
 
 networks:
   public-network:
@@ -357,3 +191,4 @@ volumes:
   redis_data:
   prometheus_data:
   grafana_data:
+  cv_temp:

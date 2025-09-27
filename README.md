@@ -1,25 +1,19 @@
 <h1 align="center">ResuMariner</h1>
 <p align="center">
-  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/main.yml">
-    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/main.yml/badge.svg" alt="Main CI/CD" />
+  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/test.yml">
+    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/test.yml/badge.svg?branch=main" alt="Test Suite" />
+  </a>
+  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/mypy.yml">
+    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/mypy.yml/badge.svg?branch=main" alt="Type Check" />
+  </a>
+  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/ruff.yml">
+    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/ruff.yml/badge.svg?branch=main" alt="Linting" />
   </a>
   <a href="https://www.python.org/">
-    <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version" />
+    <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version" />
   </a>
-  <a href="https://codecov.io/gh/HardMax71/ResuMariner">
-    <img src="https://codecov.io/gh/HardMax71/ResuMariner/branch/main/graph/badge.svg" alt="Coverage" />
-  </a>
-  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-intake-service.yml">
-    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-intake-service.yml/badge.svg" alt="Intake Service" />
-  </a>
-  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-processing-service.yml">
-    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-processing-service.yml/badge.svg" alt="Processing Service" />
-  </a>
-  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-storage-service.yml">
-    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-storage-service.yml/badge.svg" alt="Storage Service" />
-  </a>
-  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-search-service.yml">
-    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/cv-search-service.yml/badge.svg" alt="Search Service" />
+  <a href="https://github.com/HardMax71/ResuMariner">
+    <img src="https://img.shields.io/badge/django-5.1-green" alt="Django Version" />
   </a>
 </p>
 
@@ -41,21 +35,21 @@ This project started after one of those classic meetings where "simple resume pa
 
 ## 🏗️ Architecture
 
-ResuMariner follows a microservices architecture with the following components:
+ResuMariner v2 has been refactored from microservices to a Django monolith for improved maintainability and simplified deployment:
 
-![sys_diagram](https://github.com/user-attachments/assets/6415793d-88c4-46a4-bac0-6ba177c90da9)
-
+- **Backend (Django Monolith)**: Consolidates all previous microservices into a single Django application with:
+  - **Processor App**: Handles CV file uploads, parsing and LLM-based processing
+  - **Storage App**: Manages persistence to Neo4j and Qdrant databases
+  - **Search App**: Provides semantic, structured and hybrid search capabilities
+  - **Core Module**: Shared domain models and services
 - **Traefik**: Reverse proxy and API gateway
-- **cv-intake-service**: Handles CV file uploads and job management
-- **cv-processing-service**: Processes and analyzes CV documents using LLMs
-- **cv-storage-service**: Manages persistent storage of CV data
-- **cv-search-service**: Provides advanced search capabilities
 - **Databases**:
-  - **Neo4j**: Graph database for structured CV data
+  - **Neo4j**: Graph database for structured CV data and relationships
   - **Qdrant**: Vector database for semantic search embeddings
-  - **Redis**: Job queue and caching
+  - **Redis**: Job queue, caching and worker coordination
+- **Workers**: Async background processing for CV parsing and storage operations
 
-The system is split between a public network zone (accessible from outside) and a protected internal network zone.
+The monolithic architecture simplifies deployment while maintaining clear separation of concerns through Django apps.
 
 ## 🚀 Getting Started
 
@@ -74,24 +68,31 @@ docker-compose up --build
 
 That's it! The system will be available at the following endpoints:
 
-- CV Upload: http://intake.localhost
-- CV Search: http://search.localhost
-- Traefik Dashboard: http://traefik.localhost
+- Backend API: http://localhost:8000
+- Traefik Dashboard: http://localhost:8080
 
 ## 📋 API Documentation
 
-### Upload API (intake.localhost)
+The unified backend API is available at http://localhost:8000 with the following endpoints:
 
-- POST `/api/v1/upload`: Upload a CV file for processing
-- GET `/api/v1/status/{job_id}`: Check processing status
-- GET `/api/v1/results/{job_id}`: Get processing results
+### Processing API
 
-### Search API (search.localhost)
+- POST `/api/v1/upload/`: Upload a CV file for processing
+- GET `/api/v1/jobs/{job_id}/`: Check processing status
+- GET `/api/v1/jobs/{job_id}/result/`: Get processing results
 
-- POST `/search/semantic`: Semantic search using natural language
-- POST `/search/structured`: Structured search using specific criteria
-- POST `/search/hybrid`: Combined semantic and structured search
-- GET `/filters`: Get available filter options
+### Search API
+
+- POST `/search/semantic/`: Semantic search using natural language
+- POST `/search/structured/`: Structured search using specific criteria
+- POST `/search/hybrid/`: Combined semantic and structured search
+- GET `/search/filters/`: Get available filter options
+
+### Storage API
+
+- POST `/storage/resume/`: Store processed resume in databases
+- GET `/storage/resume/{resume_id}/`: Retrieve stored resume
+- POST `/storage/vectors/`: Store embedding vectors
 
 ## 🧪 Testing
 
@@ -109,7 +110,7 @@ python test_script.py
 
 Will return result for existing CV in `./test_inputs` folder, namely `./test_inputs/Max_Azatian.pdf`.
 
-Additional flags are to be found in [test_script.py](test_script.py).
+Additional flags are to be found in [test_script.py](backend/test_script.py).
 
 <details>
 <summary>Example output for provided CV</summary>
