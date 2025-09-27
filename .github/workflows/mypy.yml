@@ -32,11 +32,8 @@ jobs:
       - name: Install dependencies
         run: |
           cd backend
-          source .venv/bin/activate
-          uv pip install mypy
-          uv pip install django-stubs djangorestframework-stubs mypy-drf-plugin
-          uv pip install types-redis types-requests types-tqdm boto3-stubs
-          uv pip install -e .
+          # Use uv sync to install all dependencies including dev group
+          uv sync --all-groups
 
       - name: Run mypy on backend
         run: |
