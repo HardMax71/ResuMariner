@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  # API keys from repository secrets (in case ruff somehow imports settings)
+  TEXT_LLM_API_KEY: ${{ secrets.TEXT_LLM_API_KEY }}
+  OCR_LLM_API_KEY: ${{ secrets.OCR_LLM_API_KEY }}
+  GITHUB_ACTIONS: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -24,6 +30,17 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
+      - name: Create .env file from example
+        run: |
+          # Copy the example file
+          cp backend/.env.example backend/.env
+
+          # Replace API keys with secrets
+          sed -i "s|TEXT_LLM_API_KEY=.*|TEXT_LLM_API_KEY=$TEXT_LLM_API_KEY|" backend/.env
+          sed -i "s|OCR_LLM_API_KEY=.*|OCR_LLM_API_KEY=$OCR_LLM_API_KEY|" backend/.env
+
+          echo "✓ Created .env file with API keys from secrets"
+
       - name: Install ruff
         run: |
           uv pip install --system ruff
@@ -31,9 +48,9 @@ jobs:
       - name: Run Ruff format check
         run: |
           cd backend
-          ruff format --check .
+          ruff format --check --config pyproject.toml .
 
       - name: Run Ruff linting
         run: |
           cd backend
-          ruff check .
+          ruff check --config pyproject.toml .

@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  # API keys from repository secrets (needed when mypy imports settings.py)
+  TEXT_LLM_API_KEY: ${{ secrets.TEXT_LLM_API_KEY }}
+  OCR_LLM_API_KEY: ${{ secrets.OCR_LLM_API_KEY }}
+  GITHUB_ACTIONS: true
+
 jobs:
   type-check:
     runs-on: ubuntu-latest
@@ -23,6 +29,17 @@ jobs:
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Create .env file from example
+        run: |
+          # Copy the example file
+          cp backend/.env.example backend/.env
+
+          # Replace API keys with secrets
+          sed -i "s|TEXT_LLM_API_KEY=.*|TEXT_LLM_API_KEY=$TEXT_LLM_API_KEY|" backend/.env
+          sed -i "s|OCR_LLM_API_KEY=.*|OCR_LLM_API_KEY=$OCR_LLM_API_KEY|" backend/.env
+
+          echo "✓ Created .env file with API keys from secrets"
 
       - name: Create virtual environment
         run: |
