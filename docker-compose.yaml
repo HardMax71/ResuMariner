@@ -147,9 +147,32 @@ services:
         condition: service_started
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=public-network"
       - "traefik.http.routers.backend.rule=Host(`localhost`)"
       - "traefik.http.routers.backend.entrypoints=backend"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
+      - "traefik.http.routers.backend-80.rule=Host(`api.localhost`)"
+      - "traefik.http.routers.backend-80.entrypoints=web"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    networks:
+      - public-network
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=public-network"
+      - "traefik.http.routers.frontend.rule=Host(`app.localhost`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=5173"
 
   backend-worker-processing:
     build: ./backend
