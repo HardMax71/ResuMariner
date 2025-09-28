@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getJob, getJobResult, type JobResponse, type JobResult } from "../lib/api";
+import { getJob, getJobResult, API_BASE_URL, type JobResponse, type JobResult } from "../lib/api";
 
 // Simple utility to make any value renderable
 const renderValue = (value: any): string => {
@@ -22,14 +22,99 @@ const renderValue = (value: any): string => {
   return String(value);
 };
 
+// Type definition for resume section configuration
+interface ResumeSection {
+  title: string;       // Display title for the section
+  key: string;         // Unique key for React and expanded state
+  paths: string[];     // Array of possible property paths to check in order
+  alwaysShow?: boolean; // Whether to show section even when empty (shows "No data available")
+}
+
+/**
+ * Configuration for resume sections - easily extensible and reorderable
+ *
+ * To add a new section:
+ * 1. Add an object with title, key, and paths array
+ * 2. Set alwaysShow to true if you want to show "No data" when empty
+ *
+ * To reorder sections:
+ * - Simply move the objects around in this array
+ *
+ * The paths array contains fallback property names to check in order
+ */
+const RESUME_SECTIONS: ResumeSection[] = [
+  {
+    title: "Experience",
+    key: "experience",
+    paths: ["employment_history", "experience", "work_experience"],
+    alwaysShow: false // Only show if data exists
+  },
+  {
+    title: "Education",
+    key: "education",
+    paths: ["education"],
+    alwaysShow: false
+  },
+  {
+    title: "Projects",
+    key: "projects",
+    paths: ["projects"],
+    alwaysShow: false
+  },
+  {
+    title: "Languages",
+    key: "languages",
+    paths: ["language_proficiency", "languages"],
+    alwaysShow: false
+  },
+  {
+    title: "Certifications",
+    key: "certifications",
+    paths: ["certifications", "certificates"],
+    alwaysShow: false
+  },
+  {
+    title: "Awards",
+    key: "awards",
+    paths: ["awards", "achievements"],
+    alwaysShow: false
+  },
+  {
+    title: "Publications",
+    key: "publications",
+    paths: ["scientific_contributions", "publications"],
+    alwaysShow: false
+  },
+  {
+    title: "Courses",
+    key: "courses",
+    paths: ["courses", "training"],
+    alwaysShow: false
+  }
+];
+
 export default function JobStatus() {
   const { jobId = "" } = useParams();
   const [job, setJob] = useState<JobResponse | null>(null);
   const [result, setResult] = useState<JobResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
+  const [showMetadata, setShowMetadata] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["personal", "skills"]));
+  const [copiedButtons, setCopiedButtons] = useState<Set<string>>(new Set());
   const timer = useRef<number | null>(null);
+
+  const handleCopy = (text: string, buttonId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedButtons(prev => new Set(prev).add(buttonId));
+    setTimeout(() => {
+      setCopiedButtons(prev => {
+        const next = new Set(prev);
+        next.delete(buttonId);
+        return next;
+      });
+    }, 2000);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -68,13 +153,29 @@ export default function JobStatus() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "pending":
-        return <span className="status-icon pending">⏳</span>;
+        return (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--gray-600)" }}>
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        );
       case "processing":
         return <span className="spinner" style={{ width: "24px", height: "24px" }}></span>;
       case "completed":
-        return <span className="status-icon success">✓</span>;
+        return (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: "var(--success)" }}>
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+        );
       case "failed":
-        return <span className="status-icon error">✗</span>;
+        return (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: "var(--danger)" }}>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </svg>
+        );
       default:
         return null;
     }
@@ -105,8 +206,9 @@ export default function JobStatus() {
   };
 
   const renderResumeSection = (title: string, key: string, data: any) => {
-    if (!data || (Array.isArray(data) && data.length === 0)) return null;
-    if (typeof data === "object" && !Array.isArray(data) && Object.keys(data).length === 0) return null;
+    const isEmpty = !data ||
+                   (Array.isArray(data) && data.length === 0) ||
+                   (typeof data === "object" && !Array.isArray(data) && Object.keys(data).length === 0);
 
     const isExpanded = expandedSections.has(key);
 
@@ -133,16 +235,96 @@ export default function JobStatus() {
 
         {isExpanded && (
           <div style={{ marginTop: "var(--space-2)" }}>
+            {isEmpty ? (
+              <div style={{
+                padding: "var(--space-3)",
+                textAlign: "center",
+                color: "var(--gray-500)",
+                fontSize: "14px"
+              }}>
+                No data available
+              </div>
+            ) : (
+              <>
             {key === "personal" && typeof data === "object" && (
-              <div className="grid grid-2 gap-2">
-                {Object.entries(data).map(([field, value]) => (
-                  <div key={field}>
-                    <span className="small muted">{field.replace(/_/g, " ").toUpperCase()}</span>
-                    <p className="small" style={{ marginTop: "4px" }}>
-                      {renderValue(value)}
-                    </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
+                {/* Avatar */}
+                <div style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "var(--radius-full)",
+                  background: "var(--blue-100)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "20px",
+                  fontWeight: 600,
+                  color: "var(--blue-600)",
+                  flexShrink: 0
+                }}>
+                  {data.name ? data.name.charAt(0).toUpperCase() : "?"}
+                </div>
+
+                {/* Info */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <h4 style={{ fontSize: "var(--text-lg)", fontWeight: 600, margin: 0 }}>
+                    {renderValue(data.name) || "—"}
+                  </h4>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
+                    {data.email && (
+                      <a href={`mailto:${renderValue(data.email)}`} style={{
+                        fontSize: "13px",
+                        color: "var(--blue-600)",
+                        textDecoration: "none"
+                      }}>
+                        {renderValue(data.email)}
+                      </a>
+                    )}
+                    {data.phone && (
+                      <a href={`tel:${renderValue(data.phone)}`} style={{
+                        fontSize: "13px",
+                        color: "var(--gray-700)",
+                        textDecoration: "none"
+                      }}>
+                        📞 {renderValue(data.phone)}
+                      </a>
+                    )}
+                    {data.location && (
+                      <span style={{ fontSize: "13px", color: "var(--gray-600)" }}>
+                        📍 {renderValue(data.location)}
+                      </span>
+                    )}
                   </div>
-                ))}
+                </div>
+
+                {/* Social Links */}
+                {(data.linkedin || data.github || data.website) && (
+                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                    {data.linkedin && (
+                      <a href={renderValue(data.linkedin)} target="_blank" rel="noopener noreferrer" title="LinkedIn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-600)" }}>
+                          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+                        </svg>
+                      </a>
+                    )}
+                    {data.github && (
+                      <a href={renderValue(data.github)} target="_blank" rel="noopener noreferrer" title="GitHub">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-600)" }}>
+                          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                      </a>
+                    )}
+                    {data.website && (
+                      <a href={renderValue(data.website)} target="_blank" rel="noopener noreferrer" title="Website">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--gray-600)" }}>
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="2" y1="12" x2="22" y2="12" />
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -155,32 +337,331 @@ export default function JobStatus() {
             )}
 
             {key === "experience" && Array.isArray(data) && (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {data.map((exp: any, idx: number) => (
                   <div
                     key={idx}
                     style={{
-                      padding: "var(--space-2)",
-                      background: "var(--gray-50)",
+                      padding: "14px",
+                      background: "var(--white)",
+                      border: "1px solid var(--gray-200)",
                       borderRadius: "var(--radius-sm)",
-                      borderLeft: "3px solid var(--blue-600)"
+                      borderLeft: "3px solid var(--blue-500)"
                     }}
                   >
-                    <div className="flex justify-between">
-                      <div>
-                        <strong>{renderValue(exp.position || exp.role)}</strong>
-                        {exp.company && <span className="muted"> at {renderValue(exp.company)}</span>}
+                    {/* Header row with position and dates */}
+                    <div className="flex justify-between items-start" style={{ marginBottom: "8px" }}>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: "15px",
+                          fontWeight: 600,
+                          margin: 0,
+                          color: "var(--gray-900)"
+                        }}>
+                          {renderValue(exp.position)}
+                        </h4>
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          marginTop: "4px"
+                        }}>
+                          {exp.company && (
+                            <a
+                              href={exp.company.url || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                fontSize: "14px",
+                                color: exp.company.url ? "var(--blue-600)" : "var(--gray-700)",
+                                textDecoration: "none",
+                                fontWeight: 500,
+                                cursor: exp.company.url ? "pointer" : "default"
+                              }}
+                              onClick={!exp.company.url ? (e) => e.preventDefault() : undefined}
+                            >
+                              {renderValue(exp.company.name || exp.company)}
+                            </a>
+                          )}
+                          {exp.employment_type && (
+                            <>
+                              <span style={{ color: "var(--gray-400)" }}>•</span>
+                              <span style={{
+                                fontSize: "12px",
+                                color: "var(--gray-600)",
+                                background: "var(--gray-100)",
+                                padding: "2px 6px",
+                                borderRadius: "var(--radius-xs)"
+                              }}>
+                                {exp.employment_type}
+                              </span>
+                            </>
+                          )}
+                          {exp.work_mode && (
+                            <span style={{
+                              fontSize: "12px",
+                              color: "var(--gray-600)",
+                              background: "var(--gray-100)",
+                              padding: "2px 6px",
+                              borderRadius: "var(--radius-xs)"
+                            }}>
+                              {exp.work_mode}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {(exp.start_date || exp.duration) && (
-                        <span className="small muted">
-                          {exp.start_date ? `${renderValue(exp.start_date)} - ${renderValue(exp.end_date) || "Present"}` : renderValue(exp.duration)}
-                        </span>
+
+                      {/* Duration and location */}
+                      <div style={{
+                        textAlign: "right",
+                        fontSize: "13px",
+                        color: "var(--gray-600)"
+                      }}>
+                        {exp.duration && (
+                          <div style={{ fontWeight: 500 }}>
+                            {exp.duration.start} – {exp.duration.end || "Present"}
+                          </div>
+                        )}
+                        {exp.location && (
+                          <div style={{ fontSize: "12px", marginTop: "2px" }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{
+                              marginRight: "4px",
+                              verticalAlign: "middle",
+                              color: "var(--gray-500)"
+                            }}>
+                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                            </svg>
+                            {[exp.location.city, exp.location.country].filter(Boolean).join(", ")}
+                          </div>
+                        )}
+                        {exp.duration?.duration_months && (
+                          <div style={{
+                            fontSize: "11px",
+                            color: "var(--gray-500)",
+                            marginTop: "2px"
+                          }}>
+                            {Math.floor(exp.duration.duration_months / 12) > 0 &&
+                              `${Math.floor(exp.duration.duration_months / 12)}y `}
+                            {exp.duration.duration_months % 12 > 0 &&
+                              `${exp.duration.duration_months % 12}mo`}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Key points */}
+                    {exp.key_points && exp.key_points.length > 0 && (
+                      <ul style={{
+                        margin: "10px 0 0 0",
+                        paddingLeft: "20px",
+                        fontSize: "13px",
+                        color: "var(--gray-700)",
+                        lineHeight: 1.6
+                      }}>
+                        {exp.key_points.map((point: any, pidx: number) => (
+                          <li key={pidx} style={{ marginBottom: "4px" }}>
+                            {renderValue(point.text || point)}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {/* Technologies */}
+                    {exp.technologies && exp.technologies.length > 0 && (
+                      <div style={{
+                        marginTop: "10px",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "6px"
+                      }}>
+                        {exp.technologies.map((tech: any, tidx: number) => (
+                          <span
+                            key={tidx}
+                            style={{
+                              fontSize: "11px",
+                              padding: "3px 8px",
+                              background: "var(--gray-100)",
+                              color: "var(--gray-700)",
+                              borderRadius: "var(--radius-xs)"
+                            }}
+                          >
+                            {renderValue(tech.name || tech)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {key === "projects" && Array.isArray(data) && (
+              <div className="flex flex-col gap-3">
+                {data.map((proj: any, idx: number) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: "14px",
+                      background: "var(--white)",
+                      border: "1px solid var(--gray-200)",
+                      borderRadius: "var(--radius-sm)",
+                      borderLeft: "3px solid var(--green-600)"
+                    }}
+                  >
+                    {/* Header with title and link */}
+                    <div className="flex justify-between items-start" style={{ marginBottom: "8px" }}>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: "15px",
+                          fontWeight: 600,
+                          margin: 0,
+                          color: "var(--gray-900)"
+                        }}>
+                          {proj.url ? (
+                            <a
+                              href={renderValue(proj.url)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "var(--gray-900)",
+                                textDecoration: "none"
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
+                              onMouseLeave={(e) => e.currentTarget.style.textDecoration = "none"}
+                            >
+                              {renderValue(proj.title)}
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{
+                                marginLeft: "6px",
+                                verticalAlign: "middle",
+                                opacity: 0.6
+                              }}>
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                <polyline points="15 3 21 3 21 9" />
+                                <line x1="10" y1="14" x2="21" y2="3" />
+                              </svg>
+                            </a>
+                          ) : (
+                            renderValue(proj.title)
+                          )}
+                        </h4>
+                        {proj.description && (
+                          <div style={{
+                            fontSize: "13px",
+                            color: "var(--gray-600)",
+                            marginTop: "4px"
+                          }}>
+                            {renderValue(proj.description)}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Platform icon based on URL */}
+                      {proj.url && (
+                        <a
+                          href={renderValue(proj.url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            padding: "4px",
+                            borderRadius: "var(--radius-sm)",
+                            transition: "background 0.2s"
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-100)"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                          title={(() => {
+                            const url = renderValue(proj.url).toLowerCase();
+                            if (url.includes("github")) return "View on GitHub";
+                            if (url.includes("gitlab")) return "View on GitLab";
+                            if (url.includes("gitea")) return "View on Gitea";
+                            if (url.includes("bitbucket")) return "View on Bitbucket";
+                            return "View project";
+                          })()}
+                        >
+                          {(() => {
+                            const url = renderValue(proj.url).toLowerCase();
+                            if (url.includes("github")) {
+                              return (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-600)" }}>
+                                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                </svg>
+                              );
+                            }
+                            if (url.includes("gitlab")) {
+                              return (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-600)" }}>
+                                  <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z"/>
+                                </svg>
+                              );
+                            }
+                            if (url.includes("gitea")) {
+                              return (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-600)" }}>
+                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5.5 11c-.28 0-.5-.22-.5-.5s-.22-.5-.5-.5-.5.22-.5.5v2c0 .28-.22.5-.5.5s-.5-.22-.5-.5v-2c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.22.5-.5.5zm-11 0c-.28 0-.5-.22-.5-.5S7.72 11 8 11s.5.22.5.5v2c0 .28.22.5.5.5s.5-.22.5-.5v-2c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5.22.5.5.5z"/>
+                                </svg>
+                              );
+                            }
+                            if (url.includes("bitbucket")) {
+                              return (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-600)" }}>
+                                  <path d="M3.04 2.43a.73.73 0 0 0-.73.86l3.04 17.79c.06.36.34.64.7.7l.06.01 7.62 2.18c.24.07.5-.02.66-.22a.74.74 0 0 0 .15-.26l3.04-20.31a.73.73 0 0 0-.59-.86.73.73 0 0 0-.14-.01zm7.29 13.3H7.66l-.73-4.32h4.66z"/>
+                                </svg>
+                              );
+                            }
+                            // Generic code/link icon for other sites
+                            return (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--gray-600)" }}>
+                                <polyline points="16 18 22 12 16 6" />
+                                <polyline points="8 6 2 12 8 18" />
+                              </svg>
+                            );
+                          })()}
+                        </a>
                       )}
                     </div>
-                    {exp.description && (
-                      <p className="small muted" style={{ marginTop: "var(--space-1)" }}>
-                        {renderValue(exp.description)}
-                      </p>
+
+                    {/* Key points */}
+                    {proj.key_points && proj.key_points.length > 0 && (
+                      <ul style={{
+                        margin: "10px 0 0 0",
+                        paddingLeft: "20px",
+                        fontSize: "13px",
+                        color: "var(--gray-700)",
+                        lineHeight: 1.6
+                      }}>
+                        {proj.key_points.map((point: any, pidx: number) => (
+                          <li key={pidx} style={{ marginBottom: "4px" }}>
+                            {renderValue(point.text || point)}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {/* Technologies */}
+                    {proj.technologies && proj.technologies.length > 0 && (
+                      <div style={{
+                        marginTop: "10px",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "6px"
+                      }}>
+                        {proj.technologies.map((tech: any, tidx: number) => (
+                          <span
+                            key={tidx}
+                            style={{
+                              fontSize: "11px",
+                              padding: "3px 8px",
+                              background: "var(--gray-100)",
+                              color: "var(--gray-700)",
+                              borderRadius: "var(--radius-xs)"
+                            }}
+                          >
+                            {renderValue(tech.name || tech)}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -188,30 +669,280 @@ export default function JobStatus() {
             )}
 
             {key === "education" && Array.isArray(data) && (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {data.map((edu: any, idx: number) => (
                   <div
                     key={idx}
                     style={{
-                      padding: "var(--space-2)",
-                      background: "var(--gray-50)",
-                      borderRadius: "var(--radius-sm)"
+                      padding: "12px 14px",
+                      background: "var(--white)",
+                      border: "1px solid var(--gray-200)",
+                      borderRadius: "var(--radius-sm)",
+                      borderLeft: "3px solid var(--purple-500)"
                     }}
                   >
-                    <strong>{renderValue(edu.degree || edu.qualification)}</strong>
-                    {edu.field && <span className="muted"> in {renderValue(edu.field)}</span>}
-                    {edu.institution && <div className="small muted">{renderValue(edu.institution)}</div>}
-                    {edu.year && <div className="small muted">{renderValue(edu.year)}</div>}
+                    {/* Header with degree and dates */}
+                    <div className="flex justify-between items-start">
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          marginBottom: "4px"
+                        }}>
+                          <h4 style={{
+                            fontSize: "15px",
+                            fontWeight: 600,
+                            margin: 0,
+                            color: "var(--gray-900)"
+                          }}>
+                            {renderValue(edu.qualification || edu.degree)}
+                            {edu.field && (
+                              <>
+                                <span style={{ fontWeight: 400, color: "var(--gray-600)" }}> in </span>
+                                <span style={{ fontWeight: 400, color: "var(--gray-800)" }}>{renderValue(edu.field)}</span>
+                              </>
+                            )}
+                          </h4>
+                          {edu.status && (
+                            <span style={{
+                              fontSize: "11px",
+                              padding: "2px 6px",
+                              background: edu.status === "ongoing" ? "var(--blue-50)" :
+                                         edu.status === "completed" ? "var(--green-50)" : "var(--gray-100)",
+                              color: edu.status === "ongoing" ? "var(--blue-600)" :
+                                     edu.status === "completed" ? "var(--green-600)" : "var(--gray-600)",
+                              borderRadius: "var(--radius-xs)",
+                              fontWeight: 500
+                            }}>
+                              {edu.status}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{
+                          fontSize: "14px",
+                          color: "var(--gray-700)"
+                        }}>
+                          {edu.institution && renderValue(edu.institution.name || edu.institution)}
+                        </div>
+                      </div>
+
+                      {/* Dates and location */}
+                      <div style={{
+                        textAlign: "right",
+                        fontSize: "13px",
+                        color: "var(--gray-600)"
+                      }}>
+                        {(edu.start || edu.end) && (
+                          <div style={{ fontWeight: 500 }}>
+                            {edu.start} – {edu.end || "Present"}
+                          </div>
+                        )}
+                        {edu.year && !edu.start && (
+                          <div style={{ fontWeight: 500 }}>
+                            {renderValue(edu.year)}
+                          </div>
+                        )}
+                        {edu.location && (
+                          <div style={{ fontSize: "12px", marginTop: "2px" }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{
+                              marginRight: "4px",
+                              verticalAlign: "middle",
+                              color: "var(--gray-500)"
+                            }}>
+                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                            </svg>
+                            {[edu.location.city, edu.location.state, edu.location.country].filter(Boolean).join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Coursework */}
+                    {edu.coursework && edu.coursework.length > 0 && (
+                      <div style={{ marginTop: "8px" }}>
+                        <div style={{
+                          fontSize: "11px",
+                          fontWeight: 500,
+                          color: "var(--gray-500)",
+                          marginBottom: "4px",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px"
+                        }}>
+                          Coursework
+                        </div>
+                        <div style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "5px"
+                        }}>
+                          {edu.coursework.map((course: any, cidx: number) => (
+                            <span
+                              key={cidx}
+                              style={{
+                                fontSize: "11px",
+                                padding: "2px 6px",
+                                background: "var(--gray-100)",
+                                color: "var(--gray-700)",
+                                borderRadius: "var(--radius-xs)"
+                              }}
+                            >
+                              {renderValue(course.name || course)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Extras like GPA, honors, etc */}
+                    {edu.extras && edu.extras.length > 0 && (
+                      <ul style={{
+                        margin: "8px 0 0 0",
+                        paddingLeft: "18px",
+                        fontSize: "12px",
+                        color: "var(--gray-600)",
+                        lineHeight: 1.5
+                      }}>
+                        {edu.extras.map((extra: any, eidx: number) => (
+                          <li key={eidx} style={{ marginBottom: "2px" }}>
+                            {renderValue(extra)}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {/* GPA if present */}
+                    {edu.gpa && (
+                      <div style={{
+                        marginTop: "6px",
+                        fontSize: "12px",
+                        color: "var(--gray-600)"
+                      }}>
+                        <span style={{ fontWeight: 500 }}>GPA:</span> {renderValue(edu.gpa)}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
+            {key === "languages" && Array.isArray(data) && (
+              <div style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "8px"
+              }}>
+                {data.map((lang: any, idx: number) => {
+                  const langName = lang.language?.name || lang.name || lang;
+                  const proficiency = lang.cefr || lang.self_assessed || lang.level;
+
+                  // Get proficiency description
+                  const getProficiencyLabel = (level: string) => {
+                    const upperLevel = String(level).toUpperCase();
+                    if (upperLevel.includes("NATIVE")) return "Native";
+                    if (upperLevel.includes("C2")) return "Mastery";
+                    if (upperLevel.includes("C1")) return "Advanced";
+                    if (upperLevel.includes("B2")) return "Upper Intermediate";
+                    if (upperLevel.includes("B1")) return "Intermediate";
+                    if (upperLevel.includes("A2")) return "Elementary";
+                    if (upperLevel.includes("A1")) return "Beginner";
+                    return upperLevel;
+                  };
+
+                  const proficiencyLabel = proficiency ? getProficiencyLabel(proficiency) : null;
+
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 12px",
+                        background: "var(--white)",
+                        border: "1px solid var(--gray-200)",
+                        borderRadius: "var(--radius-sm)"
+                      }}
+                    >
+                      <span style={{
+                        fontSize: "14px",
+                        fontWeight: 500,
+                        color: "var(--gray-900)"
+                      }}>
+                        {renderValue(langName)}
+                      </span>
+
+                      {proficiency && (
+                        <>
+                          <span style={{
+                            fontSize: "14px",
+                            color: "var(--gray-400)"
+                          }}>
+                            •
+                          </span>
+                          <span style={{
+                            fontSize: "13px",
+                            color: "var(--gray-600)"
+                          }}>
+                            {proficiency}
+                          </span>
+                          {proficiencyLabel && proficiencyLabel !== proficiency && (
+                            <span style={{
+                              fontSize: "12px",
+                              color: "var(--gray-500)",
+                              fontStyle: "italic"
+                            }}>
+                              ({proficiencyLabel})
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Default rendering for other types */}
-            {!["personal", "skills", "experience", "education"].includes(key) && (
-              <pre className="json-view" style={{ fontSize: "var(--text-sm)" }}>
-                {JSON.stringify(data, null, 2)}
-              </pre>
+            {!["personal", "skills", "experience", "education", "projects", "languages"].includes(key) && (
+              <div style={{ position: "relative" }}>
+                <button
+                  className="btn ghost"
+                  onClick={() => handleCopy(JSON.stringify(data, null, 2), `section-${key}`)}
+                  style={{
+                    position: "absolute",
+                    top: "4px",
+                    right: "4px",
+                    padding: "4px",
+                    fontSize: "11px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    background: copiedButtons.has(`section-${key}`) ? "var(--green-50)" : "var(--white)",
+                    border: `1px solid ${copiedButtons.has(`section-${key}`) ? "var(--green-300)" : "var(--gray-300)"}`,
+                    zIndex: 1,
+                    transition: "all 0.3s ease",
+                    color: copiedButtons.has(`section-${key}`) ? "var(--green-600)" : "inherit"
+                  }}
+                  title={copiedButtons.has(`section-${key}`) ? "Copied!" : "Copy to clipboard"}
+                >
+                  {copiedButtons.has(`section-${key}`) ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                  )}
+                </button>
+                <pre className="json-view" style={{ fontSize: "var(--text-sm)", paddingTop: "28px" }}>
+                  {JSON.stringify(data, null, 2)}
+                </pre>
+              </div>
+            )}
+            </>
             )}
           </div>
         )}
@@ -223,20 +954,13 @@ export default function JobStatus() {
     <div className="container">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <div>
-          <h1 style={{ marginBottom: "var(--space-1)" }}>Job Details</h1>
-          <code className="small" style={{
-            background: "var(--gray-100)",
-            padding: "var(--space-1)",
-            borderRadius: "var(--radius-sm)",
-            fontFamily: "monospace"
-          }}>
-            {jobId}
-          </code>
-        </div>
+        <h1 style={{ margin: 0 }}>Job Processing Status</h1>
         <Link to="/upload" className="btn ghost">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "var(--space-1)" }}>
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+            <path d="M8 16H3v5" />
           </svg>
           Upload Another
         </Link>
@@ -260,71 +984,124 @@ export default function JobStatus() {
       {/* Job Status Card */}
       {job && (
         <div className="card mb-3" style={{
-          borderLeft: `4px solid ${getStatusColor(job.status)}`,
-          background: job.status === "processing" ? "var(--blue-50)" : "var(--white)"
+          borderTop: `3px solid ${getStatusColor(job.status)}`,
         }}>
-          <div className="flex justify-between items-start">
+          {/* Main Status Row */}
+          <div className="flex justify-between items-center" style={{ marginBottom: "var(--space-3)" }}>
+            {/* Status Hero */}
             <div className="flex items-center gap-3">
-              {getStatusIcon(job.status)}
+              <div style={{
+                width: "48px",
+                height: "48px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "var(--radius-full)",
+                background: job.status === "completed" ? "rgba(16, 185, 129, 0.1)" :
+                           job.status === "processing" ? "rgba(59, 130, 246, 0.1)" :
+                           job.status === "failed" ? "rgba(239, 68, 68, 0.1)" : "var(--gray-100)"
+              }}>
+                {getStatusIcon(job.status)}
+              </div>
               <div>
-                <h2 className="title" style={{ marginBottom: "var(--space-1)" }}>
-                  {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                <h2 style={{
+                  fontSize: "var(--text-xl)",
+                  fontWeight: 700,
+                  color: getStatusColor(job.status),
+                  marginBottom: "4px"
+                }}>
+                  {job.status === "completed" ? "Processing Complete" :
+                   job.status === "processing" ? "Processing Resume" :
+                   job.status === "failed" ? "Processing Failed" : "Queued for Processing"}
                 </h2>
-                <div className="flex flex-col gap-1">
-                  <span className="small muted">
-                    Created: {formatDate(job.created_at)}
-                  </span>
-                  {job.updated_at !== job.created_at && (
-                    <span className="small muted">
-                      Updated: {formatDate(job.updated_at)}
-                    </span>
-                  )}
-                  {(job.status === "completed" || job.status === "failed") && (
-                    <span className="small muted">
-                      Duration: {formatDuration(job.created_at, job.updated_at)}
-                    </span>
-                  )}
+                <div className="flex items-center gap-3">
+                  <code style={{
+                    fontSize: "var(--text-xs)",
+                    padding: "2px 6px",
+                    background: "var(--gray-100)",
+                    borderRadius: "var(--radius-sm)",
+                    color: "var(--gray-700)"
+                  }}>
+                    {job.job_id}
+                  </code>
                 </div>
               </div>
             </div>
 
+            {/* Actions */}
             {job.status === "completed" && (
-              <span className="badge badge-success">COMPLETE</span>
-            )}
-            {job.status === "failed" && (
-              <span className="badge badge-danger">FAILED</span>
-            )}
-            {job.status === "processing" && (
-              <span className="badge badge-primary">IN PROGRESS</span>
-            )}
-            {job.status === "pending" && (
-              <span className="badge">QUEUED</span>
+              <div className="flex gap-2">
+                <button
+                  className="btn"
+                  onClick={() => {
+                    const url = `${window.location.origin}/jobs/${job.job_id}`;
+                    navigator.clipboard.writeText(url);
+                  }}
+                  style={{ padding: "6px 12px", fontSize: "14px" }}
+                  title="Copy link to clipboard"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "4px" }}>
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  Copy Link
+                </button>
+                <a
+                  href={`${API_BASE_URL}/api/v1/jobs/${job.job_id}/result/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn ghost"
+                  style={{ padding: "6px 12px", fontSize: "14px" }}
+                  title="Open API JSON response"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "4px" }}>
+                    <polyline points="16 18 22 12 16 6" />
+                    <polyline points="8 6 2 12 8 18" />
+                  </svg>
+                  API
+                </a>
+                {result?.review && (
+                  <Link
+                    to={`/jobs/${job.job_id}/review`}
+                    className="btn ghost"
+                    style={{ padding: "6px 12px", fontSize: "14px" }}
+                    title="View AI Resume Review"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "4px" }}>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                      <polyline points="10 9 9 9 8 9" />
+                    </svg>
+                    AI Review
+                  </Link>
+                )}
+            </div>
             )}
           </div>
 
-          {/* Error Message */}
-          {job.error && (
-            <div className="error" style={{ marginTop: "var(--space-3)" }}>
-              <strong>Error:</strong> {job.error}
-            </div>
-          )}
-
-          {/* Processing Animation */}
+          {/* Processing Progress */}
           {job.status === "processing" && (
-            <div style={{ marginTop: "var(--space-3)" }}>
-              <div className="flex justify-between mb-1">
-                <span className="small muted">Processing your CV...</span>
+            <div style={{
+              padding: "var(--space-2)",
+              background: "var(--blue-50)",
+              borderRadius: "var(--radius-sm)",
+              marginBottom: "var(--space-2)"
+            }}>
+              <div className="flex justify-between mb-2">
+                <span className="small" style={{ fontWeight: 600 }}>Analyzing document content...</span>
                 <span className="small muted">Please wait</span>
               </div>
               <div style={{
-                height: "8px",
+                height: "6px",
                 background: "var(--gray-200)",
                 borderRadius: "var(--radius-full)",
                 overflow: "hidden"
               }}>
-                <div className="progress-bar" style={{
+                <div style={{
                   height: "100%",
-                  width: "30%",
+                  width: "40%",
                   background: "var(--blue-600)",
                   borderRadius: "var(--radius-full)",
                   animation: "progress 2s ease-in-out infinite"
@@ -333,15 +1110,33 @@ export default function JobStatus() {
             </div>
           )}
 
-          {/* Result URL */}
-          {job.result_url && (
-            <div style={{ marginTop: "var(--space-3)" }}>
-              <span className="small muted">Result available at: </span>
-              <a href={job.result_url} className="small" style={{ color: "var(--blue-600)" }}>
-                {job.result_url}
-              </a>
+          {/* Error Display */}
+          {job.error && (
+            <div className="error" style={{ marginTop: 0 }}>
+              <strong>Error:</strong> {job.error}
             </div>
           )}
+
+          {/* Timing Information Footer */}
+          <div className="flex gap-4" style={{
+            paddingTop: "var(--space-2)",
+            borderTop: "1px solid var(--gray-100)",
+            marginTop: job.status === "processing" ? 0 : "var(--space-2)"
+          }}>
+            <span className="small muted">
+              <strong>Started:</strong> {new Date(job.created_at).toLocaleTimeString()}
+            </span>
+            {job.updated_at !== job.created_at && (
+              <span className="small muted">
+                <strong>Updated:</strong> {new Date(job.updated_at).toLocaleTimeString()}
+              </span>
+            )}
+            {(job.status === "completed" || job.status === "failed") && (
+              <span className="small muted">
+                <strong>Duration:</strong> {formatDuration(job.created_at, job.updated_at)}
+              </span>
+            )}
+          </div>
         </div>
       )}
 
@@ -353,118 +1148,343 @@ export default function JobStatus() {
             <div className="mb-4">
               <div className="flex justify-between items-center mb-3">
                 <h2>Extracted Resume Data</h2>
-                <button
-                  className="btn ghost"
-                  onClick={() => setShowRawJson(!showRawJson)}
-                  style={{ padding: "var(--space-1) var(--space-2)", fontSize: "var(--text-sm)" }}
-                >
-                  {showRawJson ? "Hide" : "Show"} Raw JSON
-                </button>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    className="btn ghost"
+                    onClick={() => setShowRawJson(!showRawJson)}
+                    style={{ padding: "var(--space-1) var(--space-2)", fontSize: "var(--text-sm)" }}
+                  >
+                    {showRawJson ? "Hide" : "Show"} Raw JSON
+                  </button>
+                  {result.metadata && Object.keys(result.metadata).length > 0 && (
+                    <button
+                      className="btn ghost"
+                      onClick={() => setShowMetadata(!showMetadata)}
+                      style={{ padding: "var(--space-1) var(--space-2)", fontSize: "var(--text-sm)" }}
+                    >
+                      {showMetadata ? "Hide" : "Show"} Metadata
+                    </button>
+                  )}
+                </div>
               </div>
 
+              {showMetadata ? (
+                <div className="card" style={{ position: "relative", marginBottom: "var(--space-3)" }}>
+                  <button
+                    className="btn ghost"
+                    onClick={() => handleCopy(JSON.stringify(result.metadata, null, 2), "metadata-json")}
+                    style={{
+                      position: "absolute",
+                      top: "var(--space-2)",
+                      right: "var(--space-2)",
+                      padding: "6px",
+                      fontSize: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      background: copiedButtons.has("metadata-json") ? "var(--green-50)" : "var(--white)",
+                      border: `1px solid ${copiedButtons.has("metadata-json") ? "var(--green-300)" : "var(--gray-300)"}`,
+                      zIndex: 1,
+                      transition: "all 0.3s ease",
+                      color: copiedButtons.has("metadata-json") ? "var(--green-600)" : "inherit"
+                    }}
+                    title={copiedButtons.has("metadata-json") ? "Copied!" : "Copy metadata to clipboard"}
+                  >
+                    {copiedButtons.has("metadata-json") ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                    )}
+                  </button>
+                  <pre className="json-view" style={{ fontSize: "var(--text-sm)", paddingTop: "var(--space-4)" }}>
+                    {JSON.stringify(result.metadata, null, 2)}
+                  </pre>
+                </div>
+              ) : null}
+
               {showRawJson ? (
-                <div className="card">
-                  <pre className="json-view">{JSON.stringify(result.resume, null, 2)}</pre>
+                <div className="card" style={{ position: "relative" }}>
+                  <button
+                    className="btn ghost"
+                    onClick={() => handleCopy(JSON.stringify(result.resume, null, 2), "main-json")}
+                    style={{
+                      position: "absolute",
+                      top: "var(--space-2)",
+                      right: "var(--space-2)",
+                      padding: "6px",
+                      fontSize: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      background: copiedButtons.has("main-json") ? "var(--green-50)" : "var(--white)",
+                      border: `1px solid ${copiedButtons.has("main-json") ? "var(--green-300)" : "var(--gray-300)"}`,
+                      zIndex: 1,
+                      transition: "all 0.3s ease",
+                      color: copiedButtons.has("main-json") ? "var(--green-600)" : "inherit"
+                    }}
+                    title={copiedButtons.has("main-json") ? "Copied!" : "Copy JSON to clipboard"}
+                  >
+                    {copiedButtons.has("main-json") ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                    )}
+                  </button>
+                  <pre className="json-view" style={{ paddingTop: "var(--space-4)" }}>{JSON.stringify(result.resume, null, 2)}</pre>
                 </div>
               ) : (
                 <>
-                  {renderResumeSection("Personal Information", "personal", (() => {
-                    // Extract personal info from nested structure
-                    const r = result.resume;
-                    const personal: any = {};
+                  {/* Personal and Skills in 30/70 split */}
+                  <div className="personal-skills-grid" style={{ gridTemplateColumns: "0.3fr 0.7fr" }}>
+                    {/* Personal Info Card */}
+                    <div className="card">
+                      <h3 className="title" style={{ marginBottom: "var(--space-2)" }}>Personal Information</h3>
+                      {(() => {
+                        // Extract personal info from nested structure
+                        const r = result.resume;
+                        const personal: any = {};
 
-                    // Try different paths for personal info
-                    if (r.personal_info) {
-                      personal.name = r.personal_info.name;
-                      if (r.personal_info.contact) {
-                        personal.email = r.personal_info.contact.email;
-                        personal.phone = r.personal_info.contact.phone;
-                        personal.linkedin = r.personal_info.contact.linkedin;
-                        personal.github = r.personal_info.contact.github;
-                        personal.website = r.personal_info.contact.website;
-                      }
-                      if (r.personal_info.demographics?.current_location) {
-                        personal.location = r.personal_info.demographics.current_location;
-                      }
-                    } else {
-                      // Fallback to flat structure
-                      personal.name = r.name;
-                      personal.email = r.email;
-                      personal.phone = r.phone;
-                      personal.location = r.location;
-                      personal.linkedin = r.linkedin;
-                      personal.github = r.github;
-                      personal.website = r.website;
+                        // Try different paths for personal info
+                        if (r.personal_info) {
+                          personal.name = r.personal_info.name;
+                          if (r.personal_info.contact) {
+                            personal.email = r.personal_info.contact.email;
+                            personal.phone = r.personal_info.contact.phone;
+                            personal.linkedin = r.personal_info.contact.linkedin;
+                            personal.github = r.personal_info.contact.github;
+                            personal.website = r.personal_info.contact.website;
+                          }
+                          if (r.personal_info.demographics?.current_location) {
+                            personal.location = r.personal_info.demographics.current_location;
+                          }
+                        } else {
+                          // Fallback to flat structure
+                          personal.name = r.name;
+                          personal.email = r.email;
+                          personal.phone = r.phone;
+                          personal.location = r.location;
+                          personal.linkedin = r.linkedin;
+                          personal.github = r.github;
+                          personal.website = r.website;
+                        }
+
+                        const filteredPersonal = Object.fromEntries(
+                          Object.entries(personal).filter(([_, v]) => v !== null && v !== undefined)
+                        );
+
+                        return (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                            {/* Name with avatar inline */}
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <div style={{
+                                width: "32px",
+                                height: "32px",
+                                borderRadius: "var(--radius-full)",
+                                background: "linear-gradient(135deg, var(--blue-500), var(--blue-600))",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "14px",
+                                fontWeight: 600,
+                                color: "white",
+                                flexShrink: 0
+                              }}>
+                                {personal.name ? personal.name.charAt(0).toUpperCase() : "?"}
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <h4 style={{ fontSize: "15px", fontWeight: 600, margin: 0, lineHeight: 1.2 }}>
+                                  {renderValue(personal.name) || "—"}
+                                </h4>
+                                {personal.location && (
+                                  <span style={{ fontSize: "12px", color: "var(--gray-600)", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-500)" }}>
+                                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                                    </svg>
+                                    {renderValue(personal.location)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Contact info in compact layout */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                              {personal.email && (
+                                <a href={`mailto:${renderValue(personal.email)}`} style={{
+                                  fontSize: "13px",
+                                  color: "var(--blue-600)",
+                                  textDecoration: "none",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  padding: "4px 0"
+                                }}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                    <path d="m22,7-10,5L2,7"/>
+                                  </svg>
+                                  {renderValue(personal.email)}
+                                </a>
+                              )}
+
+                              {personal.phone && (
+                                <a href={`tel:${renderValue(personal.phone)}`} style={{
+                                  fontSize: "13px",
+                                  color: "var(--blue-600)",
+                                  textDecoration: "none",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  padding: "4px 0"
+                                }}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                  </svg>
+                                  {renderValue(personal.phone)}
+                                </a>
+                              )}
+                            </div>
+
+                            {/* Social Links */}
+                            {(personal.linkedin || personal.github || personal.website) && (
+                              <div style={{
+                                display: "flex",
+                                gap: "8px",
+                                paddingTop: "8px",
+                                borderTop: "1px solid var(--gray-200)"
+                              }}>
+                                {personal.linkedin && (
+                                  <a
+                                    href={renderValue(personal.linkedin)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="LinkedIn"
+                                    style={{
+                                      padding: "6px",
+                                      background: "var(--gray-50)",
+                                      borderRadius: "var(--radius-sm)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      transition: "background 0.2s"
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-100)"}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = "var(--gray-50)"}
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-700)" }}>
+                                      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+                                    </svg>
+                                  </a>
+                                )}
+                                {personal.github && (
+                                  <a
+                                    href={renderValue(personal.github)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="GitHub"
+                                    style={{
+                                      padding: "6px",
+                                      background: "var(--gray-50)",
+                                      borderRadius: "var(--radius-sm)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      transition: "background 0.2s"
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-100)"}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = "var(--gray-50)"}
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-700)" }}>
+                                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                    </svg>
+                                  </a>
+                                )}
+                                {personal.website && (
+                                  <a
+                                    href={renderValue(personal.website)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Website"
+                                    style={{
+                                      padding: "6px",
+                                      background: "var(--gray-50)",
+                                      borderRadius: "var(--radius-sm)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      transition: "background 0.2s"
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-100)"}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = "var(--gray-50)"}
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--gray-700)" }}>
+                                      <circle cx="12" cy="12" r="10" />
+                                      <line x1="2" y1="12" x2="22" y2="12" />
+                                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                                    </svg>
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Skills Card */}
+                    <div className="card">
+                      <h3 className="title" style={{ marginBottom: "var(--space-2)" }}>Skills</h3>
+                      <div className="chips" style={{ maxHeight: "150px", overflowY: "auto" }}>
+                        {result.resume.skills && Array.isArray(result.resume.skills) ? (
+                          result.resume.skills.map((skill: any, idx: number) => (
+                            <span key={idx} className="chip" style={{ fontSize: "12px" }}>
+                              {renderValue(skill)}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="small muted">No skills data available</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Dynamically render all configured resume sections */}
+                  {RESUME_SECTIONS.map(section => {
+                    // Find the first available data path for this section
+                    const data = section.paths.reduce((found, path) => {
+                      return found || result.resume[path];
+                    }, null);
+
+                    // Skip rendering if no data and alwaysShow is false
+                    const isEmpty = !data ||
+                                   (Array.isArray(data) && data.length === 0) ||
+                                   (typeof data === 'object' && Object.keys(data).length === 0);
+
+                    if (isEmpty && !section.alwaysShow) {
+                      return null;
                     }
 
-                    return Object.fromEntries(
-                      Object.entries(personal).filter(([_, v]) => v !== null && v !== undefined)
+                    // Use React key for proper rendering optimization
+                    return (
+                      <div key={section.key}>
+                        {renderResumeSection(section.title, section.key, data)}
+                      </div>
                     );
-                  })())}
-                  {renderResumeSection("Skills", "skills", result.resume.skills)}
-                  {renderResumeSection("Experience", "experience", result.resume.employment_history || result.resume.experience || result.resume.work_experience)}
-                  {renderResumeSection("Education", "education", result.resume.education)}
-                  {renderResumeSection("Languages", "languages", result.resume.languages)}
-                  {renderResumeSection("Certifications", "certifications", result.resume.certifications)}
-                  {renderResumeSection("Projects", "projects", result.resume.projects)}
+                  })}
                 </>
               )}
             </div>
           )}
 
-          {/* Review Data */}
-          {result.review && (
-            <div className="mb-4">
-              <h2 className="mb-3">AI Review</h2>
-              <div className="card" style={{
-                borderLeft: "4px solid var(--blue-600)",
-                background: "var(--blue-50)"
-              }}>
-                <div className="flex items-start gap-2">
-                  <span style={{ fontSize: "24px" }}>🤖</span>
-                  <div style={{ flex: 1 }}>
-                    {typeof result.review === "string" ? (
-                      <p>{result.review}</p>
-                    ) : (
-                      <pre className="json-view" style={{ background: "var(--white)" }}>
-                        {JSON.stringify(result.review, null, 2)}
-                      </pre>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* Metadata */}
-          {result.metadata && Object.keys(result.metadata).length > 0 && (
-            <details>
-              <summary className="flex items-center gap-2" style={{
-                cursor: "pointer",
-                userSelect: "none",
-                padding: "var(--space-2) 0",
-                listStyle: "none"
-              }}>
-                <svg
-                  className="chevron"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M7 10l5 5 5-5" />
-                </svg>
-                <span className="title" style={{ marginBottom: 0 }}>Processing Metadata</span>
-              </summary>
-              <div className="card" style={{ marginTop: "var(--space-2)" }}>
-                <pre className="json-view" style={{ fontSize: "var(--text-sm)" }}>
-                  {JSON.stringify(result.metadata, null, 2)}
-                </pre>
-              </div>
-            </details>
-          )}
         </>
       )}
     </div>

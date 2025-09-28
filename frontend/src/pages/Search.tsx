@@ -16,7 +16,7 @@ export default function Search() {
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<SearchFilters>({});
   const [limit, setLimit] = useState(10);
-  const [minScore, setMinScore] = useState(0.7);
+  const [minScore, setMinScore] = useState(0.3);
   const [maxMatches, setMaxMatches] = useState(5);
   const [vectorWeight, setVectorWeight] = useState(0.7);
   const [graphWeight, setGraphWeight] = useState(0.3);
@@ -77,7 +77,7 @@ export default function Search() {
     setFilters({});
     setQuery("");
     setLimit(10);
-    setMinScore(0.7);
+    setMinScore(0.3);
     setMaxMatches(5);
     setVectorWeight(0.7);
     setGraphWeight(0.3);
@@ -134,6 +134,7 @@ export default function Search() {
         </button>
       </div>
 
+      <div className="search-wrap">
       {/* Search Form */}
       <form onSubmit={onSearch}>
         <div className="card mb-3">
@@ -151,60 +152,61 @@ export default function Search() {
             </div>
           )}
 
-          {/* Compact Filters Section */}
-          <details open={activeFilterCount > 0}>
-            <summary
-              className="flex align-center gap-2"
-              style={{
-                cursor: "pointer",
-                userSelect: "none",
-                padding: "var(--space-2) 0",
-                borderTop: tab === "structured" ? "none" : "1px solid var(--gray-200)",
-                marginTop: tab === "structured" ? 0 : "var(--space-3)",
-                listStyle: "none",
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="chevron"
-              >
-                <path d="M7 10l5 5 5-5" />
-              </svg>
-              <span className="title" style={{ marginBottom: 0 }}>
-                Filters
-                {activeFilterCount > 0 && (
-                  <span className="badge badge-primary" style={{ marginLeft: "var(--space-1)" }}>
-                    {activeFilterCount}
-                  </span>
-                )}
-              </span>
-              {activeFilterCount > 0 && (
-                <button
-                  type="button"
-                  className="btn ghost"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    clearFilters();
-                  }}
-                  style={{
-                    marginLeft: "auto",
-                    padding: "var(--space-1) var(--space-2)",
-                    fontSize: "var(--text-sm)"
-                  }}
-                >
-                  Clear All
-                </button>
-              )}
-            </summary>
-            <div style={{ paddingTop: "var(--space-2)" }}>
+          {/* Compact Filters Section - Only for structured and hybrid */}
+          {tab === "structured" && (
+            <div>
+              <div className="flex align-center" style={{ marginBottom: "var(--space-2)" }}>
+                <span className="title" style={{ marginBottom: 0 }}>
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span className="badge badge-primary" style={{ marginLeft: "var(--space-1)" }}>
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </span>
+              </div>
               <SearchFiltersComp value={filters} onChange={setFilters} />
             </div>
-          </details>
+          )}
+
+          {tab === "hybrid" && (
+            <details open={activeFilterCount > 0}>
+              <summary
+                className="flex align-center gap-2"
+                style={{
+                  cursor: "pointer",
+                  userSelect: "none",
+                  padding: "var(--space-2) 0",
+                  borderTop: "1px solid var(--gray-200)",
+                  marginTop: "var(--space-3)",
+                  listStyle: "none",
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="chevron"
+                >
+                  <path d="M7 10l5 5 5-5" />
+                </svg>
+                <span className="title" style={{ marginBottom: 0 }}>
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span className="badge badge-primary" style={{ marginLeft: "var(--space-1)" }}>
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </span>
+              </summary>
+              <div style={{ paddingTop: "var(--space-1)" }}>
+                <SearchFiltersComp value={filters} onChange={setFilters} />
+              </div>
+            </details>
+          )}
 
           {/* Advanced Options */}
           {tab !== "structured" && (
@@ -234,7 +236,10 @@ export default function Search() {
                 <span className="title" style={{ marginBottom: 0 }}>Advanced Options</span>
               </summary>
 
-              <div className="grid grid-4 gap-2" style={{ paddingTop: "var(--space-2)" }}>
+              <div className="grid gap-2" style={{
+                paddingTop: "var(--space-1)",
+                gridTemplateColumns: tab === "semantic" ? "repeat(auto-fit, minmax(120px, 1fr))" : "repeat(auto-fit, minmax(150px, 1fr))"
+              }}>
                 <div>
                   <label className="label small">Limit</label>
                   <input
@@ -251,15 +256,44 @@ export default function Search() {
                   <>
                     <div>
                       <label className="label small">Min Score</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min={0}
-                        max={1}
-                        value={minScore}
-                        onChange={(e) => setMinScore(Number(e.target.value))}
-                        style={{ padding: "var(--space-1) var(--space-1)" }}
-                      />
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "var(--space-1) var(--space-1)",
+                        background: "var(--white)",
+                        borderRadius: "var(--radius-sm)",
+                        border: "1px solid var(--gray-300)"
+                      }}>
+                        <input
+                          type="range"
+                          step="0.05"
+                          min={0}
+                          max={1}
+                          value={minScore}
+                          onChange={(e) => setMinScore(Number(e.target.value))}
+                          style={{
+                            flex: 1,
+                            height: "4px",
+                            background: `linear-gradient(to right, var(--blue-500) 0%, var(--blue-500) ${minScore * 100}%, var(--gray-300) ${minScore * 100}%, var(--gray-300) 100%)`,
+                            outline: "none",
+                            WebkitAppearance: "none",
+                            appearance: "none",
+                            cursor: "pointer",
+                            borderRadius: "2px"
+                          }}
+                          className="custom-slider"
+                        />
+                        <span style={{
+                          fontSize: "var(--text-sm)",
+                          fontWeight: 500,
+                          color: "var(--gray-600)",
+                          minWidth: "40px",
+                          textAlign: "right"
+                        }}>
+                          {Math.round(minScore * 100)}%
+                        </span>
+                      </div>
                     </div>
                     <div>
                       <label className="label small">Max Matches</label>
@@ -342,20 +376,22 @@ export default function Search() {
               )}
             </button>
 
-            {res && (
+            {(res || activeFilterCount > 0) && (
               <button
                 type="button"
                 className="btn ghost"
-                onClick={() => setRes(null)}
+                onClick={() => {
+                  setRes(null);
+                  clearFilters();
+                }}
               >
-                Clear Results
+                Clear All
               </button>
             )}
           </div>
         </div>
       </form>
 
-      {/* Error Display */}
       {error && (
         <div className="error mb-3">
           Search failed: {error}
@@ -384,7 +420,7 @@ export default function Search() {
               </p>
             </div>
           ) : (
-            <div className="grid gap-3">
+            <div className="stack">
               {res.results.map(r => (
                 <ResultCard key={r.resume_id} result={r} />
               ))}
@@ -392,6 +428,7 @@ export default function Search() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -1,11 +1,3 @@
-"""
-Django settings for backend project.
-
-All configuration from environment variables.
-For local development, create .env file in project root.
-For GitHub Actions, set secrets in repository settings.
-"""
-
 import os
 import sys
 from pathlib import Path
@@ -140,9 +132,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # =============================================================================
 
 CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "false").lower() == "true"
-CORS_ALLOWED_ORIGINS = [
-    origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if origin.strip()
-]
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if origin.strip()]
 
 # =============================================================================
 # REST FRAMEWORK

@@ -18,7 +18,6 @@ export interface JobResult {
 export interface FilterOption { value: string; count: number }
 export interface FilterOptions {
   skills: FilterOption[];
-  technologies: FilterOption[];
   roles: FilterOption[];
   companies: FilterOption[];
   locations: FilterOption[];
@@ -26,7 +25,6 @@ export interface FilterOptions {
 
 export interface SearchFilters {
   skills?: string[] | null;
-  technologies?: string[] | null;
   role?: string | null;
   company?: string | null;
   location?: string | null;
@@ -73,6 +71,9 @@ export interface SearchResponse {
 
 const DEFAULT_BASE = "http://localhost:8000"; // Direct backend URL
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE;
+
+// Export for use in components
+export const API_BASE_URL = BASE_URL;
 
 function withBase(path: string) {
   const base = BASE_URL.replace(/\/$/, "");

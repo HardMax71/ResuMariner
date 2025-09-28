@@ -12,7 +12,6 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAllSkills, setShowAllSkills] = useState(false);
-  const [showAllTech, setShowAllTech] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -26,10 +25,8 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
   const roles = useMemo(() => opts?.roles ?? [], [opts]);
   const locations = useMemo(() => opts?.locations ?? [], [opts]);
   const skills = useMemo(() => opts?.skills ?? [], [opts]);
-  const technologies = useMemo(() => opts?.technologies ?? [], [opts]);
 
   const visibleSkills = showAllSkills ? skills : skills.slice(0, 12);
-  const visibleTech = showAllTech ? technologies : technologies.slice(0, 12);
 
   if (loading) {
     return (
@@ -48,20 +45,24 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
 
   if (!opts) return null;
 
-  const toggleListItem = (key: "skills" | "technologies", item: string) => {
-    const current = new Set(value[key] ?? []);
+  const toggleSkill = (item: string) => {
+    const current = new Set(value.skills ?? []);
     if (current.has(item)) {
       current.delete(item);
     } else {
       current.add(item);
     }
-    onChange({ ...value, [key]: Array.from(current) });
+    onChange({ ...value, skills: Array.from(current) });
   };
 
   return (
     <div className="filters-compact">
       {/* Dropdown Filters in Grid */}
-      <div className="grid grid-4 gap-2 mb-3">
+      <div className="filter-grid" style={{
+        display: "grid",
+        gap: "var(--space-2)",
+        marginBottom: "var(--space-3)"
+      }}>
         <div>
           <label className="label small">Role</label>
           <select
@@ -164,7 +165,7 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
                   key={s.value}
                   type="button"
                   className={`chip selectable ${selected ? "selected" : ""}`}
-                  onClick={() => toggleListItem("skills", s.value)}
+                  onClick={() => toggleSkill(s.value)}
                   title={`${s.value} (${s.count})`}
                   style={{ fontSize: "var(--text-xs)" }}
                 >
@@ -179,61 +180,8 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
         </div>
       )}
 
-      {/* Technologies Section - Compact */}
-      {technologies.length > 0 && (
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <label className="label small">
-              Technologies
-              {value.technologies && value.technologies.length > 0 && (
-                <span className="badge badge-primary" style={{ marginLeft: "var(--space-1)" }}>
-                  {value.technologies.length}
-                </span>
-              )}
-            </label>
-            {technologies.length > 12 && (
-              <button
-                type="button"
-                className="text-sm"
-                onClick={() => setShowAllTech(!showAllTech)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "var(--blue-600)",
-                  cursor: "pointer",
-                  padding: 0,
-                  fontSize: "var(--text-sm)",
-                }}
-              >
-                {showAllTech ? "Show Less" : `Show All (${technologies.length})`}
-              </button>
-            )}
-          </div>
-          <div className="chips" style={{ maxHeight: showAllTech ? "none" : "72px", overflow: "hidden" }}>
-            {visibleTech.map((t) => {
-              const selected = (value.technologies ?? []).includes(t.value);
-              return (
-                <button
-                  key={t.value}
-                  type="button"
-                  className={`chip selectable ${selected ? "selected" : ""}`}
-                  onClick={() => toggleListItem("technologies", t.value)}
-                  title={`${t.value} (${t.count})`}
-                  style={{ fontSize: "var(--text-xs)" }}
-                >
-                  {t.value}
-                  <span style={{ opacity: 0.6, marginLeft: "4px" }}>
-                    {t.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Selected Filters Summary */}
-      {(value.skills?.length || value.technologies?.length || value.role || value.company || value.location || value.years_experience) && (
+      {(value.skills?.length || value.role || value.company || value.location || value.years_experience) && (
         <div
           className="flex items-center gap-2"
           style={{
@@ -316,6 +264,24 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
                 </button>
               </span>
             )}
+            {value.skills?.map((skill) => (
+              <span key={skill} className="chip" style={{ fontSize: "var(--text-xs)" }}>
+                {skill}
+                <button
+                  type="button"
+                  onClick={() => toggleSkill(skill)}
+                  style={{
+                    marginLeft: "4px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
           </div>
         </div>
       )}
