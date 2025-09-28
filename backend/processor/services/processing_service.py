@@ -203,15 +203,15 @@ class ProcessingService:
         embeddings = self.embedding_service.encode_batch(texts)
 
         # Extract metadata for search filtering (all lists are guaranteed to exist)
-        all_techs = [tech.name for emp in resume.employment_history for tech in emp.technologies]
-        all_techs.extend(tech.name for proj in resume.projects for tech in proj.technologies)
+        all_skills = [s.name for s in resume.skills]
+        all_skills.extend(s.name for emp in resume.employment_history for s in emp.skills)
+        all_skills.extend(s.name for proj in resume.projects for s in proj.skills)
 
         # Only include fields that EmbeddingVector expects
         vector_metadata = {
             "name": resume.personal_info.name,
             "email": resume.personal_info.contact.email,
-            "skills": [s.name for s in resume.skills],
-            "technologies": list(set(all_techs)),  # dedupe
+            "skills": list(set(all_skills)),  # dedupe all skills from everywhere
             "companies": list({emp.company.name for emp in resume.employment_history if emp.company}),
             "role": resume.professional_profile.preferences.role
             if resume.professional_profile and resume.professional_profile.preferences

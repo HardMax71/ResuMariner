@@ -466,15 +466,15 @@ export default function JobStatus() {
                       </ul>
                     )}
 
-                    {/* Technologies */}
-                    {exp.technologies && exp.technologies.length > 0 && (
+                    {/* Skills */}
+                    {exp.skills && exp.skills.length > 0 && (
                       <div style={{
                         marginTop: "10px",
                         display: "flex",
                         flexWrap: "wrap",
                         gap: "6px"
                       }}>
-                        {exp.technologies.map((tech: any, tidx: number) => (
+                        {exp.skills.map((skill: any, tidx: number) => (
                           <span
                             key={tidx}
                             style={{
@@ -485,7 +485,7 @@ export default function JobStatus() {
                               borderRadius: "var(--radius-xs)"
                             }}
                           >
-                            {renderValue(tech.name || tech)}
+                            {renderValue(skill.name || skill)}
                           </span>
                         ))}
                       </div>
@@ -639,15 +639,15 @@ export default function JobStatus() {
                       </ul>
                     )}
 
-                    {/* Technologies */}
-                    {proj.technologies && proj.technologies.length > 0 && (
+                    {/* Skills */}
+                    {proj.skills && proj.skills.length > 0 && (
                       <div style={{
                         marginTop: "10px",
                         display: "flex",
                         flexWrap: "wrap",
                         gap: "6px"
                       }}>
-                        {proj.technologies.map((tech: any, tidx: number) => (
+                        {proj.skills.map((skill: any, tidx: number) => (
                           <span
                             key={tidx}
                             style={{
@@ -658,7 +658,7 @@ export default function JobStatus() {
                               borderRadius: "var(--radius-xs)"
                             }}
                           >
-                            {renderValue(tech.name || tech)}
+                            {renderValue(skill.name || skill)}
                           </span>
                         ))}
                       </div>

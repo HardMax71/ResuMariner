@@ -12,7 +12,6 @@ class EmbeddingVector(BaseModel):
     email: str | None = None
     # Searchable metadata fields
     skills: list[str] = Field(default_factory=list)
-    technologies: list[str] = Field(default_factory=list)
     companies: list[str] = Field(default_factory=list)
     role: str | None = None
     location: str | None = None
@@ -129,10 +128,6 @@ class KeyPoint(BaseModel):
     text: str
 
 
-class Technology(BaseModel):
-    name: str
-
-
 class Skill(BaseModel):
     name: str
 
@@ -145,15 +140,17 @@ class EmploymentHistoryItem(BaseModel):
     duration: EmploymentDuration
     location: Location | None = None
     key_points: list[KeyPoint] = Field(default_factory=list)
-    technologies: list[Technology] = Field(default_factory=list)
+    skills: list[Skill] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
     def accept_legacy_employment(cls, v: dict):
         if "company" in v and isinstance(v["company"], str):
             v["company"] = {"name": v["company"]}
-        if "tech_stack" in v and "technologies" not in v:
-            v["technologies"] = v.pop("tech_stack")
+        if "tech_stack" in v and "skills" not in v:
+            v["skills"] = v.pop("tech_stack")
+        if "technologies" in v and "skills" not in v:
+            v["skills"] = v.pop("technologies")
         if "start_date" in v or "end_date" in v or "date_format" in v or "duration_months" in v:
             v["duration"] = {
                 "date_format": v.pop("date_format", "MM.YYYY"),
@@ -163,24 +160,26 @@ class EmploymentHistoryItem(BaseModel):
             }
         if "key_points" in v:
             v["key_points"] = [kp if isinstance(kp, dict) else {"text": kp} for kp in v["key_points"]]
-        if "technologies" in v:
-            v["technologies"] = [t if isinstance(t, dict) else {"name": t} for t in v["technologies"]]
+        if "skills" in v:
+            v["skills"] = [s if isinstance(s, dict) else {"name": s} for s in v["skills"]]
         return v
 
 
 class Project(BaseModel):
     title: str
     url: str | None = None
-    technologies: list[Technology] = Field(default_factory=list)
+    skills: list[Skill] = Field(default_factory=list)
     key_points: list[KeyPoint] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
     def accept_legacy_project(cls, v: dict):
-        if "tech_stack" in v and "technologies" not in v:
-            v["technologies"] = v.pop("tech_stack")
-        if "technologies" in v:
-            v["technologies"] = [t if isinstance(t, dict) else {"name": t} for t in v["technologies"]]
+        if "tech_stack" in v and "skills" not in v:
+            v["skills"] = v.pop("tech_stack")
+        if "technologies" in v and "skills" not in v:
+            v["skills"] = v.pop("technologies")
+        if "skills" in v:
+            v["skills"] = [s if isinstance(s, dict) else {"name": s} for s in v["skills"]]
         if "key_points" in v:
             v["key_points"] = [kp if isinstance(kp, dict) else {"text": kp} for kp in v["key_points"]]
         return v
@@ -322,10 +321,14 @@ class Resume(BaseModel):
     def has_skill(self, skill: str) -> bool:
         return any(skill.lower() == s.name.lower() for s in self.skills)
 
-    def get_technologies(self) -> set[str]:
-        techs: set[str] = set()
+    def get_all_skills(self) -> set[str]:
+        all_skills: set[str] = set()
+        # Skills from main skills list
+        all_skills.update(s.name for s in self.skills)
+        # Skills from employment history
         for emp in self.employment_history:
-            techs.update(t.name for t in emp.technologies)
+            all_skills.update(s.name for s in emp.skills)
+        # Skills from projects
         for proj in self.projects:
-            techs.update(t.name for t in proj.technologies)
-        return techs
+            all_skills.update(s.name for s in proj.skills)
+        return all_skills

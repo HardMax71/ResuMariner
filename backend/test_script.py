@@ -160,21 +160,25 @@ class CVProcessingTest:
                 params["companies"] = companies
                 params["latest_company"] = companies[0]  # Assuming most recent is first
 
-        # Extract technologies from employment and projects
-        all_technologies = set()
+        # Extract skills from employment and projects
+        employment_skills = set()
+        project_skills = set()
 
         # From employment history
         for emp in self.resume.employment_history:
-            all_technologies.update(tech.name for tech in emp.technologies)
+            employment_skills.update(skill.name for skill in emp.skills)
 
         # From projects
         for project in self.resume.projects:
-            all_technologies.update(tech.name for tech in project.technologies)
+            project_skills.update(skill.name for skill in project.skills)
 
-        if all_technologies:
-            tech_list = list(all_technologies)
-            params["technologies"] = tech_list
-            params["top_technologies"] = tech_list[:3]
+        # Merge all skills
+        all_additional_skills = employment_skills | project_skills
+        if all_additional_skills:
+            # Merge with existing skills
+            all_skill_names = set(params.get("all_skills", [])) | all_additional_skills
+            params["all_skills"] = list(all_skill_names)
+            params["top_skills"] = params["all_skills"][:5]
 
         # Calculate years of experience from employment_history
         if self.resume.employment_history:
@@ -213,7 +217,6 @@ class CVProcessingTest:
     def search_structured(
         self,
         skills: list | None = None,
-        technologies: list | None = None,
         role: str | None = None,
         company: str | None = None,
         location: str | None = None,
@@ -225,8 +228,6 @@ class CVProcessingTest:
             filters_payload = {}
             if skills:
                 filters_payload["skills"] = skills if isinstance(skills, list) else [skills]
-            if technologies:
-                filters_payload["technologies"] = technologies if isinstance(technologies, list) else [technologies]
             if role:
                 filters_payload["role"] = role
             if company:
@@ -264,7 +265,6 @@ class CVProcessingTest:
         self,
         query: str,
         skills: list | None = None,
-        technologies: list | None = None,
         role: str | None = None,
         company: str | None = None,
         location: str | None = None,
@@ -284,8 +284,6 @@ class CVProcessingTest:
             filters_payload = {}
             if skills:
                 filters_payload["skills"] = skills if isinstance(skills, list) else [skills]
-            if technologies:
-                filters_payload["technologies"] = technologies if isinstance(technologies, list) else [technologies]
             if role:
                 filters_payload["role"] = role
             if company:
@@ -433,10 +431,6 @@ class CVProcessingTest:
                 "role": "role",
                 "description": "Structured search by skills and role",
             },
-            {
-                "technologies": "top_technologies",
-                "description": "Structured search by technologies",
-            },
         ]
         for combo in structured_combinations:
             description = combo.pop("description")
@@ -469,11 +463,6 @@ class CVProcessingTest:
                 "query": "name",
                 "skills": "top_skills",
                 "description": "Hybrid search by name with skills",
-            },
-            {
-                "query": "name",
-                "technologies": "top_technologies",
-                "description": "Hybrid search by name with technologies",
             },
             {
                 "query": "role",

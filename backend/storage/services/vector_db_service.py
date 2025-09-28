@@ -50,7 +50,6 @@ class VectorDBService:
             "source",
             "email",
             "skills",
-            "technologies",
             "companies",
             "role",
             "location",
@@ -115,7 +114,6 @@ class VectorDBService:
                 "email": v.email,
                 # Add searchable metadata
                 "skills": v.skills,
-                "technologies": v.technologies,
                 "companies": v.companies,
                 "role": v.role,
                 "location": v.location,

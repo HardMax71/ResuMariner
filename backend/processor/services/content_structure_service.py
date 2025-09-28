@@ -54,9 +54,9 @@ URL HANDLING RULES:
 
 Validation Guardrails:
 - Company names must match exactly (case-sensitive)
-- Skills only from explicit skills sections
+- Skills include ALL technical and soft capabilities (Python, React, Docker, Leadership, etc.)
 - Links must exist in original document
-- Tech stack only from explicit "Stack:" or equivalent section
+- Extract skills from ANY mention: skills sections, tech stacks, tool lists, technologies used
 
 SECTION-SPECIFIC RULES:
 
@@ -71,7 +71,7 @@ EXPERIENCE/EMPLOYMENT_HISTORY:
 - DO NOT include education (degrees, university attendance) as employment history.
 - Education (Bachelor's, Master's, PhD, etc.) must ONLY go in the education section, never in employment_history.
 - Responsibilities: Use exact bullet points verbatim.
-- Tech stack: Extract only from explicit "Stack:" or equivalent section.
+- Skills: Extract ALL technologies, tools, frameworks, languages mentioned (Stack:, Technologies:, Tools:, etc.)
 - If a starting month is not explicitly mentioned (e.g., "2022 - Present"), ASSUME "01.2022 - Present".
 
 EDUCATION:
@@ -85,6 +85,7 @@ EDUCATION:
 PROJECTS:
 - Only include personal projects that are explicitly stated as pet projects or were completed outside of employment.
 - DO NOT duplicate any project details already present in the employment_history section.
+- Skills: Extract ALL technologies, tools, frameworks mentioned in each project
 - If no qualifying projects are mentioned, set "projects" to null.
 
 LANGUAGE PROFICIENCY:

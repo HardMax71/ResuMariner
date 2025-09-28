@@ -130,15 +130,11 @@ class KeyPointInfoNode(StructuredNode):
     text = StringProperty(required=True)
 
 
-class TechnologyNode(StructuredNode):
-    name = StringProperty(required=True, unique_index=True)
-
-
 class EmploymentHistoryItemNode(StructuredNode):
     position = StringProperty(required=True)
     employment_type = StringProperty(required=True, choices=EMPLOYMENT_TYPE_CHOICES)
     work_mode = StringProperty(required=True, choices=WORK_MODE_CHOICES)
-    technologies = RelationshipTo("TechnologyNode", "USES_TECHNOLOGY")
+    skills = RelationshipTo("SkillNode", "HAS_SKILL")
 
     company = RelationshipTo("CompanyInfoNode", "WORKED_AT")
     duration = RelationshipTo("EmploymentDurationNode", "HAS_DURATION")
@@ -149,7 +145,7 @@ class EmploymentHistoryItemNode(StructuredNode):
 class ProjectNode(StructuredNode):
     title = StringProperty(required=True)
     url = StringProperty()
-    technologies = RelationshipTo("TechnologyNode", "USES_TECHNOLOGY")
+    skills = RelationshipTo("SkillNode", "HAS_SKILL")
     key_points = RelationshipTo("KeyPointInfoNode", "HAS_KEY_POINT")
 
 

@@ -11,7 +11,6 @@ class SearchType(StrEnum):
 @dataclass
 class SearchFilters:
     skills: list[str] | None = None
-    technologies: list[str] | None = None
     role: str | None = None
     company: str | None = None
     location: str | None = None
@@ -27,7 +26,6 @@ class FilterOption:
 @dataclass
 class FilterOptionsResult:
     skills: list[FilterOption] = field(default_factory=list)
-    technologies: list[FilterOption] = field(default_factory=list)
     roles: list[FilterOption] = field(default_factory=list)
     companies: list[FilterOption] = field(default_factory=list)
     locations: list[FilterOption] = field(default_factory=list)

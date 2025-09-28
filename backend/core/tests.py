@@ -23,7 +23,6 @@ from core.domain import (
     SearchRequest,
     SearchType,
     Skill,
-    Technology,
     VectorHit,
     WorkMode,
 )
@@ -64,9 +63,9 @@ class ResumeDomainModelTests(TestCase):
             KeyPoint(text="Led development of resume matching pipeline"),
             KeyPoint(text="Shipped embeddings search service at scale"),
         ]
-        technologies = [
-            Technology(name="Django"),
-            Technology(name="PostgreSQL"),
+        skills_used = [
+            Skill(name="Django"),
+            Skill(name="PostgreSQL"),
         ]
         history_payload = {
             "position": "Senior Backend Engineer",
@@ -76,7 +75,7 @@ class ResumeDomainModelTests(TestCase):
             "duration": duration.model_dump(mode="json"),
             "location": location.model_dump(mode="json"),
             "key_points": [kp.model_dump(mode="json") for kp in key_points],
-            "technologies": [tech.model_dump(mode="json") for tech in technologies],
+            "skills": [skill.model_dump(mode="json") for skill in skills_used],
         }
         history_item = EmploymentHistoryItem.model_validate(history_payload)
 
@@ -99,7 +98,7 @@ class ResumeDomainModelTests(TestCase):
         history_entry = payload["employment_history"][0]
         self.assertEqual(history_entry["company"]["name"], "AI Labs")
         self.assertEqual(history_entry["duration"]["duration_months"], 42)
-        self.assertEqual(history_entry["technologies"][0]["name"], "Django")
+        self.assertEqual(history_entry["skills"][0]["name"], "Django")
 
         profile = payload["professional_profile"]
         self.assertEqual(profile["preferences"]["role"], "Backend Engineer")
@@ -109,7 +108,7 @@ class ResumeDomainModelTests(TestCase):
         self.assertAlmostEqual(self.resume.years_of_experience(), 3.5)
         self.assertTrue(self.resume.has_skill("python"))
         self.assertFalse(self.resume.has_skill("Go"))
-        self.assertEqual(self.resume.get_technologies(), {"Django", "PostgreSQL"})
+        self.assertEqual(self.resume.get_all_skills(), {"Python", "Django", "PostgreSQL"})
 
 
 class SearchModelBehaviourTests(TestCase):

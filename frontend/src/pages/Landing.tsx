@@ -920,7 +920,7 @@ fetch('http://localhost:8000/api/v1/upload/', {
                 color: 'var(--gray-600)',
                 lineHeight: 1.5
               }}>
-                Skills → Companies → Roles → Technologies all connected in Neo4j.
+                Skills → Companies → Roles all connected in Neo4j.
                 Find everyone who worked at a FAANG and then joined a startup.
               </p>
             </div>

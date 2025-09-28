@@ -21,7 +21,7 @@ No need to reinvent auth, migrations, or admin panels when Django gives you all 
 
 **Processor app** - This is where the magic starts. Upload a resume, it queues a job in Redis, extracts text with pdfplumber or OCR, sends it to an LLM (OpenAI's GPT-4o-mini) to structure it properly, then generates a review of what could be improved. The structured data is what makes everything else possible.
 
-**Storage app** - Once we have structured data, it goes two places. Neo4j stores the actual resume data as a graph (people connected to companies, skills, technologies), while Qdrant stores embedding vectors for semantic search. The graph gives us relationship queries ("who worked at Google?"), vectors give us semantic similarity ("find someone like this person").
+**Storage app** - Once we have structured data, it goes two places. Neo4j stores the actual resume data as a graph (people connected to companies and skills), while Qdrant stores embedding vectors for semantic search. The graph gives us relationship queries ("who worked at Google?"), vectors give us semantic similarity ("find someone like this person").
 
 **Search app** - This is where it all comes together. You can do semantic search (vector similarity), structured search (graph queries), or hybrid search (both combined). The results show not just who matched, but exactly which parts of their resume matched and why.
 

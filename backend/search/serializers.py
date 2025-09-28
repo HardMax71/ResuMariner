@@ -62,10 +62,10 @@ class SearchFiltersSerializer(serializers.Serializer):
     """Serializer for search filter parameters."""
 
     skills = serializers.ListField(
-        child=serializers.CharField(), required=False, allow_null=True, help_text="Skills to filter by"
-    )
-    technologies = serializers.ListField(
-        child=serializers.CharField(), required=False, allow_null=True, help_text="Technologies to filter by"
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="Skills to filter by (includes technologies)",
     )
     role = serializers.CharField(required=False, allow_null=True, help_text="Desired role to filter by")
     company = serializers.CharField(required=False, allow_null=True, help_text="Company to filter by")
@@ -173,8 +173,7 @@ class FilterOptionSerializer(serializers.Serializer):
 
 
 class FilterOptionsSerializer(serializers.Serializer):
-    skills = FilterOptionSerializer(many=True, default=list, help_text="Available skills")
-    technologies = FilterOptionSerializer(many=True, default=list, help_text="Available technologies")
+    skills = FilterOptionSerializer(many=True, default=list, help_text="Available skills (includes technologies)")
     roles = FilterOptionSerializer(many=True, default=list, help_text="Available roles")
     companies = FilterOptionSerializer(many=True, default=list, help_text="Available companies")
     locations = FilterOptionSerializer(many=True, default=list, help_text="Available locations")

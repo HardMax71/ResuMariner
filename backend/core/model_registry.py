@@ -27,7 +27,6 @@ from core.domain import (
     Resume,
     ScientificContribution,
     Skill,
-    Technology,
     WorkAuthorization,
 )
 from storage.neo4j_models import (
@@ -55,7 +54,6 @@ from storage.neo4j_models import (
     ResumeNode,
     ScientificContributionNode,
     SkillNode,
-    TechnologyNode,
     WorkAuthorizationNode,
 )
 
@@ -84,7 +82,6 @@ class ModelRegistry:
             (EmploymentDuration, EmploymentDurationNode),
             (CompanyInfo, CompanyInfoNode),
             (KeyPoint, KeyPointInfoNode),
-            (Technology, TechnologyNode),
             (Skill, SkillNode),
             (Project, ProjectNode),
             (InstitutionInfo, InstitutionInfoNode),

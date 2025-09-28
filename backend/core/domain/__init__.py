@@ -29,7 +29,6 @@ from .resume import (
     Resume,
     ScientificContribution,
     Skill,
-    Technology,
     WorkAuthorization,
     WorkMode,
 )
@@ -60,7 +59,6 @@ __all__ = [
     "EmploymentDuration",
     "CompanyInfo",
     "KeyPoint",
-    "Technology",
     "Skill",
     "Project",
     "InstitutionInfo",

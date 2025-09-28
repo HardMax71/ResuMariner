@@ -42,13 +42,9 @@ class GraphSearchService:
             ($skills IS NULL OR $skills = [] OR EXISTS {
                 MATCH (resume)-[:HAS_SKILL]->(s:SkillNode)
                 WHERE s.name IN $skills
-            })
-            AND ($technologies IS NULL OR $technologies = [] OR EXISTS {
-                MATCH (resume)-[:HAS_EMPLOYMENT_HISTORY|HAS_PROJECT]->(entity)
-                WHERE EXISTS {
-                    MATCH (entity)-[:USES_TECHNOLOGY]->(t:TechnologyNode)
-                    WHERE t.name IN $technologies
-                }
+            } OR EXISTS {
+                MATCH (resume)-[:HAS_EMPLOYMENT_HISTORY|HAS_PROJECT]->(entity)-[:HAS_SKILL]->(s:SkillNode)
+                WHERE s.name IN $skills
             })
             AND ($role IS NULL OR EXISTS {
                 MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(pp:ProfessionalProfileNode)
@@ -176,21 +172,21 @@ class GraphSearchService:
     def get_filter_options(self) -> FilterOptionsResult:
         query = """
         CALL {
-            MATCH (s:SkillNode)<-[:HAS_SKILL]-(resume:ResumeNode)
-            WITH s.name AS value, count(DISTINCT resume) AS count
+            MATCH path = (s:SkillNode)<-[:HAS_SKILL]-(entity)
+            WHERE (entity:ResumeNode) OR
+                  ((entity:EmploymentHistoryItemNode) AND (entity)<-[:HAS_EMPLOYMENT_HISTORY]-(:ResumeNode)) OR
+                  ((entity:ProjectNode) AND (entity)<-[:HAS_PROJECT]-(:ResumeNode))
+            WITH s.name AS value,
+                 CASE
+                   WHEN entity:ResumeNode THEN entity
+                   WHEN entity:EmploymentHistoryItemNode THEN head([(entity)<-[:HAS_EMPLOYMENT_HISTORY]-(r:ResumeNode) | r])
+                   WHEN entity:ProjectNode THEN head([(entity)<-[:HAS_PROJECT]-(r:ResumeNode) | r])
+                 END AS resume
+            WITH value, count(DISTINCT resume) AS count
             WHERE count > 0
-            WITH value, count
             ORDER BY count DESC, value ASC
-            LIMIT 100
+            LIMIT 200
             RETURN 'skills' AS category, collect({value: value, count: count}) AS items
-            UNION
-            MATCH (t:TechnologyNode)<-[:USES_TECHNOLOGY]-()<-[:HAS_EMPLOYMENT_HISTORY|HAS_PROJECT]-(resume:ResumeNode)
-            WITH t.name AS value, count(DISTINCT resume) AS count
-            WHERE count > 0
-            WITH value, count
-            ORDER BY count DESC, value ASC
-            LIMIT 100
-            RETURN 'technologies' AS category, collect({value: value, count: count}) AS items
             UNION
             MATCH (resume:ResumeNode)-[:HAS_PROFESSIONAL_PROFILE]->(:ProfessionalProfileNode)-[:HAS_PREFERENCES]->(pref:PreferencesNode)
             WHERE pref.role IS NOT NULL AND pref.role <> ""
