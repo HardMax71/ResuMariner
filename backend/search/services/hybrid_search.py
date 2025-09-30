@@ -21,7 +21,7 @@ class HybridSearchService:
         self.graph_search = GraphSearchService()
         self.embedding_service = EmbeddingService()
 
-    def search(
+    async def search(
         self,
         query: str,
         filters: SearchFilters,
@@ -37,13 +37,13 @@ class HybridSearchService:
         """
         query_vector = self.embedding_service.encode(query)
 
-        vector_results = self.vector_search.search(
+        vector_results = await self.vector_search.search(
             query_vector=query_vector,
             limit=limit * 2,
             filters=filters,
         )
 
-        graph_results = self.graph_search.search(
+        graph_results = await self.graph_search.search(
             filters=filters,
             limit=limit * 2,
         )
@@ -119,7 +119,7 @@ class HybridSearchService:
             if gr.education:
                 agg.education = gr.education
 
-            # Process matches if any
+            # Process matches if any - gr.matches are VectorHit objects
             for m in gr.matches:
                 agg.matches.append({"text": m.text, "score": m.score, "source": m.source, "context": m.context or ""})
 

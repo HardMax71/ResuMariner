@@ -21,6 +21,8 @@ export interface FilterOptions {
   roles: FilterOption[];
   companies: FilterOption[];
   locations: FilterOption[];
+  education_levels: FilterOption[];
+  education_statuses: FilterOption[];
 }
 
 export interface SearchFilters {
@@ -29,6 +31,8 @@ export interface SearchFilters {
   company?: string | null;
   location?: string | null;
   years_experience?: number | null;
+  education_level?: string | null;
+  education_status?: string | null;
 }
 
 export interface SearchMatch {
@@ -41,11 +45,12 @@ export interface SearchMatch {
 export interface JobExperience {
   company: string;
   position: string;
-  duration_months: number;
-  start_date?: string | null;
-  end_date?: string | null;
+  duration_months?: number | null;
+  start?: string | null;  // ISO date string (YYYY-MM-DD)
+  end?: string | null;    // ISO date string or null for ongoing
   employment_type?: string | null;
   work_mode?: string | null;
+  key_points?: string[] | null;
 }
 
 export interface SearchResult {

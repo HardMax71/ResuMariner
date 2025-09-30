@@ -18,42 +18,44 @@ class ProcessingWorker(BaseWorker):
     def __init__(self):
         super().__init__()
         self.name = "processing"
-        self.sleep_interval = 1.0
         self.logger = logging.getLogger(f"{__name__}.{self.name}")
         self.job_service = JobService()
         self.processing_service = ProcessingService()
         self.redis_queue = RedisJobQueue()
         self.concurrent_jobs = int(os.environ.get("WORKER_CONCURRENT_JOBS", "3"))
-        self.active_tasks: set[asyncio.Task] = set()
+        self.semaphore = asyncio.Semaphore(self.concurrent_jobs)
         self.logger.info(f"Initialized processing worker with {self.concurrent_jobs} concurrent job slots")
 
-    async def process_iteration(self) -> bool:
-        self.redis_queue.process_retries()
+    async def create_tasks(self) -> list[asyncio.Task]:
+        """Create all worker tasks that run concurrently"""
+        return [
+            asyncio.create_task(self.job_consumer()),
+            asyncio.create_task(self.retry_listener()),
+        ]
 
-        # Clean up completed tasks
-        done_tasks = {task for task in self.active_tasks if task.done()}
-        for task in done_tasks:
-            self.active_tasks.discard(task)
-            # Await task to get any exceptions that occurred
-            try:
-                await task
-            except Exception as e:
-                self.logger.error(f"Task failed with exception: {e}")
+    async def job_consumer(self):
+        """Consume jobs from Redis stream with zero delay"""
+        self.logger.info("Starting job consumer")
 
-        # Check if we have capacity for more jobs
-        if len(self.active_tasks) >= self.concurrent_jobs:
-            return False
+        async for job_data in self.redis_queue.consume_jobs():
+            if not self.running:
+                break
 
-        # Try to get a job from the queue
-        job_data = self.redis_queue.get_next_job()
-        if not job_data:
-            return False
+            # Use semaphore to limit concurrent jobs
+            asyncio.create_task(self._process_job_with_semaphore(job_data))
 
-        # Process job asynchronously
-        task = asyncio.create_task(self._process_job(job_data))
-        self.active_tasks.add(task)
+    async def _process_job_with_semaphore(self, job_data: QueuedTask):
+        """Process job with concurrency limit"""
+        async with self.semaphore:
+            await self._process_job(job_data)
 
-        return True
+    async def retry_listener(self):
+        """Listen for retry events"""
+        self.logger.info("Starting retry listener")
+        try:
+            await self.redis_queue.listen_for_retries()
+        except Exception as e:
+            self.logger.error(f"Retry listener error: {e}")
 
     async def _process_job(self, job_data: QueuedTask) -> None:
         task_id: str = job_data.task_id
@@ -63,50 +65,49 @@ class ProcessingWorker(BaseWorker):
         start_time = time.time()
 
         try:
-            self.logger.info("Processing job %s (task %s)", job_id, task_id)
+            self.logger.info("Processing job %s (task %s) - started instantly", job_id, task_id)
 
-            self.redis_queue.mark_job_processing(task_id)
+            await self.redis_queue.mark_job_processing(task_id, job_id)
             await self.job_service.mark_processing(job_id)
 
             result = await self.processing_service.process_resume(file_path=file_path, job_id=job_id)
 
-            # Convert ProcessingResult to dict for storage
             result_dict = {
                 "resume": result.resume.model_dump(),
-                "review": result.review.model_dump() if result.review else None,  # ReviewResult is Pydantic model
+                "review": result.review.model_dump() if result.review else None,
                 "metadata": asdict(result.metadata),
             }
 
-            self.redis_queue.mark_job_completed(task_id, result_dict)
+            await self.redis_queue.mark_job_completed(task_id, job_id, result_dict)
             await self.job_service.complete(job_id, result_dict)
 
             processing_time = time.time() - start_time
             self.logger.info("Job %s completed successfully in %.2fs", job_id, processing_time)
 
-            self._schedule_cleanup(job_id)
+            await self._schedule_cleanup(job_id)
 
         except Exception as e:
             self.logger.exception("Job %s failed: %s", job_id, e)
-            self.redis_queue.mark_job_failed(task_id, str(e), retry=True)
+            await self.redis_queue.mark_job_failed(task_id, job_id, str(e), retry=True)
             await self.job_service.fail(job_id, str(e))
 
-    def _schedule_cleanup(self, job_id: str):
+    async def _schedule_cleanup(self, job_id: str):
         try:
             from processor.models import CleanupTask
 
             cleanup_delay = settings.JOB_CLEANUP_DELAY_HOURS
             cleanup_task = CleanupTask(job_id=job_id, cleanup_time=time.time() + (cleanup_delay * 3600))
-            self.redis_queue.schedule_cleanup(cleanup_task)
+            await self.redis_queue.schedule_cleanup(cleanup_task)
             self.logger.info("Scheduled cleanup for job %s in %d hours", job_id, cleanup_delay)
         except Exception as e:
             self.logger.warning("Failed to schedule cleanup for job %s: %s", job_id, e)
 
     async def startup(self):
-        """No async initialization needed."""
-        pass
+        """Initialize Redis connections"""
+        await self.redis_queue.get_redis()
+        self.logger.info("Redis connections initialized")
 
     async def shutdown(self):
-        """Wait for active tasks to complete."""
-        if self.active_tasks:
-            self.logger.info("Waiting for %d active tasks to complete", len(self.active_tasks))
-            await asyncio.gather(*self.active_tasks, return_exceptions=True)
+        """Clean shutdown"""
+        self.running = False
+        await self.redis_queue.close()

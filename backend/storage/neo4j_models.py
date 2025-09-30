@@ -115,9 +115,8 @@ class ProfessionalProfileNode(StructuredNode):
 
 
 class EmploymentDurationNode(StructuredNode):
-    date_format = StringProperty(required=True)
-    start = StringProperty(required=True)
-    end = StringProperty(required=True)
+    start = StringProperty(required=True)  # Format: YYYY.MM
+    end = StringProperty()  # Format: YYYY.MM or None for ongoing
     duration_months = IntegerProperty(required=True)
 
 
@@ -164,8 +163,8 @@ class EducationExtraNode(StructuredNode):
 class EducationItemNode(StructuredNode):
     qualification = StringProperty()
     field = StringProperty(required=True)
-    start = StringProperty()
-    end = StringProperty()
+    start = StringProperty()  # Format: YYYY.MM
+    end = StringProperty()  # Format: YYYY.MM or None for in-progress
     status = StringProperty(required=True, choices=EDUCATION_STATUS_CHOICES)
     coursework = RelationshipTo("CourseworkNode", "INCLUDES_COURSEWORK")
     extras = RelationshipTo("EducationExtraNode", "HAS_EXTRA")

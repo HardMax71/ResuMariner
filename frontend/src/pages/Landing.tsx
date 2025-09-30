@@ -2,52 +2,33 @@ import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../lib/api";
 import {
-  SiDjango,
-  SiRedis,
-  SiReact,
-  SiPostgresql,
-  SiDocker
-} from 'react-icons/si';
-import { TbVectorTriangle } from 'react-icons/tb';
-import { BiNetworkChart } from 'react-icons/bi';
-import { GrGraphQl } from 'react-icons/gr';
+  Search,
+  Network,
+  Zap,
+  Database,
+  GitBranch,
+  Cpu,
+  Shield,
+  Globe,
+  ArrowRight,
+  CheckCircle2,
+  XCircle,
+  Terminal,
+  Code2,
+  Sparkles
+} from 'lucide-react';
 
 export default function Landing() {
   const [visibleSections, setVisibleSections] = useState(new Set<string>());
   const [activeTab, setActiveTab] = useState<'curl' | 'python' | 'node'>('curl');
   const [copiedCode, setCopiedCode] = useState(false);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
-  const [currentPage, setCurrentPage] = useState(0);
 
   // Window resize handler
   useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-
+    const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Track current page for scroll indicator
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollContainer = document.querySelector('div[style*="scroll-snap-type"]');
-      if (scrollContainer) {
-        const scrollTop = scrollContainer.scrollTop;
-        const pageHeight = window.innerHeight - 64; // minus header height
-        const page = Math.round(scrollTop / pageHeight);
-        setCurrentPage(page);
-      }
-    };
-
-    const scrollContainer = document.querySelector('div[style*="scroll-snap-type"]');
-    if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', handleScroll);
-      return () => scrollContainer.removeEventListener('scroll', handleScroll);
-    }
   }, []);
 
   // Intersection observer for scroll animations
@@ -63,27 +44,8 @@ export default function Landing() {
       { threshold: 0.1 }
     );
 
-    document.querySelectorAll('.observe-me').forEach(el => {
-      observer.observe(el);
-    });
-
+    document.querySelectorAll('.observe-me').forEach(el => observer.observe(el));
     return () => observer.disconnect();
-  }, []);
-
-  // Mouse tracking for hero gradient
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (heroRef.current) {
-        const rect = heroRef.current.getBoundingClientRect();
-        setMousePosition({
-          x: ((e.clientX - rect.left) / rect.width) * 100,
-          y: ((e.clientY - rect.top) / rect.height) * 100
-        });
-      }
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   const copyCode = () => {
@@ -94,14 +56,14 @@ export default function Landing() {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const curlExample = `curl -X POST http://localhost:8000/api/v1/upload/ \\
+  const curlExample = `curl -X POST ${API_BASE_URL}/api/v1/upload/ \\
   -H "Content-Type: multipart/form-data" \\
   -F "file=@resume.pdf"`;
 
   const pythonExample = `import requests
 
 response = requests.post(
-    'http://localhost:8000/api/v1/upload/',
+    '${API_BASE_URL}/api/v1/upload/',
     files={'file': open('resume.pdf', 'rb')}
 )
 print(response.json())`;
@@ -112,7 +74,7 @@ const fs = require('fs');
 const form = new FormData();
 form.append('file', fs.createReadStream('resume.pdf'));
 
-fetch('http://localhost:8000/api/v1/upload/', {
+fetch('${API_BASE_URL}/api/v1/upload/', {
   method: 'POST',
   body: form
 }).then(r => r.json()).then(console.log);`;
@@ -125,436 +87,643 @@ fetch('http://localhost:8000/api/v1/upload/', {
       right: 0,
       bottom: 0,
       overflowY: 'auto',
-      scrollSnapType: 'y mandatory',
-      scrollBehavior: 'smooth'
+      overflowX: 'hidden'
     }}>
-      {/* Fixed scroll indicator - hidden on last page */}
-      {currentPage < 3 && (
-        <div style={{
-          position: 'fixed',
-          bottom: '40px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '8px',
-          cursor: 'pointer',
-          zIndex: 1000,
-          opacity: currentPage === 3 ? 0 : 1,
-          transition: 'opacity 0.3s ease'
-        }}
-        onClick={() => {
-          const scrollContainer = document.querySelector('div[style*="scroll-snap-type"]');
-          if (scrollContainer) {
-            const currentScroll = scrollContainer.scrollTop;
-            const pageHeight = window.innerHeight - 64; // minus header height
-            const currentPage = Math.round(currentScroll / pageHeight);
-            const nextPage = currentPage < 3 ? currentPage + 1 : 0;
-            scrollContainer.scrollTo({ top: nextPage * pageHeight, behavior: 'smooth' });
-          }
-        }}>
-        <span style={{
-          fontSize: 'var(--text-xs)',
-          color: 'var(--gray-600)',
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-          fontWeight: 500
-        }}>Scroll</span>
-        <div style={{
-          width: '24px',
-          height: '40px',
-          border: '2px solid var(--gray-400)',
-          borderRadius: '12px',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            width: '4px',
-            height: '8px',
-            background: 'var(--gray-600)',
-            borderRadius: '2px',
-            position: 'absolute',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            animation: 'scroll-down 2s ease-in-out infinite'
-          }} />
-        </div>
-      </div>
-      )}
-
-      {/* Page 1: Hero Section with Dynamic Gradient */}
-      <section
-        ref={heroRef}
-        className="observe-me fullpage-section"
-        id="hero"
-        style={{
-          background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%,
-            rgba(59, 130, 246, 0.08) 0%,
-            transparent 50%),
-            var(--gray-50)`,
-          height: 'calc(100vh - var(--space-8))',
-          display: 'flex',
-          alignItems: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-          transition: 'background 0.3s ease',
-          scrollSnapAlign: 'start',
-          scrollSnapStop: 'always'
-        }}
-      >
-        <div className="container" style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center' }}>
-          <div style={{ maxWidth: '800px', width: '100%', textAlign: 'center' }}>
-            {/* Dev-focused tagline */}
-            <div
-              className={`${visibleSections.has('hero') ? 'fade-in-up' : 'opacity-0'}`}
-              style={{
-                marginBottom: 'var(--space-3)',
-                animationDelay: '0.1s'
-              }}
-            >
-              <span style={{
-                fontSize: 'var(--text-sm)',
-                fontWeight: 500,
-                color: 'var(--blue-600)',
-                background: 'var(--blue-50)',
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-full)',
-                display: 'inline-block'
-              }}>
-                🚀 v2.0 - Now 3x faster with Django monolith
-              </span>
-            </div>
-
-            <h1
-              className={`${visibleSections.has('hero') ? 'fade-in-up' : 'opacity-0'}`}
-              style={{
-                fontSize: 'clamp(2.5rem, 8vw, 4.5rem)',
-                fontWeight: 800,
-                lineHeight: 1.1,
-                marginBottom: 'var(--space-3)',
-                background: 'linear-gradient(135deg, var(--gray-900) 0%, var(--gray-700) 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                animationDelay: '0.2s'
-              }}
-            >
-              CV Processing
-              <br />
-              <span style={{
-                background: 'linear-gradient(135deg, var(--blue-600) 0%, var(--blue-500) 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}>
-                That Actually Works
-              </span>
-            </h1>
-
-            <p
-              className={`${visibleSections.has('hero') ? 'fade-in-up' : 'opacity-0'}`}
-              style={{
-                fontSize: 'var(--text-lg)',
-                color: 'var(--gray-600)',
-                marginBottom: 'var(--space-4)',
-                maxWidth: '600px',
-                margin: '0 auto var(--space-4)',
-                lineHeight: 1.7,
-                animationDelay: '0.3s'
-              }}
-            >
-              Stop regex-ing through PDFs like it's 2010.
-              Let LLMs handle the messy parts while Neo4j and Qdrant do what they do best -
-              finding connections and semantic meaning in your candidate data.
-            </p>
-
-            <div
-              className={`flex gap-3 flex-wrap ${visibleSections.has('hero') ? 'fade-in-up' : 'opacity-0'}`}
-              style={{ animationDelay: '0.4s', justifyContent: 'center' }}
-            >
-              <Link
-                to="/upload"
-                className="btn"
-                style={{
-                  padding: '14px 28px',
-                  fontSize: 'var(--text-base)',
-                  fontWeight: 600,
-                  background: 'var(--blue-600)',
-                  color: 'white',
-                  border: 'none',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  transition: 'transform 0.2s, box-shadow 0.2s'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 10px 20px rgba(59, 130, 246, 0.3)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                Upload Your First CV
-                <span style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: '-100%',
-                  width: '100%',
-                  height: '100%',
-                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                  animation: 'shimmer 3s infinite'
-                }} />
-              </Link>
-
-              <Link
-                to="/search"
-                className="btn ghost"
-                style={{
-                  padding: '14px 28px',
-                  fontSize: 'var(--text-base)',
-                  fontWeight: 600,
-                  border: '2px solid var(--gray-300)',
-                  background: 'white',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = 'var(--blue-600)';
-                  e.currentTarget.style.color = 'var(--blue-600)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'var(--gray-300)';
-                  e.currentTarget.style.color = '';
-                }}
-              >
-                Try Search Demo
-              </Link>
-
-              <a
-                href="https://github.com/HardMax71/ResuMariner"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn ghost"
-                style={{
-                  padding: windowWidth < 480 ? '12px 20px' : '14px 28px',
-                  fontSize: windowWidth < 480 ? 'var(--text-sm)' : 'var(--text-base)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
-                Star on GitHub
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Animated background elements */}
-        <div style={{
-          position: 'absolute',
-          top: '20%',
-          right: '-100px',
-          width: '400px',
-          height: '400px',
-          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
-          borderRadius: '50%',
-          animation: 'float 20s ease-in-out infinite'
-        }} />
-        <div style={{
-          position: 'absolute',
-          bottom: '10%',
-          left: '-150px',
-          width: '500px',
-          height: '500px',
-          background: 'radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%)',
-          borderRadius: '50%',
-          animation: 'float 25s ease-in-out infinite reverse'
-        }} />
-      </section>
-
-      {/* Page 2: Problem/Solution + Code Integration */}
-      <div
-        id="page2"
-        className="fullpage-section"
-        style={{
-          height: 'calc(100vh - var(--space-8))',
-          scrollSnapAlign: 'start',
-          scrollSnapStop: 'always',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        {/* Problem/Solution Section */}
-        <section className="observe-me" id="problem" style={{ padding: '40px 0', flex: '0 0 50%', display: 'flex', alignItems: 'center', background: 'white' }}>
-          <div className="container">
-          <div className="grid grid-2" style={{ gap: windowWidth < 768 ? 'var(--space-4)' : 'var(--space-6)', alignItems: 'stretch' }}>
-            <div style={{ animation: 'fade-in-right 0.6s ease-out', animationFillMode: 'both', display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div style={{ height: '20px', marginBottom: 'var(--space-2)' }}>
-                <span style={{
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 600,
-                  color: 'var(--red-600)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px'
-                }}>
-                  The Problem
-                </span>
-              </div>
-              <div style={{ height: '72px', marginBottom: 'var(--space-6)' }}>
-                <h2 style={{
-                  fontSize: 'var(--text-3xl)',
-                  fontWeight: 700,
-                  color: 'var(--gray-900)',
-                  margin: 0,
-                  lineHeight: 1.2
-                }}>
-                  Your ATS thinks "Python" and "python" are different skills
-                </h2>
-              </div>
-              <div style={{ flex: 1, marginBottom: 'var(--space-3)' }}>
-                <p style={{
-                  fontSize: 'var(--text-base)',
-                  color: 'var(--gray-600)',
-                  lineHeight: 1.7,
-                  margin: 0
-                }}>
-                  Traditional resume parsers use regex patterns from the stone age.
-                  They miss context, can't handle variations, and definitely can't understand
-                  that "10 years building distributed systems" is more valuable than listing "Kafka" as a keyword.
-                </p>
-              </div>
-              <div style={{
-                padding: 'var(--space-3)',
-                background: 'var(--red-50)',
-                borderLeft: '3px solid var(--red-500)',
-                borderRadius: 'var(--radius-sm)'
-              }}>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--red-800)', margin: 0 }}>
-                  <strong>Fun fact:</strong> Most ATS systems would reject their own developers' resumes.
-                </p>
-              </div>
-            </div>
-
-            <div style={{ animation: 'fade-in-left 0.6s ease-out', animationDelay: '0.2s', animationFillMode: 'both', display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div style={{ height: '20px', marginBottom: 'var(--space-2)' }}>
-                <span style={{
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 600,
-                  color: 'var(--green-600)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px'
-                }}>
-                  Our Solution
-                </span>
-              </div>
-              <div style={{ height: '72px', marginBottom: 'var(--space-6)' }}>
-                <h2 style={{
-                  fontSize: 'var(--text-3xl)',
-                  fontWeight: 700,
-                  color: 'var(--gray-900)',
-                  margin: 0,
-                  lineHeight: 1.2
-                }}>
-                  LLMs that understand context + Graph DB that maps relationships
-                </h2>
-              </div>
-              <div style={{ flex: 1, marginBottom: 'var(--space-3)' }}>
-                <p style={{
-                  fontSize: 'var(--text-base)',
-                  color: 'var(--gray-600)',
-                  lineHeight: 1.7,
-                  margin: 0
-                }}>
-                  We let GPT-4 handle the messy parsing (it's good at that),
-                  store relationships in Neo4j (because skills are connected),
-                  and use vector embeddings for semantic search (because "Python developer"
-                  should match "Django expert").
-                </p>
-              </div>
-              <div style={{
-                padding: 'var(--space-3)',
-                background: 'var(--green-50)',
-                borderLeft: '3px solid var(--green-500)',
-                borderRadius: 'var(--radius-sm)'
-              }}>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--green-800)', margin: 0 }}>
-                  <strong>Result:</strong> Find the senior backend engineer who never wrote "senior backend engineer" on their resume.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Interactive Code Example */}
+      {/* PAGE 1: HERO - Dark with Diagonal Gradient */}
       <section
         className="observe-me"
-        id="code"
+        id="hero"
         style={{
-          background: 'var(--gray-900)',
-          padding: '40px 0',
+          minHeight: '100vh',
           position: 'relative',
+          background: 'linear-gradient(135deg, var(--neutral-950) 0%, var(--neutral-900) 50%, var(--primary-950) 100%)',
+          padding: '100px 0 180px 0',
           overflow: 'hidden',
-          flex: '0 0 50%',
           display: 'flex',
           alignItems: 'center'
         }}
       >
-        <div className="container">
-          <div className={visibleSections.has('code') ? 'fade-in-up' : 'opacity-0'}>
-            <h2 style={{
-              fontSize: 'var(--text-3xl)',
-              fontWeight: 700,
-              marginBottom: 'var(--space-2)',
-              color: 'white',
-              textAlign: 'center'
-            }}>
-              Integration in 30 seconds
-            </h2>
-            <p style={{
-              fontSize: 'var(--text-base)',
-              color: 'var(--gray-400)',
-              textAlign: 'center',
-              marginBottom: 'var(--space-4)'
-            }}>
-              RESTful API that your intern can integrate. Promise.
-            </p>
+        {/* Diagonal gradient overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'linear-gradient(135deg, transparent 0%, var(--primary-950) 100%)',
+          opacity: 0.3,
+          pointerEvents: 'none'
+        }} />
 
-            <div style={{
-              maxWidth: '800px',
-              margin: '0 auto',
-              background: 'var(--gray-800)',
-              borderRadius: 'var(--radius-md)',
-              overflow: 'hidden',
-              border: '1px solid var(--gray-700)'
-            }}>
-              {/* Code editor tabs */}
+        {/* Grid pattern overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `linear-gradient(var(--neutral-800) 1px, transparent 1px),
+                           linear-gradient(90deg, var(--neutral-800) 1px, transparent 1px)`,
+          backgroundSize: '50px 50px',
+          opacity: 0.05,
+          pointerEvents: 'none'
+        }} />
+
+        <div className="container" style={{ position: 'relative', zIndex: 1, width: '100%' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: windowWidth < 968 ? '1fr' : '1fr 1fr',
+            gap: 'var(--space-10)',
+            alignItems: 'start',
+            marginBottom: 'var(--space-10)'
+          }}>
+            {/* Left: Text Content */}
+            <div className={visibleSections.has('hero') ? 'fade-in' : 'opacity-0'}>
+              {/* Badge - positioned above heading */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                background: 'rgba(67, 56, 202, 0.15)',
+                border: '1.5px solid var(--primary-700)',
+                borderRadius: 'var(--radius-sm)',
+                marginBottom: 'var(--space-3)',
+                backdropFilter: 'blur(8px)'
+              }}>
+                <Sparkles size={16} color="var(--accent1-400)" />
+                <span style={{
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 700,
+                  color: 'var(--accent1-400)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  LLM-Powered
+                </span>
+              </div>
+
+              {/* Main Heading - aligns with terminal top */}
+              <h1 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
+                fontWeight: 800,
+                lineHeight: 1.1,
+                marginBottom: 'var(--space-4)',
+                color: 'var(--neutral-0)',
+                letterSpacing: '-0.03em'
+              }}>
+                The Resume Parser
+                <br />
+                <span style={{
+                  background: 'linear-gradient(135deg, var(--primary-400) 0%, var(--accent1-400) 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}>
+                  Built for Scale
+                </span>
+              </h1>
+
+              <p style={{
+                fontSize: 'var(--text-xl)',
+                color: 'var(--neutral-300)',
+                marginBottom: 'var(--space-6)',
+                lineHeight: 1.7,
+                maxWidth: '540px'
+              }}>
+                Vector search, graph relationships, and LLM extraction.
+                Process thousands of resumes with enterprise-grade accuracy.
+              </p>
+
+              {/* Tech Stack Pills - match button width */}
               <div style={{
                 display: 'flex',
-                background: 'var(--gray-900)',
-                borderBottom: '1px solid var(--gray-700)',
-                padding: 0
+                gap: 'var(--space-2)',
+                marginBottom: 'var(--space-6)',
+                flexWrap: 'wrap',
+                maxWidth: '465px'
               }}>
-                {(['curl', 'python', 'node'] as const).map((lang, idx) => (
+                {[
+                  { icon: <Search size={16} />, label: 'Vector Search' },
+                  { icon: <Network size={16} />, label: 'Graph DB' },
+                  { icon: <Zap size={16} />, label: 'Sub-30s' }
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid var(--neutral-700)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 600,
+                      color: 'var(--neutral-200)',
+                      transition: 'all 0.3s'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(67, 56, 202, 0.2)';
+                      e.currentTarget.style.borderColor = 'var(--primary-600)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                      e.currentTarget.style.borderColor = 'var(--neutral-700)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+
+              {/* CTAs */}
+              <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                <Link
+                  to="/upload"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '14px 28px',
+                    fontSize: 'var(--text-lg)',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, var(--primary-700) 0%, var(--primary-600) 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    textDecoration: 'none',
+                    transition: 'all 0.3s',
+                    boxShadow: '0 8px 24px rgba(67, 56, 202, 0.4)'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(67, 56, 202, 0.5)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(67, 56, 202, 0.4)';
+                  }}
+                >
+                  Start Processing
+                  <ArrowRight size={20} />
+                </Link>
+
+                <Link
+                  to="/search"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '14px 28px',
+                    fontSize: 'var(--text-lg)',
+                    fontWeight: 700,
+                    background: 'transparent',
+                    color: 'var(--neutral-0)',
+                    border: '1.5px solid var(--neutral-600)',
+                    borderRadius: 'var(--radius-sm)',
+                    textDecoration: 'none',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'var(--neutral-0)';
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'var(--neutral-600)';
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  Search Demo
+                </Link>
+              </div>
+            </div>
+
+            {/* Right: Terminal Mockup */}
+            <div
+              className={visibleSections.has('hero') ? 'fade-in' : 'opacity-0'}
+              style={{
+                animationDelay: '0.2s'
+              }}
+            >
+              <div style={{
+                background: 'var(--neutral-900)',
+                border: '1.5px solid var(--neutral-700)',
+                borderRadius: 'var(--radius-lg)',
+                overflow: 'hidden',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+                minHeight: '400px'
+              }}>
+                {/* Terminal Header */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 16px',
+                  background: 'var(--neutral-800)',
+                  borderBottom: '1px solid var(--neutral-700)'
+                }}>
+                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ff5f56' }} />
+                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffbd2e' }} />
+                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#27c93f' }} />
+                  <span style={{
+                    marginLeft: 'auto',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--neutral-500)',
+                    fontFamily: 'var(--font-mono)'
+                  }}>
+                    resumariner.sh
+                  </span>
+                </div>
+
+                {/* Terminal Content */}
+                <div style={{
+                  padding: 'var(--space-4)',
+                  fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace",
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  color: 'var(--neutral-300)'
+                }}>
+                  <div style={{ marginBottom: '4px' }}>
+                    <span style={{ color: 'var(--accent1-400)' }}>$</span>
+                    <span style={{ color: 'var(--neutral-0)' }}> curl -X POST /api/v1/upload \</span>
+                  </div>
+                  <div style={{ marginBottom: '16px', paddingLeft: '16px' }}>
+                    <span style={{ color: 'var(--neutral-0)' }}>-F "file=@resume.pdf"</span>
+                  </div>
+                  <div style={{ marginBottom: '24px', color: 'var(--neutral-500)', fontSize: '14px', lineHeight: '1.6' }}>
+                    Processing...
+                  </div>
+
+                  {/* Response visualization */}
+                  <div style={{
+                    background: 'rgba(67, 56, 202, 0.1)',
+                    border: '1px solid var(--primary-700)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '12px'
+                  }}>
+                    <div style={{ marginBottom: '8px', fontSize: '14px', lineHeight: '1.6' }}>
+                      <span style={{ color: 'var(--primary-400)' }}>"job_id"</span>
+                      <span style={{ color: 'var(--neutral-500)' }}>: </span>
+                      <span style={{ color: 'var(--accent1-400)' }}>"abc-123"</span>
+                    </div>
+                    <div style={{ marginBottom: '8px', fontSize: '14px', lineHeight: '1.6' }}>
+                      <span style={{ color: 'var(--primary-400)' }}>"status"</span>
+                      <span style={{ color: 'var(--neutral-500)' }}>: </span>
+                      <span style={{ color: 'var(--accent1-400)' }}>"completed"</span>
+                    </div>
+                    <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                      <span style={{ color: 'var(--primary-400)' }}>"processing_time"</span>
+                      <span style={{ color: 'var(--neutral-500)' }}>: </span>
+                      <span style={{ color: 'var(--accent1-400)' }}>"28s"</span>
+                    </div>
+                  </div>
+
+                  {/* Blinking cursor */}
+                  <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', height: '22px' }}>
+                    <span style={{ color: 'var(--accent1-400)', fontSize: '14px', lineHeight: '1.6' }}>$</span>
+                    <span style={{
+                      display: 'inline-block',
+                      width: '9px',
+                      height: '18px',
+                      background: 'var(--neutral-0)',
+                      marginLeft: '6px',
+                      animation: 'cursor-blink 1s infinite',
+                      verticalAlign: 'middle'
+                    }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Bar - now flows with content */}
+          <div
+            className={visibleSections.has('hero') ? 'fade-in' : 'opacity-0'}
+            style={{
+              animationDelay: '0.4s'
+            }}
+          >
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: windowWidth < 968 ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+              gap: 'var(--space-4)',
+              padding: 'var(--space-5)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--neutral-700)',
+              borderRadius: 'var(--radius-lg)',
+              backdropFilter: 'blur(12px)'
+            }}>
+                {[
+                  { value: '<30s', label: 'Avg Processing', icon: <Zap size={20} color="var(--accent1-400)" /> },
+                  { value: '768D', label: 'Vector Dimensions', icon: <Database size={20} color="var(--primary-400)" /> },
+                  { value: 'Unlimited', label: 'Graph Relations', icon: <Network size={20} color="var(--accent2-400)" /> },
+                  { value: 'MIT', label: 'Open Source', icon: <Globe size={20} color="var(--success)" /> }
+                ].map((stat, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      textAlign: 'center',
+                      padding: 'var(--space-2)'
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      marginBottom: 'var(--space-2)'
+                    }}>
+                      {stat.icon}
+                    </div>
+                    <div style={{
+                      fontSize: 'var(--text-3xl)',
+                      fontWeight: 800,
+                      color: 'var(--neutral-0)',
+                      marginBottom: '4px',
+                      fontFamily: 'var(--font-display)',
+                      lineHeight: '1.2',
+                      minHeight: '45px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {stat.value}
+                    </div>
+                    <div style={{
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--neutral-400)',
+                      fontWeight: 500
+                    }}>
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PAGE 2: PROBLEM / SOLUTION - Diagonal Dividers */}
+      <section
+        className="observe-me"
+        id="problem-solution"
+        style={{
+          position: 'relative',
+          background: 'var(--neutral-0)'
+        }}
+      >
+        {/* Problem Section */}
+        <div style={{
+          background: 'linear-gradient(135deg, #fecaca 0%, #fca5a5 50%, #f87171 100%)',
+          padding: '80px 0',
+          clipPath: 'polygon(0 0, 100% 0, 100% 95%, 0 100%)',
+          marginBottom: '-40px'
+        }}>
+          <div className="container">
+            <div style={{
+              maxWidth: '900px',
+              margin: '0 auto',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                background: '#dc2626',
+                borderRadius: 'var(--radius-sm)',
+                marginBottom: 'var(--space-3)'
+              }}>
+                <XCircle size={16} color="#ffffff" />
+                <span style={{
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  The Problem
+                </span>
+              </div>
+
+              <h2 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                fontWeight: 800,
+                color: '#7f1d1d',
+                marginBottom: 'var(--space-4)',
+                lineHeight: 1.2
+              }}>
+                Traditional ATS Loses 40% of
+                <br />
+                Qualified Candidates
+              </h2>
+
+              <p style={{
+                fontSize: 'var(--text-xl)',
+                color: '#991b1b',
+                lineHeight: 1.7,
+                marginBottom: 'var(--space-5)'
+              }}>
+                Regex patterns miss context. Keyword matching fails on synonyms.
+                Your perfect candidate gets filtered out because they wrote
+                "React.js" instead of "ReactJS".
+              </p>
+
+              <div style={{
+                display: 'inline-block',
+                padding: 'var(--space-3) var(--space-4)',
+                background: 'white',
+                border: '2px solid #dc2626',
+                borderRadius: 'var(--radius-sm)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-lg)',
+                color: '#991b1b',
+                fontWeight: 600
+              }}>
+                "Python" !== "python" !== "Python3"
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Solution Section */}
+        <div style={{
+          background: 'linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 50%, #818cf8 100%)',
+          padding: '100px 0 80px 0',
+          clipPath: 'polygon(0 5%, 100% 0, 100% 100%, 0 100%)'
+        }}>
+          <div className="container">
+            <div style={{
+              maxWidth: '900px',
+              margin: '0 auto',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                background: '#4338ca',
+                borderRadius: 'var(--radius-sm)',
+                marginBottom: 'var(--space-3)'
+              }}>
+                <CheckCircle2 size={16} color="#ffffff" />
+                <span style={{
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Our Solution
+                </span>
+              </div>
+
+              <h2 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                fontWeight: 800,
+                color: '#312e81',
+                marginBottom: 'var(--space-4)',
+                lineHeight: 1.2
+              }}>
+                LLM-Powered Semantic
+                <br />
+                Understanding
+              </h2>
+
+              <p style={{
+                fontSize: 'var(--text-xl)',
+                color: '#3730a3',
+                lineHeight: 1.7,
+                marginBottom: 'var(--space-5)'
+              }}>
+                Vector embeddings understand meaning. Graph databases map relationships.
+                Find "ML engineer" when they wrote "deep learning specialist".
+              </p>
+
+              <div style={{
+                display: 'inline-block',
+                padding: 'var(--space-3) var(--space-4)',
+                background: 'white',
+                border: '2px solid #4338ca',
+                borderRadius: 'var(--radius-sm)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-lg)',
+                color: '#3730a3',
+                fontWeight: 600
+              }}>
+                Python ≈ python ≈ Python3 ≈ py
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PAGE 2.5: CODE INTEGRATION - Dark Section */}
+      <section
+        className="observe-me"
+        id="code"
+        style={{
+          background: 'linear-gradient(135deg, var(--neutral-900) 0%, var(--neutral-950) 100%)',
+          padding: '80px 0',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Grid overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `linear-gradient(var(--neutral-800) 1px, transparent 1px),
+                           linear-gradient(90deg, var(--neutral-800) 1px, transparent 1px)`,
+          backgroundSize: '40px 40px',
+          opacity: 0.05
+        }} />
+
+        <div className="container" style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              background: 'rgba(245, 158, 11, 0.15)',
+              border: '1.5px solid var(--accent1-600)',
+              borderRadius: 'var(--radius-sm)',
+              marginBottom: 'var(--space-4)'
+            }}>
+              <Code2 size={16} color="var(--accent1-400)" />
+              <span style={{
+                fontSize: 'var(--text-sm)',
+                fontWeight: 700,
+                color: 'var(--accent1-400)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                Developer First
+              </span>
+            </div>
+
+            <h2 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+              fontWeight: 800,
+              color: 'var(--neutral-0)',
+              marginBottom: 'var(--space-3)',
+              lineHeight: 1.2
+            }}>
+              Deploy in 30 Seconds
+            </h2>
+
+            <p style={{
+              fontSize: 'var(--text-lg)',
+              color: 'var(--neutral-400)',
+              marginBottom: 'var(--space-6)',
+              lineHeight: 1.7
+            }}>
+              Simple REST API. Your backend dev can integrate it before lunch.
+            </p>
+
+            {/* Code tabs and content */}
+            <div style={{
+              background: 'var(--neutral-800)',
+              border: '1px solid var(--neutral-700)',
+              borderRadius: 'var(--radius-lg)',
+              overflow: 'hidden',
+              textAlign: 'left',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+            }}>
+              {/* Tabs */}
+              <div style={{
+                display: 'flex',
+                borderBottom: '1px solid var(--neutral-700)',
+                background: 'var(--neutral-900)'
+              }}>
+                {(['curl', 'python', 'node'] as const).map(lang => (
                   <button
                     key={lang}
                     onClick={() => setActiveTab(lang)}
                     style={{
-                      padding: 'var(--space-2) var(--space-3)',
-                      paddingLeft: idx === 0 ? 'var(--space-2)' : 'var(--space-3)',
-                      background: activeTab === lang ? 'var(--gray-800)' : 'transparent',
-                      color: activeTab === lang ? 'white' : 'var(--gray-500)',
+                      padding: '12px 24px',
+                      background: activeTab === lang ? 'var(--neutral-800)' : 'transparent',
+                      color: activeTab === lang ? 'var(--neutral-0)' : 'var(--neutral-500)',
                       border: 'none',
-                      borderBottom: activeTab === lang ? '2px solid var(--blue-500)' : '2px solid transparent',
+                      borderBottom: activeTab === lang ? '2px solid var(--primary-600)' : '2px solid transparent',
                       fontSize: 'var(--text-sm)',
-                      fontWeight: 500,
+                      fontWeight: 600,
                       cursor: 'pointer',
                       transition: 'all 0.2s',
+                      fontFamily: 'var(--font-body)',
                       textTransform: 'capitalize'
                     }}
                   >
@@ -565,47 +734,29 @@ fetch('http://localhost:8000/api/v1/upload/', {
                   onClick={copyCode}
                   style={{
                     marginLeft: 'auto',
-                    marginRight: 0,
-                    padding: 'var(--space-2)',
-                    background: copiedCode ? 'rgba(255,255,255,0.1)' : 'transparent',
-                    color: copiedCode ? 'white' : 'var(--gray-500)',
-                    border: copiedCode ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
-                    borderRadius: 'var(--radius-sm)',
+                    padding: '12px 24px',
+                    background: copiedCode ? 'rgba(67, 56, 202, 0.2)' : 'transparent',
+                    color: copiedCode ? 'var(--primary-400)' : 'var(--neutral-500)',
+                    border: 'none',
                     fontSize: 'var(--text-sm)',
+                    fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
+                    fontFamily: 'var(--font-body)'
                   }}
                 >
-                  {copiedCode ? (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <rect x="2" y="2" width="13" height="13" rx="2" ry="2" />
-                      </svg>
-                      Copy
-                    </>
-                  )}
+                  {copiedCode ? 'Copied' : 'Copy'}
                 </button>
               </div>
 
               {/* Code content */}
               <pre style={{
                 margin: 0,
-                padding: 'var(--space-3)',
+                padding: 'var(--space-4)',
                 fontSize: 'var(--text-sm)',
                 fontFamily: 'var(--font-mono)',
-                color: 'var(--gray-100)',
-                lineHeight: 1.6,
+                color: 'var(--neutral-200)',
+                lineHeight: 1.8,
                 overflowX: 'auto'
               }}>
                 <code>
@@ -618,814 +769,624 @@ fetch('http://localhost:8000/api/v1/upload/', {
 
             <p style={{
               textAlign: 'center',
-              marginTop: 'var(--space-3)',
-              color: 'var(--gray-500)',
-              fontSize: 'var(--text-sm)',
-              position: 'relative',
-              zIndex: 1
+              marginTop: 'var(--space-4)',
+              color: 'var(--neutral-500)',
+              fontSize: 'var(--text-base)'
             }}>
-              Full API docs at{' '}
+              Full documentation at{' '}
               <a
                 href={`${API_BASE_URL}/api/docs/`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
-                  color: 'var(--blue-400)',
+                  color: 'var(--primary-400)',
                   textDecoration: 'none',
                   fontFamily: 'var(--font-mono)',
-                  fontSize: '0.9em',
-                  padding: '2px 4px',
-                  background: 'rgba(59, 130, 246, 0.1)',
-                  borderRadius: 'var(--radius-sm)',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
-                  e.currentTarget.style.textDecoration = 'underline';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
-                  e.currentTarget.style.textDecoration = 'none';
+                  fontWeight: 600
                 }}
               >
                 /api/docs
-              </a>{' '}•
-              <span style={{ display: 'inline-block', paddingBottom: '60px' }}>
-                OpenAPI spec available •
-                Postman collection on request
-              </span>
+              </a>
             </p>
           </div>
         </div>
-
-        {/* Animated code lines in background */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          opacity: 0.05,
-          pointerEvents: 'none',
-          fontSize: '10px',
-          fontFamily: 'var(--font-mono)',
-          color: 'white',
-          lineHeight: 1.4,
-          whiteSpace: 'pre',
-          overflow: 'hidden'
-        }}>
-          {`const processResume = async (file) => {
-  const embeddings = await generateEmbeddings(file);
-  const entities = await extractEntities(file);
-  await neo4j.save(entities);
-  await qdrant.index(embeddings);
-  return { success: true };
-}`}
-        </div>
       </section>
-      </div>
 
-      {/* Page 3: Features Bento Box */}
+      {/* PAGE 3: FEATURES - Bento Grid */}
       <section
-        className="observe-me fullpage-section"
+        className="observe-me"
         id="features"
         style={{
-          height: 'calc(100vh - var(--space-8))',
-          padding: '60px 0',
-          scrollSnapAlign: 'start',
-          scrollSnapStop: 'always',
-          display: 'flex',
-          alignItems: 'center',
-          overflow: 'auto'
+          padding: '80px 0',
+          background: 'var(--neutral-0)',
+          position: 'relative'
         }}
       >
         <div className="container">
-          <h2 style={{
-            fontSize: 'var(--text-4xl)',
-            fontWeight: 700,
-            marginBottom: 'var(--space-2)',
-            textAlign: 'center',
-            color: 'var(--gray-900)'
-          }}>
-            Built for scale, designed for humans
-          </h2>
-          <p style={{
-            fontSize: 'var(--text-lg)',
-            color: 'var(--gray-600)',
-            textAlign: 'center',
-            marginBottom: 'var(--space-6)',
-            maxWidth: '600px',
-            margin: '0 auto var(--space-6)'
-          }}>
-            Every feature solves a real problem you've actually had with resume processing.
-          </p>
+          <div style={{ textAlign: 'center', marginBottom: 'var(--space-8)' }}>
+            <h2 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+              fontWeight: 800,
+              color: 'var(--neutral-900)',
+              marginBottom: 'var(--space-3)',
+              lineHeight: 1.2
+            }}>
+              Built for{' '}
+              <span style={{
+                background: 'linear-gradient(135deg, var(--primary-700) 0%, var(--accent1-500) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
+                Enterprise Scale
+              </span>
+            </h2>
+            <p style={{
+              fontSize: 'var(--text-xl)',
+              color: 'var(--neutral-600)',
+              maxWidth: '700px',
+              margin: '0 auto'
+            }}>
+              Vector search + Graph relationships + Sub-30s processing.
+              Everything you need, nothing you don't.
+            </p>
+          </div>
 
+          {/* Bento Grid - Unequal Sizes */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: windowWidth < 768 ? '1fr' : 'repeat(3, 1fr)',
-            gap: 'var(--space-4)',
-            marginBottom: 'var(--space-4)'
+            gridTemplateRows: windowWidth < 768 ? 'auto' : 'repeat(2, 240px)',
+            gap: 'var(--space-4)'
           }}>
-            {/* Large feature - spans full width */}
+            {/* Large Feature 1 - Spans 2 columns */}
             <div
-              className={`${visibleSections.has('features') ? 'scale-in' : 'opacity-0'}`}
+              className={visibleSections.has('features') ? 'fade-in' : 'opacity-0'}
               style={{
-                gridColumn: windowWidth < 768 ? 'span 1' : 'span 3',
+                gridColumn: windowWidth < 768 ? 'span 1' : 'span 2',
+                gridRow: 'span 1',
+                background: 'linear-gradient(135deg, var(--primary-950) 0%, var(--primary-900) 100%)',
+                border: '1.5px solid var(--primary-700)',
+                borderRadius: 'var(--radius-lg)',
                 padding: 'var(--space-4)',
-                background: 'linear-gradient(135deg, var(--blue-50) 0%, var(--purple-50) 100%)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--blue-100)',
                 position: 'relative',
                 overflow: 'hidden',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                cursor: 'pointer',
-                animationDelay: '0.1s'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'scale(1.02)';
-                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.1)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-              onMouseMove={e => {
-                // 3D tilt effect on hover
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width - 0.5) * 10;
-                const y = ((e.clientY - rect.top) / rect.height - 0.5) * -10;
-                e.currentTarget.style.transform = `scale(1.02) perspective(1000px) rotateY(${x}deg) rotateX(${y}deg)`;
+                animationDelay: '0.1s',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}
             >
-              <div style={{ position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    background: 'white',
-                    borderRadius: 'var(--radius-sm)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                  }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" strokeWidth="2">
-                      <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                      <path d="M2 17l10 5 10-5" />
-                      <path d="M2 12l10 5 10-5" />
-                    </svg>
-                  </div>
-                  <h3 style={{
-                    fontSize: 'var(--text-xl)',
-                    fontWeight: 700,
-                    color: 'var(--gray-900)',
-                    margin: 0
-                  }}>
-                    Multi-vector embedding strategy
-                  </h3>
-                </div>
-                <p style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--gray-700)',
-                  lineHeight: 1.5,
-                  marginBottom: 'var(--space-3)'
-                }}>
-                  Each section of a resume gets its own embedding. Skills, experience, and education
-                  are indexed separately. This means searching for "React developer" actually finds React
-                  developers, not just people who mentioned React once in their hobbies section.
-                </p>
+              <div style={{ position: 'relative', zIndex: 1 }}>
                 <div style={{
+                  width: '44px',
+                  height: '44px',
+                  background: 'rgba(99, 102, 241, 0.2)',
+                  borderRadius: 'var(--radius-sm)',
                   display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 'var(--space-2)',
-                  flexWrap: 'wrap'
+                  marginBottom: 'var(--space-1)'
                 }}>
-                  <div style={{
-                    padding: '8px 12px',
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.2)',
-                    borderRadius: 'var(--radius-sm)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" strokeWidth="2">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                      <line x1="9" y1="9" x2="21" y2="9"/>
-                      <line x1="9" y1="15" x2="21" y2="15"/>
-                    </svg>
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--blue-700)', fontWeight: 500 }}>
-                      15-30 vectors/resume
-                    </span>
-                  </div>
-                  <div style={{
-                    padding: '8px 12px',
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.2)',
-                    borderRadius: 'var(--radius-sm)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10"/>
-                      <path d="M12 6v6l4 2"/>
-                    </svg>
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--blue-700)', fontWeight: 500 }}>
-                      384 dimensions
-                    </span>
-                  </div>
-                  <div style={{
-                    padding: '8px 12px',
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.2)',
-                    borderRadius: 'var(--radius-sm)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" strokeWidth="2">
-                      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                    </svg>
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--blue-700)', fontWeight: 500 }}>
-                      Cosine similarity
-                    </span>
-                  </div>
+                  <Search size={22} color="var(--primary-400)" />
                 </div>
+                <h3 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'var(--text-xl)',
+                  fontWeight: 800,
+                  color: 'var(--neutral-0)',
+                  marginBottom: 'var(--space-1)'
+                }}>
+                  Vector Search
+                </h3>
+                <p style={{
+                  fontSize: 'var(--text-base)',
+                  color: 'var(--neutral-300)',
+                  lineHeight: 1.6,
+                  marginBottom: 'var(--space-2)'
+                }}>
+                  Qdrant-powered semantic search. Find candidates by meaning, not keywords.
+                  768-dimensional embeddings capture context.
+                </p>
+              </div>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                background: 'rgba(245, 158, 11, 0.2)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 600,
+                color: 'var(--accent1-400)',
+                alignSelf: 'flex-start'
+              }}>
+                <Database size={14} />
+                Qdrant
               </div>
               <div style={{
                 position: 'absolute',
-                top: '-50px',
-                right: '-50px',
+                bottom: '-40px',
+                right: '-40px',
                 width: '200px',
                 height: '200px',
-                background: 'radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%)',
-                borderRadius: '50%'
+                background: 'radial-gradient(circle, var(--primary-600) 0%, transparent 70%)',
+                opacity: 0.2,
+                pointerEvents: 'none'
               }} />
             </div>
 
-            {/* Medium features */}
+            {/* Feature 2 - Now spans 2 rows */}
             <div
-              className={`${visibleSections.has('features') ? 'scale-in' : 'opacity-0'}`}
+              className={visibleSections.has('features') ? 'fade-in' : 'opacity-0'}
               style={{
-                padding: 'var(--space-3)',
+                gridRow: windowWidth < 768 ? 'span 1' : 'span 2',
+                background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                border: '1.5px solid var(--accent1-300)',
+                borderRadius: 'var(--radius-lg)',
+                padding: 'var(--space-5)',
+                transition: 'all 0.3s',
+                animationDelay: '0.2s',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  background: 'rgba(180, 83, 9, 0.15)',
+                  borderRadius: 'var(--radius-sm)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 'var(--space-2)'
+                }}>
+                  <Zap size={24} color="var(--accent1-700)" />
+                </div>
+                <h3 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'var(--text-xl)',
+                  fontWeight: 700,
+                  color: 'var(--neutral-900)',
+                  marginBottom: 'var(--space-2)'
+                }}>
+                  Sub-30s Processing
+                </h3>
+                <p style={{
+                  fontSize: 'var(--text-base)',
+                  color: 'var(--neutral-700)',
+                  lineHeight: 1.6,
+                  marginBottom: 'var(--space-3)'
+                }}>
+                  Async workers with Redis queue. Process thousands of resumes concurrently with automatic retry logic.
+                </p>
+              </div>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-1)'
+              }}>
+                {[
+                  { label: 'Redis Queue', icon: <Database size={14} /> },
+                  { label: 'Async Workers', icon: <Cpu size={14} /> },
+                  { label: 'Auto Retry', icon: <GitBranch size={14} /> },
+                  { label: 'Job Tracking', icon: <Terminal size={14} /> }
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: '8px 12px',
+                      background: 'rgba(255, 255, 255, 0.6)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(180, 83, 9, 0.2)',
+                      borderLeft: '3px solid var(--accent1-600)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: 600,
+                      color: 'var(--accent1-900)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Feature 3 */}
+            <div
+              className={visibleSections.has('features') ? 'fade-in' : 'opacity-0'}
+              style={{
                 background: 'white',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--gray-200)',
-                transition: 'transform 0.2s, box-shadow 0.2s',
+                border: '1.5px solid var(--neutral-200)',
+                borderRadius: 'var(--radius-lg)',
+                padding: 'var(--space-4)',
+                transition: 'all 0.3s',
+                animationDelay: '0.3s',
                 cursor: 'pointer',
-                animationDelay: '0.2s'
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.1)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.1)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  background: 'var(--green-50)',
-                  borderRadius: 'var(--radius-sm)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-600)" strokeWidth="2">
-                    <circle cx="12" cy="12" r="3" />
-                    <circle cx="12" cy="12" r="10" />
-                    <circle cx="12" cy="4" r="2" />
-                    <circle cx="20" cy="12" r="2" />
-                    <circle cx="12" cy="20" r="2" />
-                    <circle cx="4" cy="12" r="2" />
-                  </svg>
-                </div>
-                <h4 style={{
-                  fontSize: 'var(--text-lg)',
-                  fontWeight: 600,
-                  color: 'var(--gray-900)',
-                  margin: 0
-                }}>
-                  Graph relationships
-                </h4>
-              </div>
-              <p style={{
-                fontSize: 'var(--text-sm)',
-                color: 'var(--gray-600)',
-                lineHeight: 1.5
+              <div style={{
+                width: '44px',
+                height: '44px',
+                background: 'rgba(225, 29, 72, 0.1)',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 'var(--space-2)'
               }}>
-                Skills → Companies → Roles all connected in Neo4j.
-                Find everyone who worked at a FAANG and then joined a startup.
+                <Network size={22} color="var(--accent2-600)" />
+              </div>
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-lg)',
+                fontWeight: 700,
+                color: 'var(--neutral-900)',
+                marginBottom: 'var(--space-1)'
+              }}>
+                Graph Relations
+              </h3>
+              <p style={{
+                fontSize: 'var(--text-base)',
+                color: 'var(--neutral-600)',
+                lineHeight: 1.6
+              }}>
+                Neo4j maps skills → companies → roles. Unlimited relationships.
               </p>
             </div>
 
+            {/* Large Feature 4 - Spans 2 rows */}
             <div
-              className={`${visibleSections.has('features') ? 'scale-in' : 'opacity-0'}`}
+              className={visibleSections.has('features') ? 'fade-in' : 'opacity-0'}
               style={{
-                padding: 'var(--space-3)',
-                background: 'white',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--gray-200)',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                cursor: 'pointer',
-                animationDelay: '0.3s'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.1)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  background: 'var(--purple-50)',
-                  borderRadius: 'var(--radius-sm)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple-600)" strokeWidth="2">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                    <line x1="12" y1="22.08" x2="12" y2="12" />
-                  </svg>
-                </div>
-                <h4 style={{
-                  fontSize: 'var(--text-lg)',
-                  fontWeight: 600,
-                  color: 'var(--gray-900)',
-                  margin: 0
-                }}>
-                  Smart deduplication
-                </h4>
-              </div>
-              <p style={{
-                fontSize: 'var(--text-sm)',
-                color: 'var(--gray-600)',
-                lineHeight: 1.5
-              }}>
-                Upload the same resume 10 times? We'll recognize it.
-                John Smith and John M. Smith with same email? Same person.
-              </p>
-            </div>
-
-            <div
-              className={`${visibleSections.has('features') ? 'scale-in' : 'opacity-0'}`}
-              style={{
-                padding: 'var(--space-3)',
-                background: 'white',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--gray-200)',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                cursor: 'pointer',
+                gridRow: windowWidth < 768 ? 'span 1' : 'span 2',
+                background: 'linear-gradient(135deg, var(--accent1-50) 0%, var(--accent1-100) 100%)',
+                border: '1.5px solid var(--accent1-300)',
+                borderRadius: 'var(--radius-lg)',
+                padding: 'var(--space-5)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
                 animationDelay: '0.4s'
               }}
+            >
+              <div>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  background: 'rgba(180, 83, 9, 0.15)',
+                  borderRadius: 'var(--radius-sm)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 'var(--space-2)'
+                }}>
+                  <Cpu size={24} color="var(--accent1-700)" />
+                </div>
+                <h3 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'var(--text-xl)',
+                  fontWeight: 700,
+                  color: 'var(--neutral-900)',
+                  marginBottom: 'var(--space-2)'
+                }}>
+                  LLM Extraction
+                </h3>
+                <p style={{
+                  fontSize: 'var(--text-base)',
+                  color: 'var(--neutral-700)',
+                  lineHeight: 1.6,
+                  marginBottom: 'var(--space-3)'
+                }}>
+                  Structured Pydantic models. Claude/GPT-4 parse with context awareness.
+                </p>
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 'var(--space-1)',
+                rowGap: 'var(--space-1)'
+              }}>
+                {[
+                  { label: 'Skills', icon: <Sparkles size={12} /> },
+                  { label: 'Experience', icon: <GitBranch size={12} /> },
+                  { label: 'Education', icon: <Code2 size={12} /> },
+                  { label: 'Projects', icon: <Terminal size={12} /> }
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: '6px 10px',
+                      background: 'rgba(255, 255, 255, 0.7)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(180, 83, 9, 0.25)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: 600,
+                      color: 'var(--accent1-900)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Feature 5 & 6 */}
+            <div
+              className={visibleSections.has('features') ? 'fade-in' : 'opacity-0'}
+              style={{
+                background: 'white',
+                border: '1.5px solid var(--neutral-200)',
+                borderRadius: 'var(--radius-lg)',
+                padding: 'var(--space-4)',
+                transition: 'all 0.3s',
+                animationDelay: '0.5s',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
               onMouseEnter={e => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.1)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.1)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  background: 'var(--orange-50)',
-                  borderRadius: 'var(--radius-sm)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange-600)" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                </div>
-                <h4 style={{
-                  fontSize: 'var(--text-lg)',
-                  fontWeight: 600,
-                  color: 'var(--gray-900)',
-                  margin: 0
-                }}>
-                  Batch processing
-                </h4>
-              </div>
-              <p style={{
-                fontSize: 'var(--text-sm)',
-                color: 'var(--gray-600)',
-                lineHeight: 1.5
+              <div style={{
+                width: '44px',
+                height: '44px',
+                background: 'rgba(67, 56, 202, 0.1)',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 'var(--space-2)'
               }}>
-                Process thousands of resumes in parallel. Automatic queuing, retry on failures, and real-time progress tracking.
+                <Shield size={22} color="var(--primary-700)" />
+              </div>
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-lg)',
+                fontWeight: 700,
+                color: 'var(--neutral-900)',
+                marginBottom: 'var(--space-1)'
+              }}>
+                Self-Hosted
+              </h3>
+              <p style={{
+                fontSize: 'var(--text-base)',
+                color: 'var(--neutral-600)',
+                lineHeight: 1.6
+              }}>
+                Your data never leaves your infrastructure. Full control.
+              </p>
+            </div>
+
+            <div
+              className={visibleSections.has('features') ? 'fade-in' : 'opacity-0'}
+              style={{
+                background: 'white',
+                border: '1.5px solid var(--neutral-200)',
+                borderRadius: 'var(--radius-lg)',
+                padding: 'var(--space-4)',
+                transition: 'all 0.3s',
+                animationDelay: '0.6s',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.1)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <div style={{
+                width: '44px',
+                height: '44px',
+                background: 'rgba(16, 185, 129, 0.1)',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 'var(--space-2)'
+              }}>
+                <Globe size={22} color="var(--success)" />
+              </div>
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-lg)',
+                fontWeight: 700,
+                color: 'var(--neutral-900)',
+                marginBottom: 'var(--space-1)'
+              }}>
+                Open Source
+              </h3>
+              <p style={{
+                fontSize: 'var(--text-base)',
+                color: 'var(--neutral-600)',
+                lineHeight: 1.6
+              }}>
+                MIT licensed. Inspect, modify, contribute. Zero vendor lock-in.
               </p>
             </div>
           </div>
-
-          {/* Small features grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: windowWidth < 768 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
-            gap: 'var(--space-3)'
-          }}>
-            {[
-              {
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                ),
-                text: 'Cost effective - $0.002/resume'
-              },
-              {
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                ),
-                text: 'Your data never leaves your servers'
-              },
-              {
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="12" y1="20" x2="12" y2="10" />
-                    <line x1="18" y1="20" x2="18" y2="4" />
-                    <line x1="6" y1="20" x2="6" y2="16" />
-                  </svg>
-                ),
-                text: 'Real-time processing metrics'
-              },
-              {
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                ),
-                text: 'Hybrid search (vector + graph)'
-              },
-              {
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
-                ),
-                text: 'Sub-30s processing time'
-              },
-              {
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                    <line x1="9" y1="15" x2="15" y2="15" />
-                  </svg>
-                ),
-                text: 'AI-powered resume review'
-              },
-            ].map((item, idx) => (
-              <div
-                key={idx}
-                className={`${visibleSections.has('features') ? 'fade-in-up' : 'opacity-0'}`}
-                style={{
-                  padding: 'var(--space-2)',
-                  background: 'var(--gray-50)',
-                  borderRadius: 'var(--radius-sm)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  transition: 'all 0.2s',
-                  cursor: 'pointer',
-                  animationDelay: `${0.5 + idx * 0.1}s`
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'white';
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'var(--gray-50)';
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <span style={{ color: 'var(--gray-700)', display: 'flex', alignItems: 'center' }}>{item.icon}</span>
-                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>{item.text}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
-      {/* Page 4: Tech Stack + CTA */}
-      <div
-        id="page4"
-        className="fullpage-section"
-        style={{
-          height: 'calc(100vh - var(--space-8))',
-          scrollSnapAlign: 'start',
-          scrollSnapStop: 'always',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        {/* Tech Stack Showcase */}
-        <section className="observe-me" id="stack" style={{ padding: '30px 0', flex: '0 0 50%', display: 'flex', alignItems: 'center', background: 'white' }}>
-        <div className="container">
-          <h2 style={{
-            fontSize: 'var(--text-2xl)',
-            fontWeight: 700,
-            marginBottom: 'var(--space-1)',
-            textAlign: 'center',
-            color: 'var(--gray-900)'
-          }}>
-            Modern stack, boring reliability
-          </h2>
-          <p style={{
-            fontSize: 'var(--text-sm)',
-            color: 'var(--gray-600)',
-            textAlign: 'center',
-            marginBottom: 'var(--space-3)'
-          }}>
-            We chose proven technologies that actually work in production.
-          </p>
-
-          <div
-            className={`${visibleSections.has('stack') ? 'scale-in' : 'opacity-0'}`}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: windowWidth < 480 ? 'repeat(2, 1fr)' : windowWidth < 768 ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)',
-              gap: 'var(--space-3)',
-              maxWidth: '800px',
-              margin: '0 auto'
-            }}
-          >
-            {[
-              {
-                name: 'Django',
-                icon: <SiDjango />,
-                color: '#092E20',
-                desc: 'Python Backend Framework'
-              },
-              {
-                name: 'Neo4j',
-                icon: <GrGraphQl />,
-                color: '#008CC1',
-                desc: 'Graph Database'
-              },
-              {
-                name: 'Qdrant',
-                icon: <TbVectorTriangle />,
-                color: '#8B5CF6',
-                desc: 'Vector Search Engine'
-              },
-              {
-                name: 'Redis',
-                icon: <SiRedis />,
-                color: '#DC382D',
-                desc: 'In-Memory Cache'
-              },
-              {
-                name: 'React',
-                icon: <SiReact />,
-                color: '#61DAFB',
-                desc: 'UI Framework'
-              },
-              {
-                name: 'PostgreSQL',
-                icon: <SiPostgresql />,
-                color: '#336791',
-                desc: 'Relational Database'
-              },
-              {
-                name: 'Docker',
-                icon: <SiDocker />,
-                color: '#2496ED',
-                desc: 'Containerization'
-              },
-              {
-                name: 'Traefik',
-                icon: <BiNetworkChart />,
-                color: '#24A1C1',
-                desc: 'Reverse Proxy'
-              },
-            ].map((tech, idx) => (
-              <div
-                key={tech.name}
-                style={{
-                  padding: 'var(--space-3)',
-                  background: 'white',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--gray-200)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: '120px',
-                  transition: 'all 0.2s',
-                  cursor: 'pointer',
-                  animationDelay: `${idx * 0.05}s`,
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
-                  e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.12)';
-                  e.currentTarget.style.borderColor = tech.color;
-                  e.currentTarget.querySelector('.tech-icon').style.transform = 'scale(1.1)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                  e.currentTarget.style.boxShadow = 'none';
-                  e.currentTarget.style.borderColor = 'var(--gray-200)';
-                  e.currentTarget.querySelector('.tech-icon').style.transform = 'scale(1)';
-                }}
-              >
-                <div
-                  className="tech-icon"
-                  style={{
-                    fontSize: windowWidth < 480 ? '36px' : '42px',
-                    color: tech.color,
-                    marginBottom: 'var(--space-2)',
-                    transition: 'transform 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                  {tech.icon}
-                </div>
-                <div style={{
-                  fontSize: windowWidth < 480 ? 'var(--text-base)' : 'var(--text-lg)',
-                  fontWeight: 600,
-                  color: 'var(--gray-900)',
-                  marginBottom: '4px'
-                }}>
-                  {tech.name}
-                </div>
-                <div style={{
-                  fontSize: windowWidth < 480 ? 'var(--text-xs)' : 'var(--text-sm)',
-                  color: 'var(--gray-600)',
-                  textAlign: 'center'
-                }}>
-                  {tech.desc}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
+      {/* PAGE 4: CTA - Full-Width Band */}
       <section
         className="observe-me"
         id="cta"
         style={{
-          background: 'var(--gray-900)',
-          padding: '40px 0',
           position: 'relative',
-          overflow: 'hidden',
-          flex: '0 0 50%',
-          display: 'flex',
-          alignItems: 'center'
+          background: 'linear-gradient(135deg, var(--primary-950) 0%, var(--neutral-950) 100%)',
+          padding: '100px 0',
+          overflow: 'hidden'
         }}
       >
+        {/* Geometric shapes background */}
+        <div style={{
+          position: 'absolute',
+          top: '10%',
+          left: '5%',
+          width: '300px',
+          height: '300px',
+          border: '2px solid var(--primary-800)',
+          borderRadius: 'var(--radius-sm)',
+          transform: 'rotate(45deg)',
+          opacity: 0.1
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '15%',
+          right: '8%',
+          width: '200px',
+          height: '200px',
+          border: '2px solid var(--accent1-700)',
+          borderRadius: 'var(--radius-sm)',
+          transform: 'rotate(30deg)',
+          opacity: 0.1
+        }} />
+
         <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-          <div
-            className={`${visibleSections.has('cta') ? 'fade-in-up' : 'opacity-0'}`}
-            style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto' }}
-          >
+          <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>
             <h2 style={{
-              fontSize: 'clamp(2rem, 6vw, 3.5rem)',
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
               fontWeight: 800,
-              marginBottom: 'var(--space-3)',
-              color: 'white',
-              lineHeight: 1.2
-            }}>
-              Stop losing great candidates to bad parsing
-            </h2>
-            <p style={{
-              fontSize: 'var(--text-lg)',
-              color: 'var(--gray-400)',
+              color: 'var(--neutral-0)',
               marginBottom: 'var(--space-4)',
-              lineHeight: 1.6
+              lineHeight: 1.15
             }}>
-              Deploy in 5 minutes with Docker Compose. Process your first resume in 30 seconds.
-              Find that perfect candidate who's been hiding in plain sight.
+              Stop Losing Candidates to{' '}
+              <span style={{
+                background: 'linear-gradient(135deg, var(--accent2-400) 0%, var(--accent1-400) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
+                Bad Parsing
+              </span>
+            </h2>
+
+            <p style={{
+              fontSize: 'var(--text-xl)',
+              color: 'var(--neutral-300)',
+              marginBottom: 'var(--space-6)',
+              lineHeight: 1.7
+            }}>
+              Deploy with Docker Compose in 5 minutes. Process your first resume in 30 seconds.
             </p>
-            <div className="flex gap-3 justify-center flex-wrap">
+
+            <div style={{
+              display: 'flex',
+              gap: 'var(--space-3)',
+              justifyContent: 'center',
+              marginBottom: 'var(--space-8)',
+              flexWrap: 'wrap'
+            }}>
               <Link
                 to="/upload"
-                className="btn"
                 style={{
-                  padding: windowWidth < 480 ? '14px 24px' : '16px 32px',
-                  fontSize: windowWidth < 480 ? 'var(--text-sm)' : 'var(--text-base)',
-                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '16px 32px',
+                  fontSize: 'var(--text-xl)',
+                  fontWeight: 700,
                   background: 'white',
-                  color: 'var(--gray-900)',
-                  border: 'none'
+                  color: 'var(--neutral-900)',
+                  border: 'none',
+                  borderRadius: 'var(--radius-sm)',
+                  textDecoration: 'none',
+                  transition: 'all 0.3s',
+                  boxShadow: '0 8px 24px rgba(255, 255, 255, 0.2)'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 12px 32px rgba(255, 255, 255, 0.3)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(255, 255, 255, 0.2)';
                 }}
               >
-                Start Processing CVs
+                Start Processing Now
+                <ArrowRight size={20} />
               </Link>
+
               <a
                 href="https://github.com/HardMax71/ResuMariner"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn"
                 style={{
-                  padding: windowWidth < 480 ? '14px 24px' : '16px 32px',
-                  fontSize: windowWidth < 480 ? 'var(--text-sm)' : 'var(--text-base)',
-                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '16px 32px',
+                  fontSize: 'var(--text-xl)',
+                  fontWeight: 700,
                   background: 'transparent',
-                  color: 'white',
-                  border: '2px solid white'
+                  color: 'var(--neutral-0)',
+                  border: '2px solid var(--neutral-500)',
+                  borderRadius: 'var(--radius-sm)',
+                  textDecoration: 'none',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = 'var(--neutral-0)';
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = 'var(--neutral-500)';
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                View Documentation
+                <GitBranch size={20} />
+                View on GitHub
               </a>
-            </div>
-
-            {/* Trust indicators */}
-            <div style={{
-              marginTop: 'var(--space-6)',
-              padding: 'var(--space-3)',
-              background: 'rgba(255,255,255,0.1)',
-              borderRadius: 'var(--radius-md)',
-              display: 'inline-flex',
-              gap: 'var(--space-4)',
-              alignItems: 'center',
-              flexWrap: 'wrap'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-400)" strokeWidth="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                <span style={{ fontSize: 'var(--text-sm)', color: 'white' }}>Open Source</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-400)" strokeWidth="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                <span style={{ fontSize: 'var(--text-sm)', color: 'white' }}>Self-hosted</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-400)" strokeWidth="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                <span style={{ fontSize: 'var(--text-sm)', color: 'white' }}>No vendor lock-in</span>
-              </div>
             </div>
           </div>
         </div>
-
-        {/* Background decoration */}
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '150%',
-          height: '150%',
-          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
-          animation: 'pulse 4s ease-in-out infinite'
-        }} />
       </section>
-      </div>
 
+      {/* Animations */}
       <style>{`
-        @keyframes scroll-down {
-          0% {
-            top: 6px;
-            opacity: 0;
-          }
-          30% {
-            opacity: 1;
-          }
-          100% {
-            top: 24px;
-            opacity: 0;
-          }
-        }
-        @keyframes fade-in-up {
+        @keyframes fade-in {
           from {
             opacity: 0;
             transform: translateY(20px);
@@ -1436,106 +1397,21 @@ fetch('http://localhost:8000/api/v1/upload/', {
           }
         }
 
-        @keyframes fade-in-left {
-          from {
+        @keyframes cursor-blink {
+          0%, 50% {
+            opacity: 1;
+          }
+          51%, 100% {
             opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
           }
         }
 
-        @keyframes fade-in-right {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0) rotate(0deg);
-          }
-          25% {
-            transform: translateY(-20px) rotate(1deg);
-          }
-          75% {
-            transform: translateY(20px) rotate(-1deg);
-          }
-        }
-
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 0.6;
-          }
-          50% {
-            opacity: 1;
-          }
-        }
-
-        @keyframes shimmer {
-          0% {
-            left: -100%;
-          }
-          100% {
-            left: 200%;
-          }
-        }
-
-        .fade-in-up {
-          animation: fade-in-up 0.6s ease-out forwards;
-        }
-
-        .fade-in-left {
-          animation: fade-in-left 0.6s ease-out forwards;
-        }
-
-        .fade-in-right {
-          animation: fade-in-right 0.6s ease-out forwards;
-        }
-
-        .scale-in {
-          animation: scale-in 0.6s ease-out forwards;
+        .fade-in {
+          animation: fade-in 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .opacity-0 {
           opacity: 0;
-        }
-
-        @media (max-width: 768px) {
-          .grid-2 {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        .fullpage-section {
-          width: 100%;
-        }
-
-        /* Hide scrollbar for cleaner look */
-        div[style*="scroll-snap-type"] {
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        div[style*="scroll-snap-type"]::-webkit-scrollbar {
-          display: none;
         }
       `}</style>
     </div>

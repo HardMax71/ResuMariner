@@ -129,7 +129,7 @@ class JobService:
             raise Exception(f"Job not found: {job_id}")
 
         task_data = {"job_id": job_id, "file_path": job.file_path}
-        task_id = self.redis_queue.enqueue_job(job_id, job.file_path, task_data)
+        task_id = await self.redis_queue.enqueue_job(job_id, job.file_path, task_data)
 
         await self.update_job(job_id, status=JobStatus.PENDING, updates={"result": {"task_id": task_id}})
         logger.info(f"Job {job_id} queued for async processing with task_id {task_id}")

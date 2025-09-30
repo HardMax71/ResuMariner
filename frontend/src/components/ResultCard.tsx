@@ -206,64 +206,32 @@ export default function ResultCard({ result }: Props) {
 
       {/* Summary */}
       {result.summary && (
-        <p className="small muted mb-3" style={{
-          lineHeight: "1.5",
-          paddingLeft: "16px",
-          borderLeft: "2px solid var(--gray-100)",
-          wordBreak: "break-word",
-          whiteSpace: "pre-wrap"
+        <div className="mb-3" style={{
+          position: "relative",
+          padding: "12px 16px",
+          background: "linear-gradient(135deg, var(--gray-50) 0%, transparent 100%)",
+          borderRadius: "var(--radius-sm)",
+          border: "1px solid var(--gray-100)"
         }}>
-          {result.summary}
-        </p>
-      )}
-
-      {/* Experience Cards - Only show when expanded */}
-      {expanded && topExperiences && topExperiences.length > 0 && (
-        <div className="mb-3">
-          <h4 className="small mb-2" style={{
-            fontWeight: 600,
+          <div style={{
+            position: "absolute",
+            left: "0",
+            top: "0",
+            bottom: "0",
+            width: "3px",
+            background: "linear-gradient(180deg, var(--blue-400) 0%, var(--blue-600) 100%)",
+            borderRadius: "var(--radius-sm) 0 0 var(--radius-sm)"
+          }}/>
+          <p className="small" style={{
+            lineHeight: "1.6",
+            wordBreak: "break-word",
+            whiteSpace: "pre-wrap",
             color: "var(--gray-700)",
-            fontSize: "12px",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px"
+            fontStyle: "italic",
+            margin: 0
           }}>
-            Recent Experience
-          </h4>
-          <div className="flex flex-col gap-2">
-            {topExperiences.map((exp, idx) => (
-              <div
-                key={idx}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "10px",
-                  background: "linear-gradient(90deg, var(--gray-50) 0%, transparent 100%)",
-                  borderRadius: "6px",
-                  borderLeft: "2px solid var(--blue-500)"
-                }}
-              >
-                <div>
-                  <div className="small" style={{ fontWeight: 600, color: "var(--gray-800)" }}>
-                    {exp.position}
-                  </div>
-                  <div className="small muted">
-                    {exp.company}
-                    {exp.employment_type && ` • ${exp.employment_type}`}
-                    {exp.work_mode && ` • ${exp.work_mode}`}
-                  </div>
-                </div>
-                <span className="small" style={{
-                  color: "var(--gray-600)",
-                  fontWeight: 500
-                }}>
-                  {exp.duration_months ?
-                    `${Math.round(exp.duration_months / 12 * 10) / 10}y` :
-                    (exp.start_date && exp.end_date ? `${exp.start_date} - ${exp.end_date}` : '')}
-                </span>
-              </div>
-            ))}
-          </div>
+            {result.summary}
+          </p>
         </div>
       )}
 
@@ -308,6 +276,105 @@ export default function ResultCard({ result }: Props) {
                 +{result.skills.length - 8} more
               </span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Experience Cards - Only show when expanded */}
+      {expanded && topExperiences && topExperiences.length > 0 && (
+        <div className="mb-3">
+          <h4 className="small mb-2" style={{
+            fontWeight: 600,
+            color: "var(--gray-700)",
+            fontSize: "12px",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px"
+          }}>
+            Recent Experience
+          </h4>
+          <div className="flex flex-col gap-2">
+            {topExperiences.map((exp, idx) => (
+              <div
+                key={idx}
+                style={{
+                  padding: "12px",
+                  background: "white",
+                  border: "1px solid var(--gray-200)",
+                  borderRadius: "8px",
+                  borderLeft: "3px solid var(--blue-500)",
+                  transition: "all 0.2s"
+                }}
+              >
+                <div style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  marginBottom: exp.key_points?.length ? "10px" : "0"
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div className="small" style={{ fontWeight: 600, color: "var(--gray-800)" }}>
+                      {exp.position}
+                    </div>
+                    <div className="small muted">
+                      {exp.company}
+                      {exp.employment_type && ` • ${exp.employment_type}`}
+                      {exp.work_mode && ` • ${exp.work_mode}`}
+                    </div>
+                  </div>
+                  <span className="small" style={{
+                    color: "var(--blue-600)",
+                    fontWeight: 600,
+                    background: "var(--blue-50)",
+                    padding: "2px 8px",
+                    borderRadius: "12px",
+                    flexShrink: 0
+                  }}>
+                    {(() => {
+                      const parts = [];
+                      if (exp.start) {
+                        const endDate = exp.end || 'Present';
+                        parts.push(`${exp.start} - ${endDate}`);
+                      }
+                      if (exp.duration_months) {
+                        const years = Math.round(exp.duration_months / 12 * 10) / 10;
+                        parts.push(`${years}y`);
+                      }
+                      return parts.join(' • ') || 'N/A';
+                    })()}
+                  </span>
+                </div>
+                {exp.key_points && exp.key_points.length > 0 && (
+                  <ul style={{
+                    margin: "0",
+                    paddingLeft: "20px",
+                    listStyleType: "none",
+                    position: "relative"
+                  }}>
+                    {exp.key_points.map((point, pidx) => (
+                      <li key={pidx} style={{
+                        fontSize: "12px",
+                        color: "var(--gray-600)",
+                        lineHeight: "1.5",
+                        marginBottom: pidx < exp.key_points.length - 1 ? "4px" : "0",
+                        position: "relative",
+                        paddingLeft: "0"
+                      }}>
+                        <span style={{
+                          position: "absolute",
+                          left: "-16px",
+                          top: "5px",
+                          width: "4px",
+                          height: "4px",
+                          background: "var(--blue-400)",
+                          borderRadius: "50%"
+                        }}/>
+                        {typeof point === 'string' ? point : point.text || point.description}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -443,9 +510,18 @@ export default function ResultCard({ result }: Props) {
                       )}
                     </div>
                     <span className="small muted" style={{ fontSize: "12px" }}>
-                      {exp.duration_months ?
-                        `${Math.round(exp.duration_months / 12 * 10) / 10}y` :
-                        (exp.start_date || exp.end_date || '')}
+                      {(() => {
+                        const parts = [];
+                        if (exp.start) {
+                          const endDate = exp.end || 'Present';
+                          parts.push(`${exp.start} - ${endDate}`);
+                        }
+                        if (exp.duration_months) {
+                          const years = Math.round(exp.duration_months / 12 * 10) / 10;
+                          parts.push(`${years}y`);
+                        }
+                        return parts.join(' • ') || 'N/A';
+                      })()}
                     </span>
                   </div>
                 ))}
@@ -505,7 +581,7 @@ export default function ResultCard({ result }: Props) {
                       )}
                       {(edu.year || edu.start || edu.end) && (
                         <span className="small muted" style={{ fontSize: "12px" }}>
-                          {edu.year || edu.start || edu.end}
+                          {edu.year || (edu.start && edu.end ? `${edu.start} - ${edu.end}` : edu.start ? `${edu.start} - Present` : edu.end)}
                         </span>
                       )}
                     </div>

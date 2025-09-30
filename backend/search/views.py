@@ -1,10 +1,11 @@
 import logging
 from dataclasses import asdict
 
+from adrf.views import APIView
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from .serializers import (
     FilterOptionsSerializer,
@@ -24,7 +25,12 @@ class SemanticSearchView(APIView):
         super().__init__()
         self.coordinator = SearchCoordinator()
 
-    def post(self, request: Request) -> Response:
+    @extend_schema(
+        request=VectorSearchQuerySerializer,
+        responses={200: SearchResponseSerializer},
+        description="Perform semantic search using vector embeddings. Searches resume content by semantic similarity.",
+    )
+    async def post(self, request: Request) -> Response:
         query_serializer = VectorSearchQuerySerializer(data=request.data)
         if not query_serializer.is_valid():
             return Response(query_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -33,7 +39,7 @@ class SemanticSearchView(APIView):
         logger.info("Performing semantic search for query: %s", search_request.query)
 
         try:
-            search_response = self.coordinator.search(search_request)
+            search_response = await self.coordinator.search(search_request)
         except Exception as e:
             logger.error(f"Semantic search failed: {e}")
             return Response({"error": "Search failed"}, status=status.HTTP_400_BAD_REQUEST)
@@ -50,7 +56,12 @@ class StructuredSearchView(APIView):
         super().__init__()
         self.coordinator = SearchCoordinator()
 
-    def post(self, request: Request) -> Response:
+    @extend_schema(
+        request=GraphSearchQuerySerializer,
+        responses={200: SearchResponseSerializer},
+        description="Perform structured search using graph filters. Filters resumes by skills, role, company, location, and experience.",
+    )
+    async def post(self, request: Request) -> Response:
         query_serializer = GraphSearchQuerySerializer(data=request.data)
         if not query_serializer.is_valid():
             return Response(query_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -58,7 +69,7 @@ class StructuredSearchView(APIView):
         search_request = query_serializer.validated_data
 
         try:
-            search_response = self.coordinator.search(search_request)
+            search_response = await self.coordinator.search(search_request)
         except Exception as e:
             logger.error(f"Structured search failed: {e}")
             return Response({"error": "Search failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -75,7 +86,12 @@ class HybridSearchView(APIView):
         super().__init__()
         self.coordinator = SearchCoordinator()
 
-    def post(self, request: Request) -> Response:
+    @extend_schema(
+        request=HybridSearchQuerySerializer,
+        responses={200: SearchResponseSerializer},
+        description="Perform hybrid search combining semantic and structured approaches. Weighted combination of vector and graph search.",
+    )
+    async def post(self, request: Request) -> Response:
         query_serializer = HybridSearchQuerySerializer(data=request.data)
         if not query_serializer.is_valid():
             return Response(query_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -83,7 +99,7 @@ class HybridSearchView(APIView):
         search_request = query_serializer.validated_data
 
         try:
-            search_response = self.coordinator.search(search_request)
+            search_response = await self.coordinator.search(search_request)
         except Exception as e:
             logger.error(f"Hybrid search failed: {e}")
             return Response({"error": "Search failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -96,9 +112,13 @@ class HybridSearchView(APIView):
 
 
 class FilterOptionsView(APIView):
-    def get(self, request: Request) -> Response:
+    @extend_schema(
+        responses={200: FilterOptionsSerializer},
+        description="Get available filter options for search. Returns lists of skills, roles, companies, and locations with counts.",
+    )
+    async def get(self, request: Request) -> Response:
         graph_search = GraphSearchService()
-        filter_options = graph_search.get_filter_options()
+        filter_options = await graph_search.get_filter_options()
         options_data = asdict(filter_options)
 
         serializer = FilterOptionsSerializer(data=options_data)

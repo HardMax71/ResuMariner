@@ -2,7 +2,7 @@ import logging
 from dataclasses import asdict
 
 from django.conf import settings
-from qdrant_client import QdrantClient
+from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models as qdrant_models
 
 from core.domain import SearchFilters, VectorHit
@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 class VectorSearchService:
     def __init__(self):
-        self.client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+        self.client = AsyncQdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
         self.collection_name = settings.QDRANT_COLLECTION
         logger.info("Connected to Qdrant at %s:%s", settings.QDRANT_HOST, settings.QDRANT_PORT)
 
-    def search(
+    async def search(
         self,
         query_vector: list[float],
         limit: int = 10,
@@ -39,7 +39,7 @@ class VectorSearchService:
         ]
         query_filter = qdrant_models.Filter(must=conditions) if conditions else None  # type: ignore
 
-        response = self.client.query_points(
+        response = await self.client.query_points(
             collection_name=self.collection_name,
             query=query_vector,
             limit=limit,
@@ -71,3 +71,7 @@ class VectorSearchService:
             )
 
         return results
+
+    async def close(self):
+        """Close the client connection"""
+        await self.client.close()

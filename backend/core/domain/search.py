@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from core.domain.resume import EducationStatus
+
 
 class SearchType(StrEnum):
     SEMANTIC = "semantic"
@@ -15,6 +17,8 @@ class SearchFilters:
     company: str | None = None
     location: str | None = None
     years_experience: int | None = None
+    education_level: str | None = None  # Bachelor, Master, PhD, etc.
+    education_status: EducationStatus | None = None
 
 
 @dataclass
@@ -29,6 +33,8 @@ class FilterOptionsResult:
     roles: list[FilterOption] = field(default_factory=list)
     companies: list[FilterOption] = field(default_factory=list)
     locations: list[FilterOption] = field(default_factory=list)
+    education_levels: list[FilterOption] = field(default_factory=list)
+    education_statuses: list[FilterOption] = field(default_factory=list)
 
 
 @dataclass

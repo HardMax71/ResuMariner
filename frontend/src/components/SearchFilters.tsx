@@ -25,6 +25,8 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
   const roles = useMemo(() => opts?.roles ?? [], [opts]);
   const locations = useMemo(() => opts?.locations ?? [], [opts]);
   const skills = useMemo(() => opts?.skills ?? [], [opts]);
+  const educationLevels = useMemo(() => opts?.education_levels ?? [], [opts]);
+  const educationStatuses = useMemo(() => opts?.education_statuses ?? [], [opts]);
 
   const visibleSkills = showAllSkills ? skills : skills.slice(0, 12);
 
@@ -59,8 +61,6 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
     <div className="filters-compact">
       {/* Dropdown Filters in Grid */}
       <div className="filter-grid" style={{
-        display: "grid",
-        gap: "var(--space-2)",
         marginBottom: "var(--space-3)"
       }}>
         <div>
@@ -125,6 +125,38 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
             style={{ fontSize: "var(--text-sm)", padding: "var(--space-1) var(--space-1)" }}
           />
         </div>
+
+        <div>
+          <label className="label small">Education Level</label>
+          <select
+            value={value.education_level ?? ""}
+            onChange={(e) => onChange({ ...value, education_level: e.target.value || null })}
+            style={{ fontSize: "var(--text-sm)", padding: "var(--space-1) var(--space-1)" }}
+          >
+            <option value="">Any Level</option>
+            {educationLevels.map((level) => (
+              <option key={level.value} value={level.value}>
+                {level.value} ({level.count})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="label small">Education Status</label>
+          <select
+            value={value.education_status ?? ""}
+            onChange={(e) => onChange({ ...value, education_status: e.target.value || null })}
+            style={{ fontSize: "var(--text-sm)", padding: "var(--space-1) var(--space-1)" }}
+          >
+            <option value="">Any Status</option>
+            {educationStatuses.map((status) => (
+              <option key={status.value} value={status.value}>
+                {status.value} ({status.count})
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Skills Section - Compact */}
@@ -181,7 +213,7 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
       )}
 
       {/* Selected Filters Summary */}
-      {(value.skills?.length || value.role || value.company || value.location || value.years_experience) && (
+      {(value.skills?.length || value.role || value.company || value.location || value.years_experience || value.education_level || value.education_status) && (
         <div
           className="flex items-center gap-2"
           style={{
@@ -252,6 +284,42 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
                 <button
                   type="button"
                   onClick={() => onChange({ ...value, years_experience: null })}
+                  style={{
+                    marginLeft: "4px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  ×
+                </button>
+              </span>
+            )}
+            {value.education_level && (
+              <span className="chip" style={{ fontSize: "var(--text-xs)" }}>
+                Education: {value.education_level}
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...value, education_level: null })}
+                  style={{
+                    marginLeft: "4px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  ×
+                </button>
+              </span>
+            )}
+            {value.education_status && (
+              <span className="chip" style={{ fontSize: "var(--text-xs)" }}>
+                Status: {value.education_status}
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...value, education_status: null })}
                   style={{
                     marginLeft: "4px",
                     background: "none",

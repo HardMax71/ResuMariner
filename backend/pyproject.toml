@@ -13,6 +13,8 @@ dependencies = [
     "django-cors-headers==4.9.0",
     "djangorestframework==3.16.1",
     "adrf==0.1.8",
+    "aiofiles==24.1.0",
+    "aioboto3>=13.3.0",
     "httpx==0.28.1",
     "neo4j==5.28.2",
     "neomodel==5.5.0",
@@ -42,7 +44,7 @@ Homepage = "https://github.com/HardMax71/ResuMariner/"
 
 [project.optional-dependencies]
 s3 = [
-    "boto3==1.35.0",
+    "boto3>=1.35.0",
 ]
 
 [dependency-groups]
@@ -55,6 +57,8 @@ dev = [
     "pytest>=8.4.2",
     "pytest-asyncio>=1.2.0",
     "pytest-django>=4.11.1",
+    "types-aiofiles>=24.1.0.20250822",
+    "types-aioboto3>=15.1.0",
     "types-redis>=4.6.0.20241004",
     "types-requests>=2.32.4.20250913",
     "types-tqdm>=4.67.0.20250809",

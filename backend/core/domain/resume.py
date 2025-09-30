@@ -1,3 +1,4 @@
+import re
 from enum import StrEnum
 
 from pydantic import BaseModel, Field, model_validator
@@ -118,10 +119,35 @@ class CompanyInfo(BaseModel):
 
 
 class EmploymentDuration(BaseModel):
-    date_format: str
-    start: str
-    end: str
+    start: str  # Format: YYYY.MM
+    end: str | None = None  # Format: YYYY.MM or None for ongoing
     duration_months: int
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_dates(cls, v: dict):
+        """Convert MM.YYYY or MMM YYYY to YYYY.MM format"""
+        if isinstance(v, dict):
+            for field in ["start", "end"]:
+                if field in v and isinstance(v[field], str):
+                    val = v[field].strip()
+                    if val.lower() in ("present", "current", ""):
+                        v[field] = None
+                    elif match := re.match(r'(\d{2})\.(\d{4})', val):  # MM.YYYY
+                        month, year = match.groups()
+                        v[field] = f"{year}.{month}"
+                    elif match := re.match(r'([A-Za-z]{3})\s+(\d{4})', val):  # MMM YYYY
+                        month_name, year = match.groups()
+                        month_map = {
+                            'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+                            'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+                            'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+                        }
+                        month = month_map.get(month_name.lower()[:3], '01')
+                        v[field] = f"{year}.{month}"
+                    elif match := re.match(r'(\d{4})', val):  # YYYY only
+                        v[field] = f"{val}.01"
+        return v
 
 
 class KeyPoint(BaseModel):
@@ -202,8 +228,8 @@ class EducationItem(BaseModel):
     field: str
     institution: InstitutionInfo
     location: Location | None = None
-    start: str | None = None
-    end: str | None = None
+    start: str | None = None  # Format: YYYY.MM
+    end: str | None = None  # Format: YYYY.MM or None for in-progress
     status: EducationStatus
     coursework: list[Coursework] = Field(default_factory=list)
     extras: list[EducationExtra] = Field(default_factory=list)
@@ -213,6 +239,27 @@ class EducationItem(BaseModel):
     def accept_legacy_education(cls, v: dict):
         if "institution" in v and isinstance(v["institution"], str):
             v["institution"] = {"name": v["institution"]}
+
+        # Normalize dates to YYYY.MM format
+        for field in ["start", "end"]:
+            if field in v and isinstance(v[field], str):
+                val = v[field].strip()
+                if val.lower() in ("present", "current", ""):
+                    v[field] = None
+                elif match := re.match(r'(\d{2})\.(\d{4})', val):  # MM.YYYY
+                    month, year = match.groups()
+                    v[field] = f"{year}.{month}"
+                elif match := re.match(r'([A-Za-z]{3})\s+(\d{4})', val):  # MMM YYYY
+                    month_name, year = match.groups()
+                    month_map = {
+                        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+                        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+                        'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+                    }
+                    month = month_map.get(month_name.lower()[:3], '01')
+                    v[field] = f"{year}.{month}"
+                elif match := re.match(r'(\d{4})', val):  # YYYY only
+                    v[field] = f"{val}.01"
         if "start_date" in v and "start" not in v:
             v["start"] = v.pop("start_date")
         if "end_date" in v and "end" not in v:

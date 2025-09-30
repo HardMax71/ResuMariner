@@ -8,12 +8,12 @@ from core.metrics import update_queue_metrics
 from processor.utils.redis_queue import RedisJobQueue
 
 
-def metrics_view(_request):
+async def metrics_view(_request):
     """Collect current metrics and return Prometheus format."""
     # Update queue metrics before generating output
     try:
         redis_queue = RedisJobQueue()
-        stats = redis_queue.get_queue_stats()
+        stats = await redis_queue.get_queue_stats()
         update_queue_metrics(stats)
     except Exception:
         # If Redis is down, metrics endpoint should still work

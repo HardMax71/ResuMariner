@@ -3,6 +3,7 @@ import uuid
 
 from adrf.views import APIView
 from django.conf import settings
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,6 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 class UploadCVView(APIView):
+    @extend_schema(
+        request=FileUploadSerializer,
+        responses={202: JobResponseSerializer},
+        description="Upload a resume file for processing. Accepts PDF, DOCX, DOC, TXT formats. Returns a job ID for tracking.",
+    )
     async def post(self, request: Request) -> Response:
         serializer = FileUploadSerializer(data=request.data)
         if not serializer.is_valid():
@@ -27,7 +33,7 @@ class UploadCVView(APIView):
 
         try:
             file.seek(0)
-            temp_path = FileService.save_validated_content(file.read(), file.name, job_id)
+            temp_path = await FileService.save_validated_content(file.read(), file.name, job_id)
 
             service = JobService()
             job = await service.create_job(temp_path)
@@ -40,6 +46,10 @@ class UploadCVView(APIView):
 
 
 class JobStatusView(APIView):
+    @extend_schema(
+        responses={200: JobResponseSerializer},
+        description="Get the status of a processing job. Returns job status (pending, processing, completed, failed) and result URL if completed.",
+    )
     async def get(self, request, job_id):
         service = JobService()
         job = await service.get_job(job_id)
@@ -56,6 +66,10 @@ class JobStatusView(APIView):
 
 
 class JobResultView(APIView):
+    @extend_schema(
+        responses={200: OpenApiResponse(description="Job result containing resume data, review, and metadata")},
+        description="Get the result of a completed job. Returns structured resume data, review feedback, and processing metadata.",
+    )
     async def get(self, request, job_id):
         service = JobService()
         job = await service.get_job(job_id)
@@ -72,6 +86,11 @@ class JobResultView(APIView):
 
 
 class CleanupJobsView(APIView):
+    @extend_schema(
+        request={"application/json": {"type": "object", "properties": {"days": {"type": "integer"}, "force": {"type": "boolean"}}}},
+        responses={200: OpenApiResponse(description="Cleanup result with deleted count")},
+        description="Cleanup old jobs. Deletes jobs older than specified days. Use force=true to delete all jobs.",
+    )
     async def post(self, request: Request) -> Response:
         days = request.data.get("days", settings.JOB_RETENTION_DAYS)
         force = request.data.get("force", False)
@@ -85,13 +104,17 @@ class CleanupJobsView(APIView):
 
 
 class HealthView(APIView):
-    def get(self, request):
+    @extend_schema(
+        responses={200: OpenApiResponse(description="Health status including queue stats and configuration")},
+        description="Get service health status. Returns system status, queue statistics, and processing configuration.",
+    )
+    async def get(self, request):
         queue = RedisJobQueue()
 
         health_data = {
             "status": "ok",
             "service": "resume-processing-api",
-            "queue": queue.get_queue_stats(),
+            "queue": await queue.get_queue_stats(),
             "processing_config": {
                 "text_llm_provider": settings.TEXT_LLM_PROVIDER,
                 "text_llm_model": settings.TEXT_LLM_MODEL,

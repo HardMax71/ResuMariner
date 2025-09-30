@@ -57,7 +57,7 @@ class ProcessingService:
         Returns:
             ProcessingResult with resume data, review, and metadata
         """
-        file_path, source = self._prepare_file_path(file_path)
+        file_path, source = await self._prepare_file_path(file_path)
         file_info = self._validate_file(file_path)
 
         parser = self._get_parser(file_path, file_info["ext"])
@@ -80,7 +80,7 @@ class ProcessingService:
 
         return ProcessingResult(resume=resume, review=review, metadata=metadata)
 
-    def _prepare_file_path(self, file_path: str) -> tuple[str, str]:
+    async def _prepare_file_path(self, file_path: str) -> tuple[str, str]:
         """
         Prepare file path and determine source.
 
@@ -89,7 +89,7 @@ class ProcessingService:
         """
         if file_path.startswith("s3:"):
             s3_key = file_path[3:]
-            return FileService.download_from_s3(s3_key), "s3"
+            return await FileService.download_from_s3_async(s3_key), "s3"
         return file_path, "local"
 
     def _validate_file(self, file_path: str) -> dict[str, str]:

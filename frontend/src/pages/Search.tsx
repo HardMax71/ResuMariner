@@ -88,10 +88,11 @@ export default function Search() {
   ).length;
 
   return (
-    <div className="container">
+    <div className="page-wrapper">
+      <div className="page-container">
       <div className="mb-4">
         <div className="flex justify-between align-center mb-2">
-          <h1 style={{ marginBottom: 0 }}>Search Candidates</h1>
+          <h1 style={{ margin: 0 }}>Search Candidates</h1>
         </div>
         {res && (
           <div className="flex align-center gap-2">
@@ -137,7 +138,7 @@ export default function Search() {
       <div className="search-wrap">
       {/* Search Form */}
       <form onSubmit={onSearch}>
-        <div className="card mb-3">
+        <div className="glass-card" style={{ marginBottom: "var(--space-3)" }}>
           {/* Query Input */}
           {tab !== "structured" && (
             <div className="field">
@@ -176,7 +177,6 @@ export default function Search() {
                 style={{
                   cursor: "pointer",
                   userSelect: "none",
-                  padding: "var(--space-2) 0",
                   borderTop: "1px solid var(--gray-200)",
                   marginTop: "var(--space-3)",
                   listStyle: "none",
@@ -216,7 +216,6 @@ export default function Search() {
                 style={{
                   cursor: "pointer",
                   userSelect: "none",
-                  padding: "var(--space-2) 0",
                   borderTop: "1px solid var(--gray-200)",
                   marginTop: "var(--space-3)",
                   listStyle: "none",
@@ -402,7 +401,10 @@ export default function Search() {
       {res && (
         <div>
           {res.results.length === 0 ? (
-            <div className="card text-center" style={{ padding: "var(--space-6)" }}>
+            <div className="glass-card" style={{
+              padding: "var(--space-6)",
+              textAlign: "center"
+            }}>
               <svg
                 width="48"
                 height="48"
@@ -428,6 +430,7 @@ export default function Search() {
           )}
         </div>
       )}
+      </div>
       </div>
     </div>
   );

@@ -7,9 +7,9 @@ from abc import ABC, abstractmethod
 class BaseWorker(ABC):
     def __init__(self):
         self.name = "worker"
-        self.sleep_interval = 1.0
         self.running = True
         self.logger = logging.getLogger(f"{__name__}.{self.name}")
+        self.tasks: list[asyncio.Task] = []
         self._setup_signal_handlers()
 
     def _setup_signal_handlers(self):
@@ -19,41 +19,39 @@ class BaseWorker(ABC):
     def _signal_handler(self, signum, frame):
         self.logger.info("Received signal %s, shutting down gracefully...", signum)
         self.running = False
+        for task in self.tasks:
+            task.cancel()
 
     async def run(self):
-        # Call startup only if it's overridden
         await self.startup()
         self.logger.info("Starting %s worker", self.name)
 
-        while self.running:
-            try:
-                has_work = await self.process_iteration()
-                if not has_work:
-                    await asyncio.sleep(self.sleep_interval)
-            except Exception as e:
-                await self.handle_error(e)
-                await asyncio.sleep(self.get_error_backoff())
+        # Start all concurrent tasks
+        self.tasks = await self.create_tasks()
+
+        try:
+            # Wait for all tasks to complete
+            await asyncio.gather(*self.tasks, return_exceptions=True)
+        except asyncio.CancelledError:
+            self.logger.info("%s worker cancelled", self.name)
 
         await self.shutdown()
         self.logger.info("%s worker stopped", self.name)
 
     @abstractmethod
     async def startup(self):
-        """Override only if you need async initialization"""
+        """Override for async initialization"""
         pass
 
     @abstractmethod
-    async def process_iteration(self) -> bool:
-        """Process one iteration of work. Return True if work was done."""
+    async def create_tasks(self) -> list[asyncio.Task]:
+        """Create and return all worker tasks to run concurrently"""
         pass
 
     @abstractmethod
     async def shutdown(self):
-        """Override only if you have resources to clean up"""
+        """Override for cleanup"""
         pass
 
     async def handle_error(self, error: Exception):
         self.logger.exception("Worker error: %s", error)
-
-    def get_error_backoff(self) -> float:
-        return 5.0

@@ -26,14 +26,14 @@ class SearchCoordinator:
         self.hybrid_search = HybridSearchService()
         self.embedding_service = EmbeddingService(settings.EMBEDDING_MODEL)
 
-    def search(self, request: SearchRequest) -> SearchResponse:
+    async def search(self, request: SearchRequest) -> SearchResponse:
         """Main entry point for all search types"""
         if request.search_type == SearchType.SEMANTIC:
-            results = self._semantic_search(request)
+            results = await self._semantic_search(request)
         elif request.search_type == SearchType.STRUCTURED:
-            results = self._structured_search(request)
+            results = await self._structured_search(request)
         elif request.search_type == SearchType.HYBRID:
-            results = self._hybrid_search(request)
+            results = await self._hybrid_search(request)
         else:
             raise ValueError(f"Unknown search type: {request.search_type}")
 
@@ -41,13 +41,13 @@ class SearchCoordinator:
             results=results, query=request.query or "", search_type=request.search_type, total_found=len(results)
         )
 
-    def _semantic_search(self, request: SearchRequest) -> list[ResumeSearchResult]:
+    async def _semantic_search(self, request: SearchRequest) -> list[ResumeSearchResult]:
         if not request.query:
             raise ValueError("Query is required for semantic search")
 
         query_vector = self.embedding_service.encode(request.query)
 
-        vector_hits = self.vector_search.search(
+        vector_hits = await self.vector_search.search(
             query_vector=query_vector,
             limit=request.limit * 5,  # Over-fetch for grouping
             min_score=request.min_score,
@@ -57,7 +57,7 @@ class SearchCoordinator:
         grouped = self._group_vector_hits_by_resume_id(vector_hits)
 
         resume_ids = list(grouped.keys())
-        complete_resumes = self.graph_search.get_resumes_by_ids(resume_ids)
+        complete_resumes = await self.graph_search.get_resumes_by_ids(resume_ids)
 
         # Create a map for quick lookup
         resume_map = {r.resume_id: r for r in complete_resumes}
@@ -68,7 +68,7 @@ class SearchCoordinator:
             if resume_id in resume_map:
                 # Use complete data from graph
                 result = resume_map[resume_id]
-                # Update with vector search data, limiting matches if specified
+                # Keep the VectorHit objects for matches, just limit them
                 result.matches = hits[: request.max_matches_per_result]
                 result.score = max(hit.score for hit in hits)
             else:
@@ -82,11 +82,11 @@ class SearchCoordinator:
         results.sort(key=lambda r: r.score, reverse=True)
         return results[: request.limit]
 
-    def _structured_search(self, request: SearchRequest) -> list[ResumeSearchResult]:
-        return self.graph_search.search(filters=request.filters, limit=request.limit)
+    async def _structured_search(self, request: SearchRequest) -> list[ResumeSearchResult]:
+        return await self.graph_search.search(filters=request.filters, limit=request.limit)
 
-    def _hybrid_search(self, request: SearchRequest) -> list[ResumeSearchResult]:
-        return self.hybrid_search.search(
+    async def _hybrid_search(self, request: SearchRequest) -> list[ResumeSearchResult]:
+        return await self.hybrid_search.search(
             query=request.query or "",
             filters=request.filters,
             vector_weight=request.vector_weight,

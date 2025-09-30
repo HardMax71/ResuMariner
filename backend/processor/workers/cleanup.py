@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from datetime import datetime, timedelta
@@ -17,23 +18,48 @@ class CleanupWorker(BaseWorker):
     def __init__(self):
         super().__init__()
         self.name = "cleanup"
-        self.sleep_interval = 60.0
         self.logger = logging.getLogger(f"{__name__}.{self.name}")
         self.job_service = JobService()
         self.cleanup_service = CleanupService()
         self.redis_queue = RedisJobQueue()
         self.cleanup_batch_size = 50
         self.retention_days = settings.JOB_RETENTION_DAYS
+        self.cleanup_interval = 60  # Run cleanup every minute
 
-    async def process_iteration(self) -> bool:
-        tasks_processed = await self._process_scheduled_cleanups()
-        old_jobs_cleaned = await self._cleanup_old_jobs()
-        orphaned_files_cleaned = await self._cleanup_orphaned_files()
+    async def create_tasks(self) -> list[asyncio.Task]:
+        """Create cleanup tasks that run periodically"""
+        return [
+            asyncio.create_task(self.scheduled_cleanup_processor()),
+            asyncio.create_task(self.periodic_cleanup()),
+        ]
 
-        return tasks_processed or old_jobs_cleaned > 0 or orphaned_files_cleaned > 0
+    async def scheduled_cleanup_processor(self):
+        """Process scheduled cleanup tasks continuously"""
+        self.logger.info("Starting scheduled cleanup processor")
+
+        while self.running:
+            try:
+                await self._process_scheduled_cleanups()
+                await asyncio.sleep(10)  # Check every 10 seconds
+            except Exception as e:
+                self.logger.error(f"Scheduled cleanup error: {e}")
+                await asyncio.sleep(30)
+
+    async def periodic_cleanup(self):
+        """Run periodic cleanup tasks"""
+        self.logger.info("Starting periodic cleanup processor")
+
+        while self.running:
+            try:
+                await self._cleanup_old_jobs()
+                await self._cleanup_orphaned_files()
+                await asyncio.sleep(self.cleanup_interval)
+            except Exception as e:
+                self.logger.error(f"Periodic cleanup error: {e}")
+                await asyncio.sleep(60)
 
     async def _process_scheduled_cleanups(self) -> bool:
-        cleanup_tasks = self.redis_queue.get_cleanup_tasks()
+        cleanup_tasks = await self.redis_queue.get_cleanup_tasks()
 
         if not cleanup_tasks:
             return False
@@ -47,7 +73,7 @@ class CleanupWorker(BaseWorker):
 
             if job_id and current_time >= cleanup_time:
                 await self._cleanup_job(job_id)
-                self.redis_queue.remove_cleanup_task(job_id)
+                await self.redis_queue.remove_cleanup_task(job_id)
                 cleaned = True
 
         return cleaned
@@ -123,7 +149,7 @@ class CleanupWorker(BaseWorker):
             if job.file_path:
                 file_ext = Path(job.file_path).suffix
 
-            FileService.cleanup_all_job_files(job_id, file_ext)
+            await FileService.cleanup_all_job_files(job_id, file_ext)
             success = await self.cleanup_service.cleanup_job(job_id)
             if success:
                 self.logger.info("Successfully cleaned up job %s", job_id)
@@ -134,9 +160,10 @@ class CleanupWorker(BaseWorker):
             self.logger.error("Failed to cleanup job %s: %s", job_id, e)
 
     async def startup(self):
-        """No async initialization needed."""
-        pass
+        """Initialize connections"""
+        self.logger.info("Cleanup worker initialized")
 
     async def shutdown(self):
-        """No cleanup needed."""
-        pass
+        """Clean shutdown"""
+        self.running = False
+        self.logger.info("Cleanup worker shutdown complete")

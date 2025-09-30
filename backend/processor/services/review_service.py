@@ -37,11 +37,16 @@ class ReviewService:
         - should: Important recommendations (return null if none)
         - advise: Optional improvements (return null if none)
 
+        After reviewing all sections, provide:
+        - overall_score: A score from 0-100 based on resume quality (critical issues heavily penalize, good resumes score 70-85, excellent 85-95)
+        - summary: A brief 2-3 sentence overall assessment highlighting key strengths and main areas for improvement
+
         Guidelines:
         - Only report genuine issues - return null for good sections
         - Be specific and actionable
         - Do not invent problems
         - Focus on quality and professionalism
+        - Score fairly: 80+ is good, 90+ is excellent, below 70 has significant issues
 
         Return a structured ReviewResult following the schema.
         """
@@ -86,6 +91,8 @@ class ReviewService:
         Evaluate each section against its criteria.
         Return null for any category without issues.
         Provide specific, actionable feedback only for real problems.
+
+        After reviewing all sections, provide an overall_score (0-100) and summary.
         """
 
     async def iterative_review(self) -> ReviewResult:

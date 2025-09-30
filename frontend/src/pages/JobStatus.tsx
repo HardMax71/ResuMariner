@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getJob, getJobResult, API_BASE_URL, type JobResponse, type JobResult } from "../lib/api";
+import { Copy, Check, Hash } from "lucide-react";
 
 // Simple utility to make any value renderable
 const renderValue = (value: any): string => {
@@ -20,6 +21,53 @@ const renderValue = (value: any): string => {
     return JSON.stringify(value);
   }
   return String(value);
+};
+
+// Unified badge styling system with gradient color scheme
+const getBadgeStyle = (text: string, category?: string) => {
+  const t = text.toLowerCase();
+
+  // Education status - gradient: ongoing (blue) → completed (green)
+  if (category === "education_status") {
+    if (t.includes("ongoing") || t.includes("current")) {
+      return { bg: "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)", color: "#1e40af", border: "#3b82f6" };
+    }
+    if (t.includes("completed") || t.includes("graduated")) {
+      return { bg: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)", color: "#065f46", border: "#10b981" };
+    }
+  }
+
+  // Employment type - gradient based on commitment level
+  if (category === "employment_type") {
+    if (t.includes("full-time") || t.includes("full time") || t.includes("fulltime")) {
+      return { bg: "linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)", color: "#5b21b6", border: "#8b5cf6" };
+    }
+    if (t.includes("part-time") || t.includes("part time") || t.includes("parttime")) {
+      return { bg: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)", color: "#92400e", border: "#f59e0b" };
+    }
+    if (t.includes("contract") || t.includes("freelance") || t.includes("consultant")) {
+      return { bg: "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)", color: "#3730a3", border: "#6366f1" };
+    }
+    if (t.includes("intern") || t.includes("internship")) {
+      return { bg: "linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)", color: "#9a3412", border: "#f97316" };
+    }
+  }
+
+  // Work mode - gradient based on flexibility
+  if (category === "work_mode") {
+    if (t.includes("remote")) {
+      return { bg: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)", color: "#065f46", border: "#10b981" };
+    }
+    if (t.includes("hybrid")) {
+      return { bg: "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)", color: "#1e3a8a", border: "#3b82f6" };
+    }
+    if (t.includes("on-site") || t.includes("onsite") || t.includes("office")) {
+      return { bg: "linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)", color: "#831843", border: "#ec4899" };
+    }
+  }
+
+  // Default gradient - neutral purple
+  return { bg: "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)", color: "#374151", border: "#9ca3af" };
 };
 
 // Type definition for resume section configuration
@@ -213,7 +261,7 @@ export default function JobStatus() {
     const isExpanded = expandedSections.has(key);
 
     return (
-      <div className="card" style={{ marginBottom: "var(--space-2)" }}>
+      <div className="glass-card" style={{ marginBottom: "var(--space-2)" }}>
         <div
           className="flex justify-between items-center"
           style={{ cursor: "pointer", userSelect: "none" }}
@@ -384,26 +432,41 @@ export default function JobStatus() {
                             </a>
                           )}
                           {exp.employment_type && (
-                            <>
-                              <span style={{ color: "var(--gray-400)" }}>•</span>
-                              <span style={{
-                                fontSize: "12px",
-                                color: "var(--gray-600)",
-                                background: "var(--gray-100)",
-                                padding: "2px 6px",
-                                borderRadius: "var(--radius-xs)"
-                              }}>
-                                {exp.employment_type}
-                              </span>
-                            </>
+                            <span style={{
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              ...(() => {
+                                const style = getBadgeStyle(exp.employment_type, "employment_type");
+                                return {
+                                  background: style.bg,
+                                  color: style.color,
+                                  border: `1px solid ${style.border}40`,
+                                  padding: "3px 8px",
+                                  borderRadius: "12px",
+                                  textTransform: "uppercase" as const,
+                                  letterSpacing: "0.02em"
+                                };
+                              })()
+                            }}>
+                              {exp.employment_type}
+                            </span>
                           )}
                           {exp.work_mode && (
                             <span style={{
-                              fontSize: "12px",
-                              color: "var(--gray-600)",
-                              background: "var(--gray-100)",
-                              padding: "2px 6px",
-                              borderRadius: "var(--radius-xs)"
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              ...(() => {
+                                const style = getBadgeStyle(exp.work_mode, "work_mode");
+                                return {
+                                  background: style.bg,
+                                  color: style.color,
+                                  border: `1px solid ${style.border}40`,
+                                  padding: "3px 8px",
+                                  borderRadius: "12px",
+                                  textTransform: "uppercase" as const,
+                                  letterSpacing: "0.02em"
+                                };
+                              })()
                             }}>
                               {exp.work_mode}
                             </span>
@@ -479,10 +542,12 @@ export default function JobStatus() {
                             key={tidx}
                             style={{
                               fontSize: "11px",
+                              fontWeight: 500,
                               padding: "3px 8px",
-                              background: "var(--gray-100)",
-                              color: "var(--gray-700)",
-                              borderRadius: "var(--radius-xs)"
+                              background: "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)",
+                              color: "#3730a3",
+                              border: "1px solid #6366f140",
+                              borderRadius: "12px"
                             }}
                           >
                             {renderValue(skill.name || skill)}
@@ -652,10 +717,12 @@ export default function JobStatus() {
                             key={tidx}
                             style={{
                               fontSize: "11px",
+                              fontWeight: 500,
                               padding: "3px 8px",
-                              background: "var(--gray-100)",
-                              color: "var(--gray-700)",
-                              borderRadius: "var(--radius-xs)"
+                              background: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)",
+                              color: "#065f46",
+                              border: "1px solid #10b98140",
+                              borderRadius: "12px"
                             }}
                           >
                             {renderValue(skill.name || skill)}
@@ -682,7 +749,7 @@ export default function JobStatus() {
                     }}
                   >
                     {/* Header with degree and dates */}
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-center">
                       <div style={{ flex: 1 }}>
                         <div style={{
                           display: "flex",
@@ -691,10 +758,11 @@ export default function JobStatus() {
                           marginBottom: "4px"
                         }}>
                           <h4 style={{
-                            fontSize: "15px",
+                            fontSize: "var(--text-base)",
                             fontWeight: 600,
                             margin: 0,
-                            color: "var(--gray-900)"
+                            color: "var(--gray-900)",
+                            lineHeight: 1.3
                           }}>
                             {renderValue(edu.qualification || edu.degree)}
                             {edu.field && (
@@ -706,21 +774,28 @@ export default function JobStatus() {
                           </h4>
                           {edu.status && (
                             <span style={{
-                              fontSize: "11px",
-                              padding: "2px 6px",
-                              background: edu.status === "ongoing" ? "var(--blue-50)" :
-                                         edu.status === "completed" ? "var(--green-50)" : "var(--gray-100)",
-                              color: edu.status === "ongoing" ? "var(--blue-600)" :
-                                     edu.status === "completed" ? "var(--green-600)" : "var(--gray-600)",
-                              borderRadius: "var(--radius-xs)",
-                              fontWeight: 500
+                              fontSize: "var(--text-xs)",
+                              fontWeight: 600,
+                              flexShrink: 0,
+                              ...(() => {
+                                const style = getBadgeStyle(edu.status, "education_status");
+                                return {
+                                  background: style.bg,
+                                  color: style.color,
+                                  border: `1px solid ${style.border}40`,
+                                  padding: "3px 8px",
+                                  borderRadius: "12px",
+                                  textTransform: "uppercase" as const,
+                                  letterSpacing: "0.02em"
+                                };
+                              })()
                             }}>
                               {edu.status}
                             </span>
                           )}
                         </div>
                         <div style={{
-                          fontSize: "14px",
+                          fontSize: "var(--text-sm)",
                           color: "var(--gray-700)"
                         }}>
                           {edu.institution && renderValue(edu.institution.name || edu.institution)}
@@ -730,8 +805,10 @@ export default function JobStatus() {
                       {/* Dates and location */}
                       <div style={{
                         textAlign: "right",
-                        fontSize: "13px",
-                        color: "var(--gray-600)"
+                        fontSize: "var(--text-sm)",
+                        color: "var(--gray-600)",
+                        marginLeft: "var(--space-3)",
+                        flexShrink: 0
                       }}>
                         {(edu.start || edu.end) && (
                           <div style={{ fontWeight: 500 }}>
@@ -781,10 +858,12 @@ export default function JobStatus() {
                               key={cidx}
                               style={{
                                 fontSize: "11px",
-                                padding: "2px 6px",
-                                background: "var(--gray-100)",
-                                color: "var(--gray-700)",
-                                borderRadius: "var(--radius-xs)"
+                                fontWeight: 500,
+                                padding: "3px 8px",
+                                background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                                color: "#92400e",
+                                border: "1px solid #f59e0b40",
+                                borderRadius: "12px"
                               }}
                             >
                               {renderValue(course.name || course)}
@@ -827,76 +906,85 @@ export default function JobStatus() {
             )}
 
             {key === "languages" && Array.isArray(data) && (
-              <div style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "8px"
-              }}>
+              <div className="flex flex-col gap-3">
                 {data.map((lang: any, idx: number) => {
                   const langName = lang.language?.name || lang.name || lang;
-                  const proficiency = lang.cefr || lang.self_assessed || lang.level;
-
-                  // Get proficiency description
-                  const getProficiencyLabel = (level: string) => {
-                    const upperLevel = String(level).toUpperCase();
-                    if (upperLevel.includes("NATIVE")) return "Native";
-                    if (upperLevel.includes("C2")) return "Mastery";
-                    if (upperLevel.includes("C1")) return "Advanced";
-                    if (upperLevel.includes("B2")) return "Upper Intermediate";
-                    if (upperLevel.includes("B1")) return "Intermediate";
-                    if (upperLevel.includes("A2")) return "Elementary";
-                    if (upperLevel.includes("A1")) return "Beginner";
-                    return upperLevel;
-                  };
-
-                  const proficiencyLabel = proficiency ? getProficiencyLabel(proficiency) : null;
+                  const cefr = lang.cefr;
+                  const selfAssessed = lang.self_assessed;
+                  const level = lang.level;
 
                   return (
                     <div
                       key={idx}
                       style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 12px",
+                        padding: "12px 14px",
                         background: "var(--white)",
                         border: "1px solid var(--gray-200)",
-                        borderRadius: "var(--radius-sm)"
+                        borderRadius: "var(--radius-sm)",
+                        borderLeft: "3px solid var(--cyan-600)"
                       }}
                     >
-                      <span style={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        color: "var(--gray-900)"
-                      }}>
-                        {renderValue(langName)}
-                      </span>
+                      <div className="flex justify-between items-center">
+                        {/* Language name */}
+                        <h4 style={{
+                          fontSize: "15px",
+                          fontWeight: 600,
+                          margin: 0,
+                          color: "var(--gray-900)"
+                        }}>
+                          {renderValue(langName)}
+                        </h4>
 
-                      {proficiency && (
-                        <>
-                          <span style={{
-                            fontSize: "14px",
-                            color: "var(--gray-400)"
-                          }}>
-                            •
-                          </span>
-                          <span style={{
-                            fontSize: "13px",
-                            color: "var(--gray-600)"
-                          }}>
-                            {proficiency}
-                          </span>
-                          {proficiencyLabel && proficiencyLabel !== proficiency && (
+                        {/* Proficiency badges */}
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px"
+                        }}>
+                          {selfAssessed && (
                             <span style={{
-                              fontSize: "12px",
-                              color: "var(--gray-500)",
-                              fontStyle: "italic"
+                              fontSize: "11px",
+                              fontWeight: 500,
+                              padding: "3px 8px",
+                              background: "var(--gray-100)",
+                              color: "var(--gray-700)",
+                              border: "1px solid var(--gray-300)",
+                              borderRadius: "10px",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.3px"
                             }}>
-                              ({proficiencyLabel})
+                              Self: {selfAssessed}
                             </span>
                           )}
-                        </>
-                      )}
+                          {cefr && (
+                            <span style={{
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              padding: "3px 8px",
+                              background: "#10b981",
+                              color: "white",
+                              borderRadius: "10px",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.3px"
+                            }}>
+                              CEFR: {cefr}
+                            </span>
+                          )}
+                          {!cefr && !selfAssessed && level && (
+                            <span style={{
+                              fontSize: "11px",
+                              fontWeight: 500,
+                              padding: "3px 8px",
+                              background: "var(--gray-100)",
+                              color: "var(--gray-700)",
+                              border: "1px solid var(--gray-300)",
+                              borderRadius: "10px"
+                            }}>
+                              {level}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
@@ -951,7 +1039,8 @@ export default function JobStatus() {
   };
 
   return (
-    <div className="container">
+    <div className="page-wrapper">
+      <div className="page-container">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h1 style={{ margin: 0 }}>Job Processing Status</h1>
@@ -975,7 +1064,10 @@ export default function JobStatus() {
 
       {/* Loading State */}
       {!job && !error && (
-        <div className="card" style={{ textAlign: "center", padding: "var(--space-6)" }}>
+        <div className="glass-card" style={{
+          padding: "var(--space-6)",
+          textAlign: "center"
+        }}>
           <div className="spinner" style={{ width: "48px", height: "48px", margin: "0 auto var(--space-3)" }}></div>
           <p className="muted">Loading job details...</p>
         </div>
@@ -983,8 +1075,9 @@ export default function JobStatus() {
 
       {/* Job Status Card */}
       {job && (
-        <div className="card mb-3" style={{
+        <div className="glass-card" style={{
           borderTop: `3px solid ${getStatusColor(job.status)}`,
+          marginBottom: "var(--space-3)"
         }}>
           {/* Main Status Row */}
           <div className="flex justify-between items-center" style={{ marginBottom: "var(--space-3)" }}>
@@ -1004,26 +1097,39 @@ export default function JobStatus() {
                 {getStatusIcon(job.status)}
               </div>
               <div>
-                <h2 style={{
-                  fontSize: "var(--text-xl)",
-                  fontWeight: 700,
-                  color: getStatusColor(job.status),
-                  marginBottom: "4px"
-                }}>
-                  {job.status === "completed" ? "Processing Complete" :
-                   job.status === "processing" ? "Processing Resume" :
-                   job.status === "failed" ? "Processing Failed" : "Queued for Processing"}
-                </h2>
-                <div className="flex items-center gap-3">
-                  <code style={{
-                    fontSize: "var(--text-xs)",
-                    padding: "2px 6px",
-                    background: "var(--gray-100)",
-                    borderRadius: "var(--radius-sm)",
-                    color: "var(--gray-700)"
+                <div className="flex items-center gap-2">
+                  <h1 style={{
+                    color: getStatusColor(job.status),
+                    margin: 0
                   }}>
-                    {job.job_id}
-                  </code>
+                    {job.status === "completed" ? "Processing Complete" :
+                     job.status === "processing" ? "Processing Resume" :
+                     job.status === "failed" ? "Processing Failed" : "Queued for Processing"}
+                  </h1>
+                  <button
+                    onClick={() => handleCopy(job.job_id, "job-id")}
+                    style={{
+                      padding: "4px",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "var(--radius-sm)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "background var(--transition-fast)",
+                      color: "var(--gray-600)"
+                    }}
+                    title={copiedButtons.has("job-id") ? "Copied!" : `Job ID: ${job.job_id}`}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-100)"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                  >
+                    {copiedButtons.has("job-id") ? (
+                      <Check size={14} style={{ color: "var(--success)" }} />
+                    ) : (
+                      <Hash size={14} />
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
@@ -1032,42 +1138,82 @@ export default function JobStatus() {
             {job.status === "completed" && (
               <div className="flex gap-2">
                 <button
-                  className="btn"
                   onClick={() => {
                     const url = `${window.location.origin}/jobs/${job.job_id}`;
-                    navigator.clipboard.writeText(url);
+                    handleCopy(url, "copy-link");
                   }}
-                  style={{ padding: "6px 12px", fontSize: "14px" }}
-                  title="Copy link to clipboard"
+                  style={{
+                    padding: "8px",
+                    background: "white",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontFamily: "inherit"
+                  }}
+                  title={copiedButtons.has("copy-link") ? "Copied!" : "Copy link to clipboard"}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "4px" }}>
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                  Copy Link
+                  {copiedButtons.has("copy-link") ? (
+                    <Check size={16} style={{ color: "#10b981" }} />
+                  ) : (
+                    <Copy size={16} style={{ color: "#374151" }} />
+                  )}
                 </button>
                 <a
                   href={`${API_BASE_URL}/api/v1/jobs/${job.job_id}/result/`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn ghost"
-                  style={{ padding: "6px 12px", fontSize: "14px" }}
+                  style={{
+                    padding: "8px",
+                    background: "white",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    textDecoration: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
                   title="Open API JSON response"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "4px" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "#374151" }}>
                     <polyline points="16 18 22 12 16 6" />
                     <polyline points="8 6 2 12 8 18" />
                   </svg>
-                  API
                 </a>
                 {result?.review && (
                   <Link
                     to={`/jobs/${job.job_id}/review`}
-                    className="btn ghost"
-                    style={{ padding: "6px 12px", fontSize: "14px" }}
+                    style={{
+                      padding: "6px 12px",
+                      fontSize: "14px",
+                      fontWeight: "600",
+                      background: "#9333ea",
+                      border: "1px solid #9333ea",
+                      borderRadius: "6px",
+                      color: "#ffffff",
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      fontFamily: "inherit"
+                    }}
                     title="View AI Resume Review"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#7e22ce";
+                      e.currentTarget.style.borderColor = "#7e22ce";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#9333ea";
+                      e.currentTarget.style.borderColor = "#9333ea";
+                    }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "4px" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "#ffffff" }}>
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                       <polyline points="14 2 14 8 20 8" />
                       <line x1="16" y1="13" x2="8" y2="13" />
@@ -1147,7 +1293,7 @@ export default function JobStatus() {
           {result.resume && (
             <div className="mb-4">
               <div className="flex justify-between items-center mb-3">
-                <h2>Extracted Resume Data</h2>
+                <h2 style={{ margin: 0 }}>Extracted Resume Data</h2>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <button
                     className="btn ghost"
@@ -1169,7 +1315,10 @@ export default function JobStatus() {
               </div>
 
               {showMetadata ? (
-                <div className="card" style={{ position: "relative", marginBottom: "var(--space-3)" }}>
+                <div className="glass-card" style={{
+                  position: "relative",
+                  marginBottom: "var(--space-3)"
+                }}>
                   <button
                     className="btn ghost"
                     onClick={() => handleCopy(JSON.stringify(result.metadata, null, 2), "metadata-json")}
@@ -1208,7 +1357,7 @@ export default function JobStatus() {
               ) : null}
 
               {showRawJson ? (
-                <div className="card" style={{ position: "relative" }}>
+                <div className="glass-card" style={{ position: "relative" }}>
                   <button
                     className="btn ghost"
                     onClick={() => handleCopy(JSON.stringify(result.resume, null, 2), "main-json")}
@@ -1244,11 +1393,11 @@ export default function JobStatus() {
                 </div>
               ) : (
                 <>
-                  {/* Personal and Skills in 30/70 split */}
-                  <div className="personal-skills-grid" style={{ gridTemplateColumns: "0.3fr 0.7fr" }}>
+
+                  {/* Personal and Skills in flexible split */}
+                  <div className="personal-skills-grid">
                     {/* Personal Info Card */}
-                    <div className="card">
-                      <h3 className="title" style={{ marginBottom: "var(--space-2)" }}>Personal Information</h3>
+                    <div className="glass-card">
                       {(() => {
                         // Extract personal info from nested structure
                         const r = result.resume;
@@ -1282,71 +1431,92 @@ export default function JobStatus() {
                           Object.entries(personal).filter(([_, v]) => v !== null && v !== undefined)
                         );
 
+                        const resumeLang = r.personal_info?.resume_lang || r.resume_lang;
+
                         return (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                            {/* Name with avatar inline */}
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                              <div style={{
-                                width: "32px",
-                                height: "32px",
-                                borderRadius: "var(--radius-full)",
-                                background: "linear-gradient(135deg, var(--blue-500), var(--blue-600))",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: "14px",
-                                fontWeight: 600,
-                                color: "white",
-                                flexShrink: 0
-                              }}>
-                                {personal.name ? personal.name.charAt(0).toUpperCase() : "?"}
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <h4 style={{ fontSize: "15px", fontWeight: 600, margin: 0, lineHeight: 1.2 }}>
+                          <>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-2)" }}>
+                              <h3 className="title" style={{ margin: 0, fontSize: "var(--text-sm)", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--gray-600)", fontWeight: 600 }}>Personal Information</h3>
+                              {resumeLang && (
+                                <span style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  padding: "2px 8px",
+                                  background: "var(--blue-50)",
+                                  border: "1px solid var(--blue-200)",
+                                  borderRadius: "var(--radius-full)",
+                                  fontSize: "10px",
+                                  fontWeight: 600,
+                                  color: "var(--blue-700)",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.02em"
+                                }}>
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                                    <path d="M4 5h16M4 9h16M4 13h16M4 17h10"/>
+                                  </svg>
+                                  {renderValue(resumeLang)}
+                                </span>
+                              )}
+                            </div>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                              {/* Name */}
+                              <div>
+                                <h4 style={{ fontSize: "var(--text-xl)", fontWeight: 700, margin: 0, lineHeight: 1.2, marginBottom: "4px", color: "var(--neutral-900)" }}>
                                   {renderValue(personal.name) || "—"}
                                 </h4>
                                 {personal.location && (
-                                  <span style={{ fontSize: "12px", color: "var(--gray-600)", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-500)" }}>
+                                  <span style={{ fontSize: "var(--text-xs)", color: "var(--gray-600)", display: "flex", alignItems: "center", gap: "4px" }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-500)", flexShrink: 0 }}>
                                       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                                     </svg>
                                     {renderValue(personal.location)}
                                   </span>
                                 )}
                               </div>
-                            </div>
 
                             {/* Contact info in compact layout */}
-                            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                               {personal.email && (
                                 <a href={`mailto:${renderValue(personal.email)}`} style={{
-                                  fontSize: "13px",
+                                  fontSize: "var(--text-sm)",
                                   color: "var(--blue-600)",
                                   textDecoration: "none",
                                   display: "flex",
                                   alignItems: "center",
                                   gap: "8px",
-                                  padding: "4px 0"
-                                }}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  padding: "6px 8px",
+                                  borderRadius: "var(--radius-sm)",
+                                  transition: "background 0.2s"
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = "var(--blue-50)"}
+                                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
                                     <rect x="2" y="4" width="20" height="16" rx="2"/>
                                     <path d="m22,7-10,5L2,7"/>
                                   </svg>
-                                  {renderValue(personal.email)}
+                                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {renderValue(personal.email)}
+                                  </span>
                                 </a>
                               )}
 
                               {personal.phone && (
                                 <a href={`tel:${renderValue(personal.phone)}`} style={{
-                                  fontSize: "13px",
+                                  fontSize: "var(--text-sm)",
                                   color: "var(--blue-600)",
                                   textDecoration: "none",
                                   display: "flex",
                                   alignItems: "center",
                                   gap: "8px",
-                                  padding: "4px 0"
-                                }}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  padding: "6px 8px",
+                                  borderRadius: "var(--radius-sm)",
+                                  transition: "background 0.2s"
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = "var(--blue-50)"}
+                                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
                                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                                   </svg>
                                   {renderValue(personal.phone)}
@@ -1359,7 +1529,7 @@ export default function JobStatus() {
                               <div style={{
                                 display: "flex",
                                 gap: "8px",
-                                paddingTop: "8px",
+                                paddingTop: "var(--space-2)",
                                 borderTop: "1px solid var(--gray-200)"
                               }}>
                                 {personal.linkedin && (
@@ -1369,18 +1539,25 @@ export default function JobStatus() {
                                     rel="noopener noreferrer"
                                     title="LinkedIn"
                                     style={{
-                                      padding: "6px",
-                                      background: "var(--gray-50)",
+                                      padding: "8px",
+                                      background: "var(--gray-100)",
                                       borderRadius: "var(--radius-sm)",
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
-                                      transition: "background 0.2s"
+                                      transition: "all 0.2s",
+                                      cursor: "pointer"
                                     }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-100)"}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = "var(--gray-50)"}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = "var(--blue-600)";
+                                      e.currentTarget.querySelector('svg')!.style.color = "white";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = "var(--gray-100)";
+                                      e.currentTarget.querySelector('svg')!.style.color = "var(--gray-700)";
+                                    }}
                                   >
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-700)" }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-700)", transition: "color 0.2s" }}>
                                       <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
                                     </svg>
                                   </a>
@@ -1392,18 +1569,25 @@ export default function JobStatus() {
                                     rel="noopener noreferrer"
                                     title="GitHub"
                                     style={{
-                                      padding: "6px",
-                                      background: "var(--gray-50)",
+                                      padding: "8px",
+                                      background: "var(--gray-100)",
                                       borderRadius: "var(--radius-sm)",
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
-                                      transition: "background 0.2s"
+                                      transition: "all 0.2s",
+                                      cursor: "pointer"
                                     }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-100)"}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = "var(--gray-50)"}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = "var(--gray-900)";
+                                      e.currentTarget.querySelector('svg')!.style.color = "white";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = "var(--gray-100)";
+                                      e.currentTarget.querySelector('svg')!.style.color = "var(--gray-700)";
+                                    }}
                                   >
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-700)" }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-700)", transition: "color 0.2s" }}>
                                       <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                                     </svg>
                                   </a>
@@ -1415,18 +1599,25 @@ export default function JobStatus() {
                                     rel="noopener noreferrer"
                                     title="Website"
                                     style={{
-                                      padding: "6px",
-                                      background: "var(--gray-50)",
+                                      padding: "8px",
+                                      background: "var(--gray-100)",
                                       borderRadius: "var(--radius-sm)",
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
-                                      transition: "background 0.2s"
+                                      transition: "all 0.2s",
+                                      cursor: "pointer"
                                     }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-100)"}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = "var(--gray-50)"}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = "var(--purple-600)";
+                                      e.currentTarget.querySelector('svg')!.style.stroke = "white";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = "var(--gray-100)";
+                                      e.currentTarget.querySelector('svg')!.style.stroke = "var(--gray-700)";
+                                    }}
                                   >
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--gray-700)" }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--gray-700)", transition: "stroke 0.2s" }}>
                                       <circle cx="12" cy="12" r="10" />
                                       <line x1="2" y1="12" x2="22" y2="12" />
                                       <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
@@ -1436,23 +1627,37 @@ export default function JobStatus() {
                               </div>
                             )}
                           </div>
+                          </>
                         );
                       })()}
                     </div>
 
                     {/* Skills Card */}
-                    <div className="card">
+                    <div className="glass-card">
                       <h3 className="title" style={{ marginBottom: "var(--space-2)" }}>Skills</h3>
-                      <div className="chips" style={{ maxHeight: "150px", overflowY: "auto" }}>
-                        {result.resume.skills && Array.isArray(result.resume.skills) ? (
-                          result.resume.skills.map((skill: any, idx: number) => (
-                            <span key={idx} className="chip" style={{ fontSize: "12px" }}>
-                              {renderValue(skill)}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="small muted">No skills data available</span>
-                        )}
+                      <div style={{ position: "relative" }}>
+                        <div className="chips" style={{ maxHeight: "150px", overflowY: "auto", paddingBottom: "var(--space-2)" }}>
+                          {result.resume.skills && Array.isArray(result.resume.skills) ? (
+                            result.resume.skills.map((skill: any, idx: number) => (
+                              <span key={idx} className="chip" style={{ fontSize: "var(--text-xs)" }}>
+                                {renderValue(skill)}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="small muted">No skills data available</span>
+                          )}
+                        </div>
+                        {/* Gradient fade overlay to indicate scrollable content */}
+                        <div style={{
+                          position: "absolute",
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: "40px",
+                          background: "linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95))",
+                          pointerEvents: "none",
+                          borderRadius: "0 0 var(--radius-sm) var(--radius-sm)"
+                        }}></div>
                       </div>
                     </div>
                   </div>
@@ -1487,6 +1692,7 @@ export default function JobStatus() {
 
         </>
       )}
+      </div>
     </div>
   );
 }

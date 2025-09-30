@@ -1,5 +1,6 @@
 import os
 import sys
+import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -184,10 +185,8 @@ REDIS_HOST = os.getenv("REDIS_HOST", "redis")  # Docker service name
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
 REDIS_JOB_PREFIX = os.getenv("REDIS_JOB_PREFIX", "cv:job:")
-REDIS_JOB_QUEUE = os.getenv("REDIS_JOB_QUEUE", "cv_processing_queue")
 REDIS_CLEANUP_QUEUE = os.getenv("REDIS_CLEANUP_QUEUE", "cv_cleanup_queue")
 REDIS_JOB_TIMEOUT = int(os.getenv("REDIS_JOB_TIMEOUT", "1800"))
-REDIS_WORKER_TIMEOUT = int(os.getenv("REDIS_WORKER_TIMEOUT", "30"))
 REDIS_MAX_RETRIES = int(os.getenv("REDIS_MAX_RETRIES", "3"))
 
 # =============================================================================
@@ -255,6 +254,7 @@ CACHE_TTL = int(os.getenv("CACHE_TTL", "3600"))
 # WORKER
 # =============================================================================
 
+WORKER_ID = os.getenv("WORKER_ID", f"worker-{uuid.uuid4().hex[:8]}")
 WORKER_STORE_IN_DB = os.getenv("WORKER_STORE_IN_DB", "true").lower() == "true"
 WORKER_GENERATE_REVIEW = os.getenv("WORKER_GENERATE_REVIEW", "true").lower() == "true"
 WORKER_CONCURRENT_JOBS = int(os.getenv("WORKER_CONCURRENT_JOBS", "3"))

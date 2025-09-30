@@ -2,6 +2,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from rest_framework import serializers
 
 from core.domain import SearchFilters, SearchRequest, SearchType
+from core.domain.resume import EducationStatus
 
 """
 Note on type ignores for 'source' and 'context' fields:
@@ -30,11 +31,18 @@ class SearchMatchSerializer(serializers.Serializer):
 class JobExperienceSerializer(serializers.Serializer):
     company = serializers.CharField()
     position = serializers.CharField()
-    duration_months = serializers.IntegerField()
-    start_date = serializers.CharField(required=False, allow_null=True)
-    end_date = serializers.CharField(required=False, allow_null=True)
+    duration_months = serializers.IntegerField(required=False, allow_null=True)
+    start = serializers.CharField(required=False, allow_null=True, help_text="Start date (YYYY.MM)")
+    end = serializers.CharField(required=False, allow_null=True, help_text="End date (YYYY.MM or NULL for ongoing)")
     employment_type = serializers.CharField(required=False, allow_null=True)
     work_mode = serializers.CharField(required=False, allow_null=True)
+    key_points = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        default=list,
+        help_text="Key achievements/responsibilities"
+    )
 
 
 class SearchResultSerializer(serializers.Serializer):
@@ -76,9 +84,23 @@ class SearchFiltersSerializer(serializers.Serializer):
         validators=[MinValueValidator(0), MaxValueValidator(50)],
         help_text="Minimum years of experience",
     )
+    education_level = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Minimum education level (e.g., Bachelor, Master, PhD)",
+    )
+    education_status = serializers.ChoiceField(
+        choices=[status.value for status in EducationStatus],
+        required=False,
+        allow_null=True,
+        help_text="Education status filter: completed, ongoing, or incomplete",
+    )
 
     def to_internal_value(self, data):
         validated = super().to_internal_value(data)
+        # Convert string to EducationStatus enum if provided
+        if validated.get("education_status"):
+            validated["education_status"] = EducationStatus(validated["education_status"])
         return SearchFilters(**validated)
 
 
@@ -177,6 +199,8 @@ class FilterOptionsSerializer(serializers.Serializer):
     roles = FilterOptionSerializer(many=True, default=list, help_text="Available roles")
     companies = FilterOptionSerializer(many=True, default=list, help_text="Available companies")
     locations = FilterOptionSerializer(many=True, default=list, help_text="Available locations")
+    education_levels = FilterOptionSerializer(many=True, default=list, help_text="Available education levels")
+    education_statuses = FilterOptionSerializer(many=True, default=list, help_text="Available education statuses")
 
 
 class VectorHitSerializer(serializers.Serializer):

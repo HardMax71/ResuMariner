@@ -38,17 +38,30 @@ class GraphDBService:
 
     def upsert_resume(self, resume: Resume) -> bool:
         try:
-            existing_node = ResumeNode.nodes.get_or_none(uid=resume.uid) if resume.uid else None
+            # Get email if available
+            email = None
+            if resume.personal_info and resume.personal_info.contact:
+                email = resume.personal_info.contact.email
 
-            # If updating, delete the old node and its relationships first
-            if existing_node:
-                logger.info("Updating existing resume %s", existing_node.uid)
-                self.delete_resume_cascade(existing_node)
-            else:
-                logger.info("Creating new resume %s", resume.uid)
+            # If we have an email, check for existing resume by email
+            if email:
+                query = """
+                MATCH (r:ResumeNode)-[:HAS_PERSONAL_INFO]->(:PersonalInfoNode)-[:HAS_CONTACT]->(c:ContactNode {email: $email})
+                RETURN r.uid as uid
+                LIMIT 1
+                """
+                results, _ = db.cypher_query(query, {"email": email})
 
-            # Convert and save the new/updated resume
-            # to_ogm automatically saves the node to the database
+                if results:
+                    existing_uid = results[0][0]
+                    existing_node = ResumeNode.nodes.get_or_none(uid=existing_uid)
+                    if existing_node:
+                        logger.info("Found existing resume for email %s, updating", email)
+                        self.delete_resume_cascade(existing_node)
+                        # Use the same uid for consistency
+                        resume = resume.model_copy(update={"uid": existing_uid})
+
+            # Convert and save the resume
             resume_node: ResumeNode | None = Converter.to_ogm(resume)
             if resume_node is None:
                 logger.error("Error with creating resume node for %s", resume.uid)

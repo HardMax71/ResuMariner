@@ -25,7 +25,7 @@ class CleanupService:
         else:
             file_ext = None
 
-        FileService.cleanup_all_job_files(job_id, file_ext)
+        await FileService.cleanup_all_job_files(job_id, file_ext)
         self.graph_db.delete_resume(resume_id=job_id)
         self.vector_db.delete_resume_vectors(job_id)
         return await self.job_service.delete_job(job_id)
