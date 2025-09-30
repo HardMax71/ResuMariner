@@ -1,0 +1,67 @@
+name: tests
+
+on:
+  push:
+    branches: [ main, v2 ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  TEXT_LLM_API_KEY: ${{ secrets.TEXT_LLM_API_KEY }}
+  OCR_LLM_API_KEY: ${{ secrets.OCR_LLM_API_KEY }}
+  GITHUB_ACTIONS: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Create .env file from example
+      run: |
+        # Copy the example file
+        cp backend/.env.example backend/.env
+
+        # Replace API keys with secrets
+        sed -i "s|TEXT_LLM_API_KEY=.*|TEXT_LLM_API_KEY=$TEXT_LLM_API_KEY|" backend/.env
+        sed -i "s|OCR_LLM_API_KEY=.*|OCR_LLM_API_KEY=$OCR_LLM_API_KEY|" backend/.env
+
+        echo "✓ Created .env file with API keys from secrets"
+
+    - name: Start services with docker-compose
+      run: |
+        docker compose up -d neo4j redis qdrant
+
+        # Wait for services to be ready
+        echo "Waiting for services to start..."
+        sleep 10
+
+        # Check services are healthy
+        docker compose ps
+
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        uv sync --all-groups
+
+    - name: Run tests
+      run: |
+        cd backend
+        .venv/bin/python manage.py test --verbosity=2
+
+    - name: Stop services
+      if: always()
+      run: |
+        docker compose down -v

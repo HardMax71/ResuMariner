@@ -1,12 +1,16 @@
-name: Ruff Linting
+name: ruff
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, v2 ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
+
+env:
+  # API keys from repository secrets (in case ruff somehow imports settings)
+  TEXT_LLM_API_KEY: ${{ secrets.TEXT_LLM_API_KEY }}
+  OCR_LLM_API_KEY: ${{ secrets.OCR_LLM_API_KEY }}
+  GITHUB_ACTIONS: true
 
 jobs:
   lint:
@@ -19,16 +23,34 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.12'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Create .env file from example
+        run: |
+          # Copy the example file
+          cp backend/.env.example backend/.env
+
+          # Replace API keys with secrets
+          sed -i "s|TEXT_LLM_API_KEY=.*|TEXT_LLM_API_KEY=$TEXT_LLM_API_KEY|" backend/.env
+          sed -i "s|OCR_LLM_API_KEY=.*|OCR_LLM_API_KEY=$OCR_LLM_API_KEY|" backend/.env
+
+          echo "✓ Created .env file with API keys from secrets"
 
       - name: Install ruff
         run: |
-          python -m pip install --upgrade pip
-          pip install ruff
+          uv pip install --system ruff
 
-      - name: Run Ruff Checks on Microservices
+      - name: Run Ruff format check
         run: |
-          ruff check ./cv-intake-service
-          ruff check ./cv-processing-service
-          ruff check ./cv-search-service
-          ruff check ./cv-storage-service
+          cd backend
+          ruff format --check --config pyproject.toml .
+
+      - name: Run Ruff linting
+        run: |
+          cd backend
+          ruff check --config pyproject.toml .

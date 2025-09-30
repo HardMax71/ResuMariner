@@ -6,10 +6,13 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.backend.address=:8000"
       - "--entrypoints.internal.address=:8081"
     ports:
-      - "80:80"       # External traffic: intake, search, and dashboard (via web entrypoint)
-      - "8080:8080"   # Exposes Traefik dashboard on traefik.localhost via web entrypoint
+      - "80:80"
+      - "8000:8000"
+      - "8080:8080"
+      - "8081:8081"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -17,9 +20,6 @@ services:
       - internal-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)"
-      - "traefik.http.routers.traefik-dashboard.entrypoints=web"
-      - "traefik.http.routers.traefik-dashboard.service=api@internal"
 
   neo4j:
     image: neo4j:latest
@@ -27,8 +27,10 @@ services:
       - "7474"
       - "7687"
     environment:
-      - NEO4J_AUTH=neo4j/testpassword
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-secure_default_password}
       - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_dbms_connector_bolt_listen__address=0.0.0.0:7687
+      - NEO4J_dbms_connector_http_listen__address=0.0.0.0:7474
     volumes:
       - neo4j_data:/data
     networks:
@@ -67,111 +69,140 @@ services:
       - redis_data:/data
     networks:
       - internal-network
-    # Redis is non-HTTP so no Traefik labels are added.
 
-  cv-storage-service:
-    build: ./cv-storage-service
+  jaeger:
+    image: jaegertracing/all-in-one:latest
     expose:
-      - "8002"
+      - "16686"
+      - "6831"
+      - "14268"
     environment:
-      - SERVICE_NAME=cv-storage-service
-      - DEBUG=false
-      - LOG_LEVEL=INFO
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=testpassword
-      - QDRANT_HOST=qdrant
-      - QDRANT_PORT=6333
-      - QDRANT_COLLECTION=cv_key_points
-      - VECTOR_SIZE=384
+      - COLLECTOR_OTLP_ENABLED=true
     networks:
+      - internal-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jaeger.rule=Host(`jaeger.internal.localhost`)"
+      - "traefik.http.routers.jaeger.entrypoints=internal"
+      - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
+
+  prometheus:
+    image: prom/prometheus:latest
+    expose:
+      - "9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - internal-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.internal.localhost`)"
+      - "traefik.http.routers.prometheus.entrypoints=internal"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    expose:
+      - "3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    networks:
+      - internal-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
+      - "traefik.http.routers.grafana.entrypoints=internal"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+  backend:
+    build: ./backend
+    command: sh -c "./.venv/bin/python manage.py migrate --noinput && ./.venv/bin/python manage.py collectstatic --noinput || true && ./.venv/bin/python manage.py runserver 0.0.0.0:8000"
+    expose:
+      - "8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - cv_temp:/tmp/cv_uploads
+    env_file:
+      - ./backend/.env
+    networks:
+      - public-network
       - internal-network
     depends_on:
       neo4j:
         condition: service_healthy
       qdrant:
         condition: service_started
+      redis:
+        condition: service_started
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cv-storage-service.rule=Host(`storage.internal.localhost`)"
-      - "traefik.http.routers.cv-storage-service.entrypoints=internal"
-      - "traefik.http.services.cv-storage-service.loadbalancer.server.port=8002"
+      - "traefik.docker.network=public-network"
+      - "traefik.http.routers.backend.rule=Host(`localhost`)"
+      - "traefik.http.routers.backend.entrypoints=backend"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+      - "traefik.http.routers.backend-80.rule=Host(`api.localhost`)"
+      - "traefik.http.routers.backend-80.entrypoints=web"
 
-  cv-intake-service:
-    build: ./cv-intake-service
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
     volumes:
-      - ./uploads:/app/uploads
+      - ./frontend:/app
+      - /app/node_modules
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - PROCESSING_SERVICE_URL=http://cv-processing-service:8001
-      - STORAGE_SERVICE_URL=http://cv-storage-service:8002
+      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_GRAFANA_URL=http://grafana.localhost:8081
     networks:
       - public-network
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=public-network"
+      - "traefik.http.routers.frontend.rule=Host(`app.localhost`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=5173"
+
+  backend-worker-processing:
+    build: ./backend
+    command: sh -c "sleep 10 && ./.venv/bin/python manage.py intake_worker processing"
+    volumes:
+      - ./uploads:/app/uploads
+      - cv_temp:/tmp/cv_uploads
+    env_file:
+      - ./backend/.env
+    networks:
       - internal-network
     depends_on:
       redis:
         condition: service_started
-      cv-processing-service:
-        condition: service_healthy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cv-intake-service.rule=Host(`intake.localhost`)"
-      - "traefik.http.routers.cv-intake-service.entrypoints=web"
-      - "traefik.http.services.cv-intake-service.loadbalancer.server.port=8000"
 
-  cv-processing-service:
-    build: ./cv-processing-service
-    environment:
-      - LLM_PROVIDER=openai
-      - LLM_MODEL=gpt-4o-mini
-      - LLM_API_KEY=sk-proj--your-key-here
-
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+  backend-worker-cleanup:
+    build: ./backend
+    command: sh -c "sleep 10 && ./.venv/bin/python manage.py intake_worker cleanup"
+    volumes:
+      - ./uploads:/app/uploads
+      - cv_temp:/tmp/cv_uploads
+    env_file:
+      - ./backend/.env
     networks:
       - internal-network
     depends_on:
-      - cv-storage-service
-    # No direct public routing. It’s available in Traefik via its internal router (accessible only on internal entrypoint)
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cv-processing-service.rule=Host(`processing.internal.localhost`)"
-      - "traefik.http.routers.cv-processing-service.entrypoints=internal"
-      - "traefik.http.services.cv-processing-service.loadbalancer.server.port=8001"
-
-  cv-search-service:
-    build: ./cv-search-service
-    environment:
-      - SERVICE_NAME=cv-search-service
-      - DEBUG=false
-      - LOG_LEVEL=INFO
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=testpassword
-      - QDRANT_HOST=qdrant
-      - QDRANT_PORT=6333
-      - QDRANT_COLLECTION=cv_key_points
-      - EMBEDDING_MODEL=all-MiniLM-L6-v2
-      - VECTOR_SIZE=384
-      - DEFAULT_VECTOR_WEIGHT=0.7
-      - DEFAULT_GRAPH_WEIGHT=0.3
-      - PORT=8003
-    networks:
-      - public-network
-      - internal-network
-    depends_on:
-      - neo4j
-      - qdrant
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cv-search-service.rule=Host(`search.localhost`)"
-      - "traefik.http.routers.cv-search-service.entrypoints=web"
-      - "traefik.http.services.cv-search-service.loadbalancer.server.port=8003"
+      redis:
+        condition: service_started
 
 networks:
   public-network:
@@ -183,3 +214,6 @@ volumes:
   neo4j_data:
   qdrant_data:
   redis_data:
+  prometheus_data:
+  grafana_data:
+  cv_temp:
