@@ -64,8 +64,8 @@ class FileService:
             temp_filename = f"{job_id}{file_ext}"
             durable_path = os.path.join(settings.UPLOAD_DIR, temp_filename)
             # For async file copy
-            async with aiofiles.open(temp_path, 'rb') as src:
-                async with aiofiles.open(durable_path, 'wb') as dst:
+            async with aiofiles.open(temp_path, "rb") as src:
+                async with aiofiles.open(durable_path, "wb") as dst:
                     await dst.write(await src.read())
 
     @staticmethod

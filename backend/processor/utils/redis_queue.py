@@ -51,12 +51,7 @@ class RedisJobQueue:
         pipeline.expire(task_key, settings.REDIS_JOB_TIMEOUT)
 
         # Add to stream for instant delivery
-        stream_data = {
-            "task_id": task_id,
-            "job_id": job_id,
-            "priority": str(priority),
-            "timestamp": str(time.time())
-        }
+        stream_data = {"task_id": task_id, "job_id": job_id, "priority": str(priority), "timestamp": str(time.time())}
         pipeline.xadd(self.job_stream, stream_data)
 
         # Publish event for instant notification
@@ -78,9 +73,7 @@ class RedisJobQueue:
             )
             # Create consumer group if it doesn't exist
             try:
-                await self.redis.xgroup_create(
-                    self.job_stream, self.consumer_group, id="0", mkstream=True
-                )
+                await self.redis.xgroup_create(self.job_stream, self.consumer_group, id="0", mkstream=True)
             except aioredis.ResponseError as e:
                 if "BUSYGROUP" not in str(e):
                     raise
@@ -97,7 +90,7 @@ class RedisJobQueue:
                     self.consumer_name,
                     {self.job_stream: ">"},
                     count=1,
-                    block=0  # Block indefinitely until message arrives
+                    block=0,  # Block indefinitely until message arrives
                 )
 
                 if not messages:
@@ -111,9 +104,7 @@ class RedisJobQueue:
                             job_data = await redis_client.hgetall(task_key)
                             if job_data:
                                 # Acknowledge message
-                                await redis_client.xack(
-                                    self.job_stream, self.consumer_group, msg_id
-                                )
+                                await redis_client.xack(self.job_stream, self.consumer_group, msg_id)
                                 yield QueuedTask.from_redis_dict(job_data)
 
             except aioredis.ConnectionError:
@@ -127,10 +118,9 @@ class RedisJobQueue:
 
         pipeline = redis_client.pipeline()
         pipeline.hset(task_key, "status", "processing")
-        pipeline.publish(f"cv:job:{job_id}:status", json.dumps({
-            "status": "processing",
-            "timestamp": datetime.now().isoformat()
-        }))
+        pipeline.publish(
+            f"cv:job:{job_id}:status", json.dumps({"status": "processing", "timestamp": datetime.now().isoformat()})
+        )
         results = await pipeline.execute()
         return bool(results[0] > 0)
 
@@ -145,11 +135,10 @@ class RedisJobQueue:
         pipeline.expire(task_key, 3600)
 
         # Publish completion event for real-time updates
-        pipeline.publish(f"cv:job:{job_id}:completed", json.dumps({
-            "status": "completed",
-            "job_id": job_id,
-            "timestamp": datetime.now().isoformat()
-        }))
+        pipeline.publish(
+            f"cv:job:{job_id}:completed",
+            json.dumps({"status": "completed", "job_id": job_id, "timestamp": datetime.now().isoformat()}),
+        )
 
         await pipeline.execute()
         return True
@@ -187,11 +176,10 @@ class RedisJobQueue:
         pipeline.expire(task_key, 86400)
 
         # Publish failure event
-        pipeline.publish(f"cv:job:{job_id}:failed", json.dumps({
-            "status": "failed",
-            "error": error,
-            "timestamp": datetime.now().isoformat()
-        }))
+        pipeline.publish(
+            f"cv:job:{job_id}:failed",
+            json.dumps({"status": "failed", "error": error, "timestamp": datetime.now().isoformat()}),
+        )
 
         await pipeline.execute()
         return False
@@ -226,12 +214,15 @@ class RedisJobQueue:
                     task_key = f"{self.task_key_prefix}{task_id}"
                     job_data = await redis_client.hgetall(task_key)
                     if job_data:
-                        await redis_client.xadd(self.job_stream, {
-                            "task_id": task_id,
-                            "job_id": job_data.get("job_id", ""),
-                            "priority": "1",  # Higher priority for retries
-                            "timestamp": str(time.time())
-                        })
+                        await redis_client.xadd(
+                            self.job_stream,
+                            {
+                                "task_id": task_id,
+                                "job_id": job_data.get("job_id", ""),
+                                "priority": "1",  # Higher priority for retries
+                                "timestamp": str(time.time()),
+                            },
+                        )
 
     async def cleanup_expired_jobs(self, max_age_hours: int = 24) -> int:
         redis_client = await self.get_redis()

@@ -87,7 +87,12 @@ class JobResultView(APIView):
 
 class CleanupJobsView(APIView):
     @extend_schema(
-        request={"application/json": {"type": "object", "properties": {"days": {"type": "integer"}, "force": {"type": "boolean"}}}},
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {"days": {"type": "integer"}, "force": {"type": "boolean"}},
+            }
+        },
         responses={200: OpenApiResponse(description="Cleanup result with deleted count")},
         description="Cleanup old jobs. Deletes jobs older than specified days. Use force=true to delete all jobs.",
     )

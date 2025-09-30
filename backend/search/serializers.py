@@ -41,7 +41,7 @@ class JobExperienceSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         default=list,
-        help_text="Key achievements/responsibilities"
+        help_text="Key achievements/responsibilities",
     )
 
 

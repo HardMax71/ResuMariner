@@ -133,19 +133,28 @@ class EmploymentDuration(BaseModel):
                     val = v[field].strip()
                     if val.lower() in ("present", "current", ""):
                         v[field] = None
-                    elif match := re.match(r'(\d{2})\.(\d{4})', val):  # MM.YYYY
+                    elif match := re.match(r"(\d{2})\.(\d{4})", val):  # MM.YYYY
                         month, year = match.groups()
                         v[field] = f"{year}.{month}"
-                    elif match := re.match(r'([A-Za-z]{3})\s+(\d{4})', val):  # MMM YYYY
+                    elif match := re.match(r"([A-Za-z]{3})\s+(\d{4})", val):  # MMM YYYY
                         month_name, year = match.groups()
                         month_map = {
-                            'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
-                            'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
-                            'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+                            "jan": "01",
+                            "feb": "02",
+                            "mar": "03",
+                            "apr": "04",
+                            "may": "05",
+                            "jun": "06",
+                            "jul": "07",
+                            "aug": "08",
+                            "sep": "09",
+                            "oct": "10",
+                            "nov": "11",
+                            "dec": "12",
                         }
-                        month = month_map.get(month_name.lower()[:3], '01')
+                        month = month_map.get(month_name.lower()[:3], "01")
                         v[field] = f"{year}.{month}"
-                    elif match := re.match(r'(\d{4})', val):  # YYYY only
+                    elif match := re.match(r"(\d{4})", val):  # YYYY only
                         v[field] = f"{val}.01"
         return v
 
@@ -246,19 +255,28 @@ class EducationItem(BaseModel):
                 val = v[field].strip()
                 if val.lower() in ("present", "current", ""):
                     v[field] = None
-                elif match := re.match(r'(\d{2})\.(\d{4})', val):  # MM.YYYY
+                elif match := re.match(r"(\d{2})\.(\d{4})", val):  # MM.YYYY
                     month, year = match.groups()
                     v[field] = f"{year}.{month}"
-                elif match := re.match(r'([A-Za-z]{3})\s+(\d{4})', val):  # MMM YYYY
+                elif match := re.match(r"([A-Za-z]{3})\s+(\d{4})", val):  # MMM YYYY
                     month_name, year = match.groups()
                     month_map = {
-                        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
-                        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
-                        'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+                        "jan": "01",
+                        "feb": "02",
+                        "mar": "03",
+                        "apr": "04",
+                        "may": "05",
+                        "jun": "06",
+                        "jul": "07",
+                        "aug": "08",
+                        "sep": "09",
+                        "oct": "10",
+                        "nov": "11",
+                        "dec": "12",
                     }
-                    month = month_map.get(month_name.lower()[:3], '01')
+                    month = month_map.get(month_name.lower()[:3], "01")
                     v[field] = f"{year}.{month}"
-                elif match := re.match(r'(\d{4})', val):  # YYYY only
+                elif match := re.match(r"(\d{4})", val):  # YYYY only
                     v[field] = f"{val}.01"
         if "start_date" in v and "start" not in v:
             v["start"] = v.pop("start_date")
