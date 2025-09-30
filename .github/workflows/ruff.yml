@@ -1,4 +1,4 @@
-name: Ruff Linting
+name: ruff
 
 on:
   push:

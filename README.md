@@ -1,7 +1,7 @@
 <h1 align="center">ResuMariner</h1>
 <p align="center">
-  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/test.yml">
-    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/test.yml/badge.svg" alt="Tests" />
+  <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/tests.yml">
+    <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/tests.yml/badge.svg" alt="Tests" />
   </a>
   <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/mypy.yml">
     <img src="https://github.com/HardMax71/ResuMariner/actions/workflows/mypy.yml/badge.svg" alt="MyPy" />
