@@ -10,15 +10,43 @@ class SearchType(StrEnum):
     HYBRID = "hybrid"
 
 
+# CEFR level ordering for comparison
+CEFR_ORDER = {"A1": 1, "A2": 2, "B1": 3, "B2": 4, "C1": 5, "C2": 6}
+
+
+@dataclass
+class LanguageRequirement:
+    """Represents a language with minimum CEFR level requirement"""
+
+    language: str
+    min_cefr: str  # "B2" means B2, C1, or C2
+
+
+@dataclass
+class LocationRequirement:
+    """Represents a country with optional cities filter"""
+
+    country: str
+    cities: list[str] | None = None  # None or empty list means "any city" in that country
+
+
+@dataclass
+class EducationRequirement:
+    """Represents an education level with optional status filter"""
+
+    level: str  # Bachelor, Master, PhD, etc.
+    statuses: list[EducationStatus] | None = None  # None or empty list means "any status"
+
+
 @dataclass
 class SearchFilters:
     skills: list[str] | None = None
     role: str | None = None
     company: str | None = None
-    location: str | None = None
+    locations: list[LocationRequirement] | None = None
     years_experience: int | None = None
-    education_level: str | None = None  # Bachelor, Master, PhD, etc.
-    education_status: EducationStatus | None = None
+    education: list[EducationRequirement] | None = None
+    languages: list[LanguageRequirement] | None = None
 
 
 @dataclass
@@ -28,13 +56,40 @@ class FilterOption:
 
 
 @dataclass
+class LanguageOption:
+    """Language with available CEFR levels"""
+
+    language: str
+    available_levels: list[str]  # CEFR levels present in data
+    resume_count: int
+
+
+@dataclass
+class CountryOption:
+    """Country with available cities"""
+
+    country: str
+    cities: list[str]  # Cities within this country
+    resume_count: int
+
+
+@dataclass
+class EducationLevelOption:
+    """Education level with available statuses"""
+
+    level: str
+    statuses: list[str]  # Education statuses for this level
+    resume_count: int
+
+
+@dataclass
 class FilterOptionsResult:
     skills: list[FilterOption] = field(default_factory=list)
     roles: list[FilterOption] = field(default_factory=list)
     companies: list[FilterOption] = field(default_factory=list)
-    locations: list[FilterOption] = field(default_factory=list)
-    education_levels: list[FilterOption] = field(default_factory=list)
-    education_statuses: list[FilterOption] = field(default_factory=list)
+    countries: list[CountryOption] = field(default_factory=list)
+    education_levels: list[EducationLevelOption] = field(default_factory=list)
+    languages: list[LanguageOption] = field(default_factory=list)
 
 
 @dataclass
@@ -68,6 +123,7 @@ class ResumeSearchResult:
     years_experience: int | None = None
     location: dict | None = None
     desired_role: str | None = None
+    languages: list[dict] | None = None
 
     def __post_init__(self):
         # Always keep matches sorted descending by score

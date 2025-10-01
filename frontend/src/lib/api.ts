@@ -16,23 +16,57 @@ export interface JobResult {
 }
 
 export interface FilterOption { value: string; count: number }
+
+export interface LanguageOption {
+  language: string;
+  available_levels: string[];
+  resume_count: number;
+}
+
+export interface CountryOption {
+  country: string;
+  cities: string[];
+  resume_count: number;
+}
+
+export interface EducationLevelOption {
+  level: string;
+  statuses: string[];
+  resume_count: number;
+}
+
 export interface FilterOptions {
   skills: FilterOption[];
   roles: FilterOption[];
   companies: FilterOption[];
-  locations: FilterOption[];
-  education_levels: FilterOption[];
-  education_statuses: FilterOption[];
+  countries: CountryOption[];
+  education_levels: EducationLevelOption[];
+  languages: LanguageOption[];
+}
+
+export interface LanguageRequirement {
+  language: string;
+  min_cefr: string;
+}
+
+export interface LocationRequirement {
+  country: string;
+  cities?: string[] | null;
+}
+
+export interface EducationRequirement {
+  level: string;
+  statuses?: string[] | null;
 }
 
 export interface SearchFilters {
   skills?: string[] | null;
   role?: string | null;
   company?: string | null;
-  location?: string | null;
+  locations?: LocationRequirement[] | null;
   years_experience?: number | null;
-  education_level?: string | null;
-  education_status?: string | null;
+  education?: EducationRequirement[] | null;
+  languages?: LanguageRequirement[] | null;
 }
 
 export interface SearchMatch {
@@ -66,6 +100,7 @@ export interface SearchResult {
   years_experience?: number | null;
   location?: Record<string, any> | null;
   desired_role?: string | null;
+  languages?: Array<{language: string; cefr: string; self_assessed: string}> | null;
 }
 
 export interface SearchResponse {

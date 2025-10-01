@@ -651,20 +651,31 @@ textarea {
 /* Filter Grid - Responsive Layout */
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-2);
 }
 
-@media (max-width: 1024px) {
-  .filter-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+/* Unified compact input/select styling for search page */
+.filter-grid select,
+.filter-grid input[type="number"],
+.search-compact-input {
+  padding: var(--space-1) var(--space-2) !important;
+  font-size: var(--text-sm) !important;
 }
 
-@media (max-width: 640px) {
-  .filter-grid {
-    grid-template-columns: 1fr;
-  }
+.filter-grid select,
+.search-compact-select {
+  background-position: right var(--space-1) center !important;
+  background-size: 16px !important;
+  padding-right: var(--space-4) !important;
+}
+
+/* Responsive grid for advanced options */
+.advanced-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-2);
+  padding-top: var(--space-1);
 }
 
 /* Badges */
@@ -1118,6 +1129,16 @@ textarea {
   .hide-tablet {
     display: none;
   }
+}
+
+/* Collapsible Section - Chevron Animation */
+details summary .chevron {
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+
+details[open] summary .chevron {
+  transform: rotate(180deg);
 }
 
 /* Print Styles */

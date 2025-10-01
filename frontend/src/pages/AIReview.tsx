@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getJobResult, type JobResult } from "../lib/api";
 import { AlertCircle, ChevronDown, ChevronUp, ArrowLeft, FileText, Sparkles } from "lucide-react";
+import Badge from "../components/Badge";
 
 export default function AIReview() {
   const { jobId = "" } = useParams();
@@ -369,7 +370,7 @@ export default function AIReview() {
                           </h3>
                           <div className="flex gap-2">
                             {mustCount > 0 && (
-                              <span style={{
+                              <Badge variant="primary" style={{
                                 padding: "2px 8px",
                                 background: "var(--accent2-100)",
                                 color: "var(--accent2-700)",
@@ -387,10 +388,10 @@ export default function AIReview() {
                                   borderRadius: "50%"
                                 }}></span>
                                 {mustCount} Critical
-                              </span>
+                              </Badge>
                             )}
                             {shouldCount > 0 && (
-                              <span style={{
+                              <Badge variant="primary" style={{
                                 padding: "2px 8px",
                                 background: "var(--accent1-100)",
                                 color: "var(--accent1-700)",
@@ -408,10 +409,10 @@ export default function AIReview() {
                                   borderRadius: "50%"
                                 }}></span>
                                 {shouldCount} Important
-                              </span>
+                              </Badge>
                             )}
                             {adviseCount > 0 && (
-                              <span style={{
+                              <Badge variant="primary" style={{
                                 padding: "2px 8px",
                                 background: "var(--primary-100)",
                                 color: "var(--primary-700)",
@@ -428,8 +429,8 @@ export default function AIReview() {
                                   background: "var(--primary-600)",
                                   borderRadius: "50%"
                                 }}></span>
-                                {adviseCount} Tips
-                              </span>
+                                {adviseCount} Tip
+                              </Badge>
                             )}
                           </div>
                         </div>
@@ -528,7 +529,7 @@ export default function AIReview() {
                         )}
 
                         {feedback.should && feedback.should.length > 0 && (
-                          <div>
+                          <div style={{ marginTop: feedback.must && feedback.must.length > 0 ? "var(--space-3)" : 0 }}>
                             <div style={{
                               display: "flex",
                               alignItems: "center",
@@ -597,7 +598,7 @@ export default function AIReview() {
                         )}
 
                         {feedback.advise && feedback.advise.length > 0 && (
-                          <div>
+                          <div style={{ marginTop: (feedback.must && feedback.must.length > 0) || (feedback.should && feedback.should.length > 0) ? "var(--space-3)" : 0 }}>
                             <div style={{
                               display: "flex",
                               alignItems: "center",

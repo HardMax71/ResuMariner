@@ -4,7 +4,7 @@ from dataclasses import asdict
 from django.conf import settings
 from neo4j import AsyncGraphDatabase
 
-from core.domain import FilterOption, FilterOptionsResult, ResumeSearchResult, SearchFilters
+from core.domain import FilterOptionsResult, ResumeSearchResult, SearchFilters
 
 logger = logging.getLogger(__name__)
 
@@ -56,19 +56,45 @@ class GraphSearchService:
                       -[:WORKED_AT]->(c:CompanyInfoNode)
                 WHERE c.name CONTAINS $company
             })
-            AND ($location IS NULL OR EXISTS {
+            AND ($locations IS NULL OR $locations = [] OR EXISTS {
                 MATCH (resume)-[:HAS_PERSONAL_INFO]->(:PersonalInfoNode)
                       -[:HAS_DEMOGRAPHICS]->(:DemographicsNode)
                       -[:HAS_LOCATION]->(loc:LocationNode)
-                WHERE loc.city CONTAINS $location OR loc.country CONTAINS $location
+                WHERE ANY(req IN $locations WHERE
+                    loc.country = req.country AND
+                    (req.cities IS NULL OR req.cities = [] OR loc.city IN req.cities)
+                )
             })
-            AND ($education_level IS NULL OR EXISTS {
+            AND ($education IS NULL OR $education = [] OR EXISTS {
                 MATCH (resume)-[:HAS_EDUCATION]->(edu:EducationItemNode)
-                WHERE edu.qualification CONTAINS $education_level
+                WHERE ANY(req IN $education WHERE
+                    edu.qualification CONTAINS req.level AND
+                    (req.statuses IS NULL OR req.statuses = [] OR edu.status IN req.statuses)
+                )
             })
-            AND ($education_status IS NULL OR EXISTS {
-                MATCH (resume)-[:HAS_EDUCATION]->(edu:EducationItemNode)
-                WHERE edu.status = $education_status
+            AND ($languages IS NULL OR $languages = [] OR EXISTS {
+                MATCH (resume)-[:HAS_LANGUAGE_PROFICIENCY]->(lp:LanguageProficiencyNode)
+                      -[:OF_LANGUAGE]->(lang:LanguageNode)
+                WHERE ANY(req IN $languages WHERE
+                    lang.name = req.language AND
+                    CASE lp.cefr
+                        WHEN 'A1' THEN 1
+                        WHEN 'A2' THEN 2
+                        WHEN 'B1' THEN 3
+                        WHEN 'B2' THEN 4
+                        WHEN 'C1' THEN 5
+                        WHEN 'C2' THEN 6
+                        ELSE 0
+                    END >= CASE req.min_cefr
+                        WHEN 'A1' THEN 1
+                        WHEN 'A2' THEN 2
+                        WHEN 'B1' THEN 3
+                        WHEN 'B2' THEN 4
+                        WHEN 'C1' THEN 5
+                        WHEN 'C2' THEN 6
+                        ELSE 0
+                    END
+                )
             })
 
         WITH resume
@@ -116,13 +142,19 @@ class GraphSearchService:
         OPTIONAL MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(:ProfessionalProfileNode)
                       -[:HAS_PREFERENCES]->(pref:PreferencesNode)
 
+        // Get languages
+        OPTIONAL MATCH (resume)-[:HAS_LANGUAGE_PROFICIENCY]->(lp:LanguageProficiencyNode)
+                      -[:OF_LANGUAGE]->(lang:LanguageNode)
         WITH resume, name, email, summary, skills, experiences, education, years_experience,
-             loc {.*} AS location, pref.role AS desired_role,
+             loc, pref, collect({language: lang.name, cefr: lp.cefr, self_assessed: lp.self_assessed}) AS languages
+
+        WITH resume, name, email, summary, skills, experiences, education, years_experience,
+             loc {.*} AS location, pref.role AS desired_role, languages,
              CASE WHEN $years_experience IS NULL THEN 1 ELSE CASE WHEN years_experience >= $years_experience THEN 1 ELSE 0 END END AS experience_match
         WHERE experience_match = 1
 
         RETURN resume.uid AS resume_id, name, email, summary, skills, experiences, education,
-               years_experience, location, desired_role,
+               years_experience, location, desired_role, languages,
                (size(skills) * 0.2 + years_experience * 0.1) AS score
         ORDER BY score DESC
         LIMIT $limit
@@ -196,8 +228,14 @@ class GraphSearchService:
         OPTIONAL MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(:ProfessionalProfileNode)
                       -[:HAS_PREFERENCES]->(pref:PreferencesNode)
 
+        // Get languages
+        OPTIONAL MATCH (resume)-[:HAS_LANGUAGE_PROFICIENCY]->(lp:LanguageProficiencyNode)
+                      -[:OF_LANGUAGE]->(lang:LanguageNode)
+        WITH resume, name, email, summary, skills, experiences, education, years_experience,
+             loc, pref, collect({language: lang.name, cefr: lp.cefr, self_assessed: lp.self_assessed}) AS languages
+
         RETURN resume.uid AS resume_id, name, email, summary, skills, experiences, education, years_experience,
-               loc {.*} AS location, pref.role AS desired_role, 1.0 AS score
+               loc {.*} AS location, pref.role AS desired_role, languages, 1.0 AS score
         """
 
         async def run_query(tx):
@@ -249,33 +287,50 @@ class GraphSearchService:
             LIMIT 100
             RETURN 'companies' AS category, collect({value: value, count: count}) AS items
             UNION
-            MATCH (resume:ResumeNode)-[:HAS_PERSONAL_INFO]->(:PersonalInfoNode)-[:HAS_DEMOGRAPHICS]->(:DemographicsNode)-[:HAS_LOCATION]->(loc:LocationNode)
-            WITH resume, loc
-            WHERE (loc.city IS NOT NULL AND loc.city <> "") OR (loc.country IS NOT NULL AND loc.country <> "")
-            UNWIND [loc.city, loc.country] AS location
-            WITH location, count(DISTINCT resume) AS count
-            WHERE location IS NOT NULL AND location <> ""
-            WITH location AS value, sum(count) AS count
-            WITH value, count
-            ORDER BY count DESC, value ASC
+            MATCH (resume:ResumeNode)-[:HAS_PERSONAL_INFO]->(:PersonalInfoNode)
+                  -[:HAS_DEMOGRAPHICS]->(:DemographicsNode)
+                  -[:HAS_LOCATION]->(loc:LocationNode)
+            WHERE loc.country IS NOT NULL AND loc.country <> ""
+            WITH loc.country AS country, loc.city AS city, resume
+            WITH country, collect(DISTINCT city) AS all_cities, count(DISTINCT resume) AS resume_count
+            WHERE resume_count > 0
+            WITH country,
+                 [c IN all_cities WHERE c IS NOT NULL AND c <> ""] AS cities,
+                 resume_count
+            ORDER BY resume_count DESC, country ASC
             LIMIT 100
-            RETURN 'locations' AS category, collect({value: value, count: count}) AS items
+            RETURN 'countries' AS category, collect({
+                country: country,
+                cities: cities,
+                resume_count: resume_count
+            }) AS items
             UNION
             MATCH (edu:EducationItemNode)<-[:HAS_EDUCATION]-(resume:ResumeNode)
             WHERE edu.qualification IS NOT NULL AND edu.qualification <> ""
-            WITH edu.qualification AS value, resume
-            WITH value, count(DISTINCT resume) AS count
-            WHERE count > 0
-            ORDER BY count DESC, value ASC
-            RETURN 'education_levels' AS category, collect({value: value, count: count}) AS items
+            WITH edu.qualification AS level, edu.status AS status, resume
+            WITH level, collect(DISTINCT status) AS all_statuses, count(DISTINCT resume) AS resume_count
+            WHERE resume_count > 0
+            WITH level,
+                 [s IN all_statuses WHERE s IS NOT NULL AND s <> ""] AS statuses,
+                 resume_count
+            ORDER BY resume_count DESC, level ASC
+            RETURN 'education_levels' AS category, collect({
+                level: level,
+                statuses: statuses,
+                resume_count: resume_count
+            }) AS items
             UNION
-            MATCH (edu:EducationItemNode)<-[:HAS_EDUCATION]-(resume:ResumeNode)
-            WHERE edu.status IS NOT NULL AND edu.status <> ""
-            WITH edu.status AS value, resume
-            WITH value, count(DISTINCT resume) AS count
-            WHERE count > 0
-            ORDER BY count DESC, value ASC
-            RETURN 'education_statuses' AS category, collect({value: value, count: count}) AS items
+            MATCH (resume:ResumeNode)-[:HAS_LANGUAGE_PROFICIENCY]->(lp:LanguageProficiencyNode)
+                  -[:OF_LANGUAGE]->(lang:LanguageNode)
+            WHERE lang.name IS NOT NULL AND lang.name <> "" AND lp.cefr IS NOT NULL AND lp.cefr <> ""
+            WITH lang.name AS language, collect(DISTINCT lp.cefr) AS levels, count(DISTINCT resume) AS resume_count
+            WHERE resume_count > 0
+            ORDER BY resume_count DESC, language ASC
+            RETURN 'languages' AS category, collect({
+                language: language,
+                available_levels: levels,
+                resume_count: resume_count
+            }) AS items
         }
         RETURN category, items
         """
@@ -293,7 +348,7 @@ class GraphSearchService:
 
             # Build kwargs dict from records
             kwargs = {
-                record["category"]: [FilterOption(value=item["value"], count=item["count"]) for item in record["items"]]
+                record["category"]: record["items"]
                 for record in records
             }
 

@@ -28,6 +28,9 @@ Today's date: {self.current_date}
 CRITICAL PROCESSING RULES:
 - RETURN JSON WITH FILLED IN DATA, DO NOT RETURN JSON WITH SCHEMA AND WITHOUT ANY DATA!
 - CONTENT VALUES PRESERVE ORIGINAL LANGUAGE
+- **TRANSLATION REQUIREMENT**: ALL locations (city, country), languages (language names), roles (desired_role),
+  and skills MUST BE TRANSLATED TO ENGLISH if found in a non-English language. Use the standard English names.
+  Examples: "Москва" → "Moscow", "Español" → "Spanish", "Python разработчик" → "Python Developer"
 - USE DEFAULT FORMATTING AND CAPITALIZATION, NO EXCESSIVE CAPSLOCK USAGE
 - IF CONTENT VALUE HAS REQUIREMENT HOW TO RETURN DATA, IN PARTICULAR - SEPARATORS, USE THEM
 - IF SOME DATA INTERFERES WITH POSSIBLE VALUES FOR KEYS (SAY, ONE OF PROPOSED) BUT IRL IT'S NOT, -
@@ -61,7 +64,7 @@ Validation Guardrails:
 SECTION-SPECIFIC RULES:
 
 PERSONAL INFO:
-- Location: Preserve original language formatting
+- Location: TRANSLATE city and country names to English (e.g., "Paris, France" not "Paris, Frankreich")
 - Personal name: Capitalize first letters (e.g., John Doe)
 - If employment types are not explicitly specified - put a list of all possible employment types,
   same applies to work modes.
@@ -72,6 +75,7 @@ EXPERIENCE/EMPLOYMENT_HISTORY:
 - Education (Bachelor's, Master's, PhD, etc.) must ONLY go in the education section, never in employment_history.
 - Responsibilities: Use exact bullet points verbatim.
 - Skills: Extract ALL technologies, tools, frameworks, languages mentioned (Stack:, Technologies:, Tools:, etc.)
+  and TRANSLATE to English (e.g., "реакт" → "React", "питон" → "Python")
 - If a starting month is not explicitly mentioned (e.g., "2022 - Present"), ASSUME "01.2022 - Present".
 
 EDUCATION:
@@ -85,13 +89,15 @@ EDUCATION:
 PROJECTS:
 - Only include personal projects that are explicitly stated as pet projects or were completed outside of employment.
 - DO NOT duplicate any project details already present in the employment_history section.
-- Skills: Extract ALL technologies, tools, frameworks mentioned in each project
+- Skills: Extract ALL technologies, tools, frameworks mentioned in each project and TRANSLATE to English
 - If no qualifying projects are mentioned, set "projects" to null.
 
 LANGUAGE PROFICIENCY:
 - Convert any proficiency descriptions to the CEFR level (A1, A2, B1, B2, C1, C2, or Native).
+- TRANSLATE all language names to English (e.g., "Français" → "French", "中文" → "Chinese")
 
 LOCATION:
+- TRANSLATE all city and country names to English (e.g., "München" → "Munich", "Deutschland" → "Germany")
 - If only the country is specified, set "city" to null. Do not copy the country name into the city or state
   fields unless explicitly provided.
 

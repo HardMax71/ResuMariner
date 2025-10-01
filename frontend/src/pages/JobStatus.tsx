@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getJob, getJobResult, API_BASE_URL, type JobResponse, type JobResult } from "../lib/api";
 import { Copy, Check, Hash } from "lucide-react";
+import CollapsibleSection from "../components/CollapsibleSection";
 
 // Simple utility to make any value renderable
 const renderValue = (value: any): string => {
@@ -261,39 +262,25 @@ export default function JobStatus() {
     const isExpanded = expandedSections.has(key);
 
     return (
-      <div className="glass-card" style={{ marginBottom: "var(--space-2)" }}>
-        <div
-          className="flex justify-between items-center"
-          style={{ cursor: "pointer", userSelect: "none" }}
-          onClick={() => toggleSection(key)}
-        >
-          <h3 className="title" style={{ marginBottom: 0 }}>{title}</h3>
-          <svg
-            className={`chevron ${isExpanded ? "expanded" : ""}`}
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M7 10l5 5 5-5" />
-          </svg>
-        </div>
-
-        {isExpanded && (
-          <div style={{ marginTop: "var(--space-2)" }}>
-            {isEmpty ? (
-              <div style={{
-                padding: "var(--space-3)",
-                textAlign: "center",
-                color: "var(--gray-500)",
-                fontSize: "14px"
-              }}>
-                No data available
-              </div>
-            ) : (
-              <>
+      <CollapsibleSection
+        title={title}
+        isExpanded={isExpanded}
+        onToggle={() => toggleSection(key)}
+        containerStyle={{ marginBottom: "var(--space-2)" }}
+        containerClassName="glass-card"
+      >
+        <div style={{ marginTop: "var(--space-2)" }}>
+          {isEmpty ? (
+            <div style={{
+              padding: "var(--space-3)",
+              textAlign: "center",
+              color: "var(--gray-500)",
+              fontSize: "14px"
+            }}>
+              No data available
+            </div>
+          ) : (
+            <>
             {key === "personal" && typeof data === "object" && (
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
                 {/* Avatar */}
@@ -1031,10 +1018,9 @@ export default function JobStatus() {
               </div>
             )}
             </>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </CollapsibleSection>
     );
   };
 

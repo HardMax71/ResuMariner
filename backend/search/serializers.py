@@ -64,6 +64,40 @@ class SearchResultSerializer(serializers.Serializer):
     )
     location = serializers.DictField(required=False, allow_null=True, help_text="Location information")
     desired_role = serializers.CharField(required=False, allow_null=True, help_text="Desired role")
+    languages = serializers.ListField(
+        child=serializers.DictField(), required=False, allow_null=True, help_text="Languages with CEFR levels"
+    )
+
+
+class LanguageRequirementSerializer(serializers.Serializer):
+    """Serializer for language with CEFR level requirement."""
+
+    language = serializers.CharField(help_text="Language name (e.g., English, Spanish)")
+    min_cefr = serializers.CharField(help_text="Minimum CEFR level (A1, A2, B1, B2, C1, C2)")
+
+
+class LocationRequirementSerializer(serializers.Serializer):
+    """Serializer for country with optional cities filter."""
+
+    country = serializers.CharField(help_text="Country name")
+    cities = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="Optional list of cities in this country (null or empty means any city)",
+    )
+
+
+class EducationRequirementSerializer(serializers.Serializer):
+    """Serializer for education level with optional status filter."""
+
+    level = serializers.CharField(help_text="Education level (e.g., Bachelor, Master, PhD)")
+    statuses = serializers.ListField(
+        child=serializers.ChoiceField(choices=[status.value for status in EducationStatus]),
+        required=False,
+        allow_null=True,
+        help_text="Optional list of statuses (null or empty means any status)",
+    )
 
 
 class SearchFiltersSerializer(serializers.Serializer):
@@ -77,30 +111,38 @@ class SearchFiltersSerializer(serializers.Serializer):
     )
     role = serializers.CharField(required=False, allow_null=True, help_text="Desired role to filter by")
     company = serializers.CharField(required=False, allow_null=True, help_text="Company to filter by")
-    location = serializers.CharField(required=False, allow_null=True, help_text="Location to filter by")
+    locations = LocationRequirementSerializer(
+        many=True,
+        required=False,
+        allow_null=True,
+        help_text="Location requirements (country + optional cities)",
+    )
     years_experience = serializers.IntegerField(
         required=False,
         allow_null=True,
         validators=[MinValueValidator(0), MaxValueValidator(50)],
         help_text="Minimum years of experience",
     )
-    education_level = serializers.CharField(
+    education = EducationRequirementSerializer(
+        many=True,
         required=False,
         allow_null=True,
-        help_text="Minimum education level (e.g., Bachelor, Master, PhD)",
+        help_text="Education requirements (level + optional statuses)",
     )
-    education_status = serializers.ChoiceField(
-        choices=[status.value for status in EducationStatus],
+    languages = LanguageRequirementSerializer(
+        many=True,
         required=False,
         allow_null=True,
-        help_text="Education status filter: completed, ongoing, or incomplete",
+        help_text="Language requirements with minimum CEFR levels",
     )
 
     def to_internal_value(self, data):
         validated = super().to_internal_value(data)
-        # Convert string to EducationStatus enum if provided
-        if validated.get("education_status"):
-            validated["education_status"] = EducationStatus(validated["education_status"])
+        # Convert education statuses to EducationStatus enums if provided
+        if validated.get("education"):
+            for edu_req in validated["education"]:
+                if edu_req.get("statuses"):
+                    edu_req["statuses"] = [EducationStatus(s) for s in edu_req["statuses"]]
         return SearchFilters(**validated)
 
 
@@ -194,13 +236,35 @@ class FilterOptionSerializer(serializers.Serializer):
     count = serializers.IntegerField(help_text="Number of CVs with this value")
 
 
+class LanguageOptionSerializer(serializers.Serializer):
+    language = serializers.CharField(help_text="Language name")
+    available_levels = serializers.ListField(
+        child=serializers.CharField(), help_text="CEFR levels available in data"
+    )
+    resume_count = serializers.IntegerField(help_text="Number of resumes with this language")
+
+
+class CountryOptionSerializer(serializers.Serializer):
+    country = serializers.CharField(help_text="Country name")
+    cities = serializers.ListField(child=serializers.CharField(), help_text="Cities in this country")
+    resume_count = serializers.IntegerField(help_text="Number of resumes in this country")
+
+
+class EducationLevelOptionSerializer(serializers.Serializer):
+    level = serializers.CharField(help_text="Education level")
+    statuses = serializers.ListField(child=serializers.CharField(), help_text="Education statuses for this level")
+    resume_count = serializers.IntegerField(help_text="Number of resumes with this level")
+
+
 class FilterOptionsSerializer(serializers.Serializer):
     skills = FilterOptionSerializer(many=True, default=list, help_text="Available skills (includes technologies)")
     roles = FilterOptionSerializer(many=True, default=list, help_text="Available roles")
     companies = FilterOptionSerializer(many=True, default=list, help_text="Available companies")
-    locations = FilterOptionSerializer(many=True, default=list, help_text="Available locations")
-    education_levels = FilterOptionSerializer(many=True, default=list, help_text="Available education levels")
-    education_statuses = FilterOptionSerializer(many=True, default=list, help_text="Available education statuses")
+    countries = CountryOptionSerializer(many=True, default=list, help_text="Available countries with cities")
+    education_levels = EducationLevelOptionSerializer(
+        many=True, default=list, help_text="Available education levels with statuses"
+    )
+    languages = LanguageOptionSerializer(many=True, default=list, help_text="Available languages with CEFR levels")
 
 
 class VectorHitSerializer(serializers.Serializer):

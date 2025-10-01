@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { SearchResult } from "../lib/api";
+import Chip from "./Chip";
 
 type Props = {
   result: SearchResult;
@@ -10,9 +11,8 @@ export default function ResultCard({ result }: Props) {
 
   const formatYearsExperience = (years?: number | null) => {
     if (!years) return null;
-    if (years < 1) return "< 1 year";
-    if (years === 1) return "1 year";
-    return `${years} years`;
+    if (years < 1) return "<1y";
+    return `${years}y`;
   };
 
   const getScoreColor = (score: number) => {
@@ -67,161 +67,167 @@ export default function ResultCard({ result }: Props) {
       borderLeft: `3px solid ${getScoreColor(result.score)}`,
       background: "white"
     }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
       {/* Header */}
-      <div className="flex justify-between items-start mb-3">
-        <div style={{ flex: 1 }}>
-          <div className="flex items-center gap-3">
+      <div>
+        <div className="flex justify-between items-center mb-2">
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <h3 className="title" style={{ marginBottom: 0 }}>
               {result.name}
             </h3>
-            {/* Visual Score Indicator */}
+            {result.email && (
+              <a
+                href={`mailto:${result.email}`}
+                title={result.email}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "var(--radius-sm)",
+                  color: "var(--primary-600)",
+                  transition: "all 0.2s",
+                  cursor: "pointer"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--primary-100)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="m22 7-10 5L2 7"/>
+                </svg>
+              </a>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {/* Match Score Indicator */}
             <div style={{
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
-              gap: "6px",
-              background: "var(--gray-50)",
-              padding: "4px 10px",
-              borderRadius: "16px",
-              border: `1px solid ${getScoreColor(result.score)}22`
+              gap: "8px",
+              background: `${getScoreColor(result.score)}15`,
+              padding: "6px 12px",
+              borderRadius: "18px",
+              border: `2px solid ${getScoreColor(result.score)}`
             }}>
-              <div style={{
-                width: "60px",
-                height: "6px",
-                background: "var(--gray-200)",
-                borderRadius: "3px",
-                position: "relative",
-                overflow: "hidden"
-              }}>
-                <div style={{
-                  width: `${Math.min(result.score * 100, 100)}%`,
-                  height: "100%",
-                  background: getScoreColor(result.score),
-                  borderRadius: "3px",
-                  transition: "width 0.3s ease"
-                }}/>
-              </div>
               <span style={{
-                fontSize: "12px",
+                fontSize: "11px",
                 fontWeight: 600,
-                color: getScoreColor(result.score)
+                color: getScoreColor(result.score),
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                lineHeight: 1
+              }}>
+                Match
+              </span>
+              <span style={{
+                fontSize: "16px",
+                fontWeight: 700,
+                color: getScoreColor(result.score),
+                lineHeight: 1
               }}>
                 {Math.min(result.score * 100, 100).toFixed(0)}%
               </span>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
-            {result.email && (
-              <a href={`mailto:${result.email}`} className="small" style={{
-                color: "var(--blue-600)",
-                textDecoration: "none"
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => setExpanded(!expanded)}
+              style={{
+                padding: "6px",
+                fontSize: "13px",
+                minWidth: "unset",
+                width: "32px",
+                height: "32px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "var(--radius-sm)"
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{
+                transform: expanded ? "rotate(180deg)" : "rotate(0)",
+                transition: "transform 0.2s"
               }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline", marginRight: "4px", verticalAlign: "-2px" }}>
-                  <rect x="2" y="4" width="20" height="16" rx="2"/>
-                  <path d="m22 7-10 5L2 7"/>
-                </svg>
-                {result.email}
-              </a>
-            )}
-
-            {result.location && (
-              <span className="small muted">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline", marginRight: "4px", verticalAlign: "-2px" }}>
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-                {typeof result.location === 'object' ?
-                  `${result.location.city || ''} ${result.location.country || ''}`.trim() :
-                  result.location}
-              </span>
-            )}
-
-            {result.years_experience && (
-              <span className="small" style={{
-                color: "var(--gray-700)",
-                background: "var(--gray-50)",
-                padding: "2px 8px",
-                borderRadius: "12px"
-              }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline", marginRight: "4px", verticalAlign: "-2px" }}>
-                  <rect x="2" y="7" width="20" height="14" rx="2"/>
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                </svg>
-                {formatYearsExperience(result.years_experience)} exp
-              </span>
-            )}
-
-            {highestEdu && (
-              <span className="small" style={{
-                color: highestEdu.status === "ongoing" ? "var(--blue-600)" : "var(--green-600)",
-                background: highestEdu.status === "ongoing" ? "var(--blue-50)" : "var(--green-50)",
-                padding: "2px 8px",
-                borderRadius: "12px",
-                fontWeight: 500
-              }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline", marginRight: "4px", verticalAlign: "-2px" }}>
-                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                  <path d="M6 12v5c0 1.7 3.3 3 6 3s6-1.3 6-3v-5"/>
-                </svg>
-                {highestEdu.level} {highestEdu.status === "ongoing" && "(ongoing)"}
-              </span>
-            )}
-
-            {result.desired_role && (
-              <span className="small muted">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline", marginRight: "4px", verticalAlign: "-2px" }}>
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 6v6l4 2"/>
-                </svg>
-                {result.desired_role}
-              </span>
-            )}
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
           </div>
         </div>
 
-        <button
-          type="button"
-          className="btn ghost"
-          onClick={() => setExpanded(!expanded)}
-          style={{
-            padding: "6px",
-            fontSize: "13px",
-            minWidth: "unset",
-            width: "32px",
-            height: "32px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "var(--radius-sm)"
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{
-            transform: expanded ? "rotate(180deg)" : "rotate(0)",
-            transition: "transform 0.2s"
-          }}>
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          {result.location && (
+            <span className="small muted">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline", marginRight: "4px", verticalAlign: "-2px" }}>
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              {typeof result.location === 'object' ?
+                `${result.location.city || ''} ${result.location.country || ''}`.trim() :
+                result.location}
+            </span>
+          )}
+
+          {result.years_experience && (
+            <span className="small" style={{
+              color: "var(--gray-700)",
+              background: "var(--gray-50)",
+              padding: "2px 8px",
+              borderRadius: "12px"
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline", marginRight: "4px", verticalAlign: "-2px" }}>
+                <rect x="2" y="7" width="20" height="14" rx="2"/>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+              </svg>
+              {formatYearsExperience(result.years_experience)}
+            </span>
+          )}
+
+          {highestEdu && (
+            <span className="small" style={{
+              color: highestEdu.status === "ongoing" ? "var(--blue-600)" : "var(--green-600)",
+              background: highestEdu.status === "ongoing" ? "var(--blue-50)" : "var(--green-50)",
+              padding: "2px 8px",
+              borderRadius: "12px",
+              fontWeight: 500
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline", marginRight: "4px", verticalAlign: "-2px" }}>
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c0 1.7 3.3 3 6 3s6-1.3 6-3v-5"/>
+              </svg>
+              {highestEdu.level} {highestEdu.status === "ongoing" && "(ongoing)"}
+            </span>
+          )}
+
+          {result.desired_role && (
+            <span className="small muted">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline", marginRight: "4px", verticalAlign: "-2px" }}>
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              {result.desired_role}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Summary */}
       {result.summary && (
-        <div className="mb-3" style={{
+        <div style={{
           position: "relative",
-          padding: "12px 16px",
+          padding: "12px 12px 12px 16px",
           background: "linear-gradient(135deg, var(--gray-50) 0%, transparent 100%)",
           borderRadius: "var(--radius-sm)",
-          border: "1px solid var(--gray-100)"
+          border: "1px solid var(--gray-100)",
+          borderLeft: "3px solid var(--blue-500)"
         }}>
-          <div style={{
-            position: "absolute",
-            left: "0",
-            top: "0",
-            bottom: "0",
-            width: "3px",
-            background: "linear-gradient(180deg, var(--blue-400) 0%, var(--blue-600) 100%)",
-            borderRadius: "var(--radius-sm) 0 0 var(--radius-sm)"
-          }}/>
           <p className="small" style={{
             lineHeight: "1.6",
             wordBreak: "break-word",
@@ -237,7 +243,7 @@ export default function ResultCard({ result }: Props) {
 
       {/* Skills - Show limited in preview, all when expanded */}
       {result.skills && result.skills.length > 0 && (
-        <div className="mb-3">
+        <div>
           <div style={{
             display: "flex",
             flexWrap: "wrap",
@@ -246,7 +252,7 @@ export default function ResultCard({ result }: Props) {
             overflow: "hidden"
           }}>
             {(expanded ? result.skills : topSkills).map((skill, idx) => (
-              <span key={idx} className="chip" style={{
+              <Chip key={idx} style={{
                 fontSize: "11px",
                 padding: "3px 8px",
                 background: "var(--gray-100)",
@@ -260,10 +266,10 @@ export default function ResultCard({ result }: Props) {
                 whiteSpace: "nowrap"
               }}>
                 {skill}
-              </span>
+              </Chip>
             ))}
             {!expanded && result.skills && result.skills.length > 8 && (
-              <span className="chip" style={{
+              <Chip style={{
                 fontSize: "11px",
                 padding: "3px 8px",
                 background: "var(--blue-50)",
@@ -274,107 +280,188 @@ export default function ResultCard({ result }: Props) {
                 flexShrink: 0
               }}>
                 +{result.skills.length - 8} more
-              </span>
+              </Chip>
             )}
           </div>
         </div>
       )}
 
-      {/* Experience Cards - Only show when expanded */}
-      {expanded && topExperiences && topExperiences.length > 0 && (
-        <div className="mb-3">
-          <h4 className="small mb-2" style={{
-            fontWeight: 600,
-            color: "var(--gray-700)",
-            fontSize: "12px",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px"
+      {/* Languages */}
+      {result.languages && result.languages.length > 0 && (
+        <div>
+          <div style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "4px",
+            maxWidth: "100%",
+            overflow: "hidden"
           }}>
-            Recent Experience
+            {result.languages.map((lang, idx) => (
+              <Chip key={idx} style={{
+                fontSize: "11px",
+                padding: "3px 8px",
+                background: "var(--blue-50)",
+                color: "var(--blue-700)",
+                border: "1px solid var(--blue-200)",
+                display: "inline-block",
+                flexShrink: 0,
+                fontWeight: 500
+              }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline", marginRight: "4px", verticalAlign: "-1px" }}>
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                {lang.language}: {lang.cefr}
+              </Chip>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Experience - Only show when expanded */}
+      {expanded && result.experiences && result.experiences.length > 0 && (
+        <div>
+          <h4 style={{
+            fontWeight: 700,
+            color: "var(--gray-900)",
+            fontSize: "13px",
+            textTransform: "uppercase",
+            letterSpacing: "0.8px",
+            marginBottom: "12px",
+            paddingBottom: "6px",
+            borderBottom: "2px solid var(--gray-200)"
+          }}>
+            Experience
           </h4>
           <div className="flex flex-col gap-2">
-            {topExperiences.map((exp, idx) => (
-              <div
-                key={idx}
-                style={{
-                  padding: "12px",
-                  background: "white",
-                  border: "1px solid var(--gray-200)",
-                  borderRadius: "8px",
-                  borderLeft: "3px solid var(--blue-500)",
-                  transition: "all 0.2s"
-                }}
-              >
-                <div style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  marginBottom: exp.key_points?.length ? "10px" : "0"
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <div className="small" style={{ fontWeight: 600, color: "var(--gray-800)" }}>
-                      {exp.position}
-                    </div>
-                    <div className="small muted">
-                      {exp.company}
-                      {exp.employment_type && ` • ${exp.employment_type}`}
-                      {exp.work_mode && ` • ${exp.work_mode}`}
-                    </div>
-                  </div>
-                  <span className="small" style={{
-                    color: "var(--blue-600)",
-                    fontWeight: 600,
-                    background: "var(--blue-50)",
-                    padding: "2px 8px",
-                    borderRadius: "12px",
-                    flexShrink: 0
-                  }}>
-                    {(() => {
-                      const parts = [];
-                      if (exp.start) {
-                        const endDate = exp.end || 'Present';
-                        parts.push(`${exp.start} - ${endDate}`);
-                      }
-                      if (exp.duration_months) {
-                        const years = Math.round(exp.duration_months / 12 * 10) / 10;
-                        parts.push(`${years}y`);
-                      }
-                      return parts.join(' • ') || 'N/A';
-                    })()}
-                  </span>
-                </div>
-                {exp.key_points && exp.key_points.length > 0 && (
-                  <ul style={{
-                    margin: "0",
-                    paddingLeft: "20px",
-                    listStyleType: "none",
-                    position: "relative"
-                  }}>
-                    {exp.key_points.map((point, pidx) => (
-                      <li key={pidx} style={{
-                        fontSize: "12px",
-                        color: "var(--gray-600)",
-                        lineHeight: "1.5",
-                        marginBottom: pidx < exp.key_points.length - 1 ? "4px" : "0",
-                        position: "relative",
-                        paddingLeft: "0"
+            {result.experiences.map((exp, idx) => {
+              const showDetails = idx < 2; // Top 2 get full details with bullet points
+
+              if (showDetails) {
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: "12px",
+                      background: "white",
+                      border: "1px solid var(--gray-200)",
+                      borderRadius: "8px",
+                      borderLeft: "3px solid var(--blue-500)",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    <div style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      justifyContent: "space-between",
+                      marginBottom: exp.key_points?.length ? "10px" : "0"
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div className="small" style={{ fontWeight: 600, color: "var(--gray-800)" }}>
+                          {exp.position}
+                        </div>
+                        <div className="small muted">
+                          {exp.company}
+                          {exp.employment_type && ` • ${exp.employment_type}`}
+                          {exp.work_mode && ` • ${exp.work_mode}`}
+                        </div>
+                      </div>
+                      <span className="small" style={{
+                        color: "var(--blue-600)",
+                        fontWeight: 600,
+                        background: "var(--blue-50)",
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        flexShrink: 0
                       }}>
-                        <span style={{
-                          position: "absolute",
-                          left: "-16px",
-                          top: "5px",
-                          width: "4px",
-                          height: "4px",
-                          background: "var(--blue-400)",
-                          borderRadius: "50%"
-                        }}/>
-                        {typeof point === 'string' ? point : point.text || point.description}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
+                        {(() => {
+                          const parts = [];
+                          if (exp.start) {
+                            const endDate = exp.end || 'Present';
+                            parts.push(`${exp.start} - ${endDate}`);
+                          }
+                          if (exp.duration_months) {
+                            const years = Math.round(exp.duration_months / 12 * 10) / 10;
+                            parts.push(`${years}y`);
+                          }
+                          return parts.join(' • ') || 'N/A';
+                        })()}
+                      </span>
+                    </div>
+                    {exp.key_points && exp.key_points.length > 0 && (
+                      <ul style={{
+                        margin: "0",
+                        paddingLeft: "20px",
+                        listStyleType: "none",
+                        position: "relative"
+                      }}>
+                        {exp.key_points.map((point, pidx) => (
+                          <li key={pidx} style={{
+                            fontSize: "12px",
+                            color: "var(--gray-600)",
+                            lineHeight: "1.5",
+                            marginBottom: pidx < exp.key_points.length - 1 ? "4px" : "0",
+                            position: "relative",
+                            paddingLeft: "0"
+                          }}>
+                            <span style={{
+                              position: "absolute",
+                              left: "-16px",
+                              top: "5px",
+                              width: "4px",
+                              height: "4px",
+                              background: "var(--blue-400)",
+                              borderRadius: "50%"
+                            }}/>
+                            {typeof point === 'string' ? point : point.text || point.description}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              } else {
+                // Condensed view for rest
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "8px",
+                      background: "var(--gray-50)",
+                      borderRadius: "4px"
+                    }}
+                  >
+                    <div>
+                      <div className="small" style={{ fontWeight: 500 }}>
+                        {exp.position} at {exp.company}
+                      </div>
+                      {(exp.employment_type || exp.work_mode) && (
+                        <div className="small muted" style={{ fontSize: "11px" }}>
+                          {[exp.employment_type, exp.work_mode].filter(Boolean).join(" • ")}
+                        </div>
+                      )}
+                    </div>
+                    <span className="small muted" style={{ fontSize: "12px" }}>
+                      {(() => {
+                        const parts = [];
+                        if (exp.start) {
+                          const endDate = exp.end || 'Present';
+                          parts.push(`${exp.start} - ${endDate}`);
+                        }
+                        if (exp.duration_months) {
+                          const years = Math.round(exp.duration_months / 12 * 10) / 10;
+                          parts.push(`${years}y`);
+                        }
+                        return parts.join(' • ') || 'N/A';
+                      })()}
+                    </span>
+                  </div>
+                );
+              }
+            })}
           </div>
         </div>
       )}
@@ -382,12 +469,15 @@ export default function ResultCard({ result }: Props) {
       {/* Match Highlights with Source Colors */}
       {result.matches && result.matches.length > 0 && (
         <div>
-          <h4 className="small mb-2" style={{
-            fontWeight: 600,
-            color: "var(--gray-700)",
-            fontSize: "12px",
+          <h4 style={{
+            fontWeight: 700,
+            color: "var(--gray-900)",
+            fontSize: "13px",
             textTransform: "uppercase",
-            letterSpacing: "0.5px"
+            letterSpacing: "0.8px",
+            marginBottom: "12px",
+            paddingBottom: "6px",
+            borderBottom: "2px solid var(--gray-200)"
           }}>
             Relevance Highlights
           </h4>
@@ -470,76 +560,24 @@ export default function ResultCard({ result }: Props) {
 
       {/* Expanded Details */}
       {expanded && (
-        <div className="mt-3" style={{
+        <div style={{
           paddingTop: "12px",
           borderTop: "1px solid var(--gray-200)"
         }}>
-          {/* Additional Experience (if more than 2) */}
-          {result.experiences && result.experiences.length > 2 && (
-            <div className="mb-3">
-              <h4 className="small mb-2" style={{
-                fontWeight: 600,
-                color: "var(--gray-700)",
-                fontSize: "12px",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px"
-              }}>
-                Earlier Experience
-              </h4>
-              <div className="flex flex-col gap-2">
-                {result.experiences.slice(2).map((exp, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "8px",
-                      background: "var(--gray-50)",
-                      borderRadius: "4px"
-                    }}
-                  >
-                    <div>
-                      <div className="small" style={{ fontWeight: 500 }}>
-                        {exp.position} at {exp.company}
-                      </div>
-                      {(exp.employment_type || exp.work_mode) && (
-                        <div className="small muted" style={{ fontSize: "11px" }}>
-                          {[exp.employment_type, exp.work_mode].filter(Boolean).join(" • ")}
-                        </div>
-                      )}
-                    </div>
-                    <span className="small muted" style={{ fontSize: "12px" }}>
-                      {(() => {
-                        const parts = [];
-                        if (exp.start) {
-                          const endDate = exp.end || 'Present';
-                          parts.push(`${exp.start} - ${endDate}`);
-                        }
-                        if (exp.duration_months) {
-                          const years = Math.round(exp.duration_months / 12 * 10) / 10;
-                          parts.push(`${years}y`);
-                        }
-                        return parts.join(' • ') || 'N/A';
-                      })()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Education */}
           {result.education && result.education.length > 0 && (
             <div>
-              <h4 className="small mb-2" style={{
-                fontWeight: 600,
-                color: "var(--gray-700)",
-                fontSize: "12px",
+              <h4 style={{
+                fontWeight: 700,
+                color: "var(--gray-900)",
+                fontSize: "13px",
                 textTransform: "uppercase",
-                letterSpacing: "0.5px"
+                letterSpacing: "0.8px",
+                marginBottom: "12px",
+                paddingBottom: "6px",
+                borderBottom: "2px solid var(--gray-200)"
               }}>
-                Education Background
+                Education
               </h4>
               <div className="flex flex-col gap-2">
                 {result.education.map((edu, idx) => (
@@ -592,6 +630,7 @@ export default function ResultCard({ result }: Props) {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

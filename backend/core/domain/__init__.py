@@ -34,8 +34,14 @@ from .resume import (
 )
 from .review import REVIEW_CRITERIA, ReviewCriteria, ReviewResult, SectionFeedback
 from .search import (
+    CountryOption,
+    EducationLevelOption,
+    EducationRequirement,
     FilterOption,
     FilterOptionsResult,
+    LanguageOption,
+    LanguageRequirement,
+    LocationRequirement,
     ResumeSearchResult,
     SearchFilters,
     SearchRequest,
@@ -95,4 +101,10 @@ __all__ = [
     "SearchFilters",
     "FilterOption",
     "FilterOptionsResult",
+    "LanguageRequirement",
+    "LanguageOption",
+    "LocationRequirement",
+    "CountryOption",
+    "EducationRequirement",
+    "EducationLevelOption",
 ]

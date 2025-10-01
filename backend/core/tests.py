@@ -14,6 +14,7 @@ from core.domain import (
     EmploymentType,
     KeyPoint,
     Location,
+    LocationRequirement,
     PersonalInfo,
     Preferences,
     ProfessionalProfile,
@@ -128,7 +129,11 @@ class SearchModelBehaviourTests(TestCase):
         self.assertEqual([hit.text for hit in result.matches], ["Django", "Python", "GraphQL"])
 
     def test_search_request_holds_filters_and_limits(self) -> None:
-        filters = SearchFilters(skills=["Python"], role="Backend Engineer", location="Yerevan")
+        filters = SearchFilters(
+            skills=["Python"],
+            role="Backend Engineer",
+            locations=[LocationRequirement(country="Armenia", cities=["Yerevan"])]
+        )
         request = SearchRequest(
             search_type=SearchType.SEMANTIC,
             filters=filters,

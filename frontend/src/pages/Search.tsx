@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import SearchFiltersComp from "../components/SearchFilters";
 import ResultCard from "../components/ResultCard";
+import CollapsibleSection from "../components/CollapsibleSection";
+import Badge from "../components/Badge";
 import {
   type SearchFilters,
   type SearchResponse,
@@ -96,16 +98,16 @@ export default function Search() {
         </div>
         {res && (
           <div className="flex align-center gap-2">
-            <span className="badge badge-primary">
+            <Badge>
               {res.results.length} {res.results.length === 1 ? 'Result' : 'Results'}
-            </span>
-            <span className="badge" style={{
+            </Badge>
+            <Badge variant="primary" style={{
               backgroundColor: 'var(--gray-100)',
               color: 'var(--gray-700)',
               fontWeight: '500'
             }}>
               {res.search_type.charAt(0).toUpperCase() + res.search_type.slice(1)} Search
-            </span>
+            </Badge>
             <span className="muted small" style={{ marginLeft: 'auto' }}>
               Search completed in {res.execution_time ? `${res.execution_time.toFixed(2)}s` : '<1s'}
             </span>
@@ -148,7 +150,6 @@ export default function Search() {
                 placeholder='Try "Senior Python developer with Django and microservices experience"'
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                style={{ fontSize: "var(--text-base)" }}
               />
             </div>
           )}
@@ -160,9 +161,9 @@ export default function Search() {
                 <span className="title" style={{ marginBottom: 0 }}>
                   Filters
                   {activeFilterCount > 0 && (
-                    <span className="badge badge-primary" style={{ marginLeft: "var(--space-1)" }}>
+                    <Badge style={{ marginLeft: "var(--space-1)" }}>
                       {activeFilterCount}
-                    </span>
+                    </Badge>
                   )}
                 </span>
               </div>
@@ -171,74 +172,33 @@ export default function Search() {
           )}
 
           {tab === "hybrid" && (
-            <details open={activeFilterCount > 0}>
-              <summary
-                className="flex align-center gap-2"
-                style={{
-                  cursor: "pointer",
-                  userSelect: "none",
-                  borderTop: "1px solid var(--gray-200)",
-                  marginTop: "var(--space-3)",
-                  listStyle: "none",
-                }}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="chevron"
-                >
-                  <path d="M7 10l5 5 5-5" />
-                </svg>
-                <span className="title" style={{ marginBottom: 0 }}>
-                  Filters
-                  {activeFilterCount > 0 && (
-                    <span className="badge badge-primary" style={{ marginLeft: "var(--space-1)" }}>
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </span>
-              </summary>
+            <CollapsibleSection
+              title="Filters"
+              badge={activeFilterCount > 0 ? activeFilterCount : undefined}
+              defaultOpen={activeFilterCount > 0}
+              headerStyle={{
+                borderTop: "1px solid var(--gray-200)",
+                marginTop: "var(--space-3)"
+              }}
+            >
               <div style={{ paddingTop: "var(--space-1)" }}>
                 <SearchFiltersComp value={filters} onChange={setFilters} />
               </div>
-            </details>
+            </CollapsibleSection>
           )}
 
           {/* Advanced Options */}
           {tab !== "structured" && (
-            <details>
-              <summary
-                className="flex align-center gap-2"
-                style={{
-                  cursor: "pointer",
-                  userSelect: "none",
-                  borderTop: "1px solid var(--gray-200)",
-                  marginTop: "var(--space-3)",
-                  listStyle: "none",
-                }}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="chevron"
-                >
-                  <path d="M7 10l5 5 5-5" />
-                </svg>
-                <span className="title" style={{ marginBottom: 0 }}>Advanced Options</span>
-              </summary>
+            <CollapsibleSection
+              title="Advanced Options"
+              defaultOpen={false}
+              headerStyle={{
+                borderTop: "1px solid var(--gray-200)",
+                marginTop: "var(--space-3)"
+              }}
+            >
 
-              <div className="grid gap-2" style={{
-                paddingTop: "var(--space-1)",
-                gridTemplateColumns: tab === "semantic" ? "repeat(auto-fit, minmax(120px, 1fr))" : "repeat(auto-fit, minmax(150px, 1fr))"
-              }}>
+              <div className="advanced-options-grid">
                 <div>
                   <label className="label small">Limit</label>
                   <input
@@ -247,7 +207,7 @@ export default function Search() {
                     max={100}
                     value={limit}
                     onChange={(e) => setLimit(Number(e.target.value))}
-                    style={{ padding: "var(--space-1) var(--space-1)" }}
+                    className="search-compact-input"
                   />
                 </div>
 
@@ -259,7 +219,7 @@ export default function Search() {
                         display: "flex",
                         alignItems: "center",
                         gap: "8px",
-                        padding: "var(--space-1) var(--space-1)",
+                        padding: "var(--space-1) var(--space-2)",
                         background: "var(--white)",
                         borderRadius: "var(--radius-sm)",
                         border: "1px solid var(--gray-300)"
@@ -302,7 +262,7 @@ export default function Search() {
                         max={20}
                         value={maxMatches}
                         onChange={(e) => setMaxMatches(Number(e.target.value))}
-                        style={{ padding: "var(--space-1) var(--space-1)" }}
+                        className="search-compact-input"
                       />
                     </div>
                   </>
@@ -319,7 +279,7 @@ export default function Search() {
                         max={1}
                         value={vectorWeight}
                         onChange={(e) => setVectorWeight(Number(e.target.value))}
-                        style={{ padding: "var(--space-1) var(--space-1)" }}
+                        className="search-compact-input"
                       />
                     </div>
                     <div>
@@ -331,7 +291,7 @@ export default function Search() {
                         max={1}
                         value={graphWeight}
                         onChange={(e) => setGraphWeight(Number(e.target.value))}
-                        style={{ padding: "var(--space-1) var(--space-1)" }}
+                        className="search-compact-input"
                       />
                     </div>
                     <div>
@@ -342,13 +302,13 @@ export default function Search() {
                         max={20}
                         value={maxMatches}
                         onChange={(e) => setMaxMatches(Number(e.target.value))}
-                        style={{ padding: "var(--space-1) var(--space-1)" }}
+                        className="search-compact-input"
                       />
                     </div>
                   </>
                 )}
               </div>
-            </details>
+            </CollapsibleSection>
           )}
 
           {/* Search Button */}
