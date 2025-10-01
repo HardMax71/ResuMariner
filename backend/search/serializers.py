@@ -238,9 +238,7 @@ class FilterOptionSerializer(serializers.Serializer):
 
 class LanguageOptionSerializer(serializers.Serializer):
     language = serializers.CharField(help_text="Language name")
-    available_levels = serializers.ListField(
-        child=serializers.CharField(), help_text="CEFR levels available in data"
-    )
+    available_levels = serializers.ListField(child=serializers.CharField(), help_text="CEFR levels available in data")
     resume_count = serializers.IntegerField(help_text="Number of resumes with this language")
 
 

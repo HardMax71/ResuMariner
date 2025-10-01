@@ -132,7 +132,7 @@ class SearchModelBehaviourTests(TestCase):
         filters = SearchFilters(
             skills=["Python"],
             role="Backend Engineer",
-            locations=[LocationRequirement(country="Armenia", cities=["Yerevan"])]
+            locations=[LocationRequirement(country="Armenia", cities=["Yerevan"])],
         )
         request = SearchRequest(
             search_type=SearchType.SEMANTIC,

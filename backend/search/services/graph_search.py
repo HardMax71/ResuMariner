@@ -347,10 +347,7 @@ class GraphSearchService:
                 logger.info(f"Category: {record['category']}, Items: {len(record['items'])}")
 
             # Build kwargs dict from records
-            kwargs = {
-                record["category"]: record["items"]
-                for record in records
-            }
+            kwargs = {record["category"]: record["items"] for record in records}
 
             return FilterOptionsResult(**kwargs)
 
