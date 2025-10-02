@@ -109,12 +109,12 @@ export default function Health() {
 
             <Grid columns={6} style={{ marginBottom: "var(--space-4)" }}>
               {[
-                { label: "Queue", value: data.queue.stream_length, color: "#4338ca", bgColor: "rgba(67, 56, 202, 0.1)", Icon: Database },
+                { label: "Pending", value: data.queue.stream_length, color: "#4338ca", bgColor: "rgba(67, 56, 202, 0.1)", Icon: Database },
                 { label: "Active", value: data.queue.active_jobs, color: "#22c55e", bgColor: "rgba(34, 197, 94, 0.1)", Icon: Zap },
                 { label: "Retries", value: data.queue.scheduled_retries, color: "#f59e0b", bgColor: "rgba(245, 158, 11, 0.1)", Icon: RefreshCw },
                 { label: "Cleanup", value: data.queue.cleanup_queue_length, color: "#8b5cf6", bgColor: "rgba(139, 92, 246, 0.1)", Icon: Activity },
                 { label: "Memory", value: formatBytes(data.queue.redis_memory_usage), color: "#06b6d4", bgColor: "rgba(6, 182, 212, 0.1)", Icon: Database },
-                { label: "Total", value: data.queue.stream_length + data.queue.active_jobs, color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.1)", Icon: Activity }
+                { label: "Total", value: data.queue.stream_length + data.queue.active_jobs + data.queue.cleanup_queue_length + data.queue.scheduled_retries, color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.1)", Icon: Activity }
               ].map((metric) => (
                 <MetricCard key={metric.label} color={metric.color} bgColor={metric.bgColor}>
                   <FlexRow gap="var(--space-2)" style={{ marginBottom: "var(--space-2)" }}>

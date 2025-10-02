@@ -1,13 +1,19 @@
 import logging
+import os
 import uuid
 from datetime import datetime, timedelta
+from typing import Any
 
 import redis.asyncio as redis
 from django.conf import settings
 
+from storage.services.graph_db_service import GraphDBService
+from storage.services.vector_db_service import VectorDBService
+
 from ..models import Job
 from ..serializers import JobStatus
 from ..utils.redis_queue import RedisJobQueue
+from .file_service import FileService
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +128,51 @@ class JobService:
             logger.warning(f"Failed to delete job {job_id}")
 
         return success
+
+    async def delete_job_complete(self, job_id: str) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "job_deleted": False,
+            "resume_deleted": False,
+            "vectors_deleted": 0,
+            "file_deleted": False,
+            "errors": []
+        }
+
+        job = await self.get_job(job_id)
+        if not job:
+            result["errors"].append(f"Job {job_id} not found")
+            return result
+
+        file_ext = None
+
+        resume_data = job.result.get("resume", {})
+        resume_id = resume_data.get("uid")
+
+        metadata = job.result.get("metadata", {})
+        filename = metadata.get("filename")
+        if filename:
+            file_ext = os.path.splitext(filename)[1].lower()
+
+        graph_service = GraphDBService()
+        deleted = graph_service.delete_resume(resume_id)
+        result["resume_deleted"] = deleted
+        if deleted:
+            logger.info(f"Deleted resume {resume_id} from graph DB")
+        else:
+            result["errors"].append(f"Resume {resume_id} not found in graph DB")
+
+        vector_service = VectorDBService()
+        count = vector_service.delete_resume_vectors(resume_id)
+        result["vectors_deleted"] = count
+        logger.info(f"Deleted {count} vectors for resume {resume_id}")
+
+        if file_ext:
+            await FileService.cleanup_all_job_files(job_id, file_ext)
+            result["file_deleted"] = True
+            logger.info(f"Deleted file for job {job_id}")
+
+        result["job_deleted"] = await self.delete_job(job_id)
+        return result
 
     async def process_job(self, job_id: str) -> dict:
         job = await self.get_job(job_id)

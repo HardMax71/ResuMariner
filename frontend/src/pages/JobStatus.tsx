@@ -1013,7 +1013,7 @@ export default function JobStatus() {
 
       {error && (
         <div className="error mb-3">
-          <strong>Error loading job:</strong> {error}
+          <strong>Error loading job:</strong> {error instanceof Error ? error.message : String(error)}
         </div>
       )}
 

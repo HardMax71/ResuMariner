@@ -50,6 +50,27 @@ export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
     handleFiles(e.dataTransfer.files);
   };
 
+  const onPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file) {
+          const err = validate(file);
+          if (err) {
+            setError(err);
+            return;
+          }
+          setError(null);
+          onFileSelected(file);
+          return;
+        }
+      }
+    }
+  };
+
   return (
     <div>
       <div
@@ -57,6 +78,8 @@ export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
+        onPaste={onPaste}
+        tabIndex={0}
       >
         <div className="dz-content">
           {selectedFile ? (

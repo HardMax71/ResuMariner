@@ -102,17 +102,51 @@ class GraphDBService:
     def delete_resume_cascade(self, resume_node: ResumeNode) -> None:
         query = """
         MATCH (resume:ResumeNode {uid: $uid})
-        OPTIONAL MATCH (resume)-[r1]->(n1)
-        OPTIONAL MATCH (n1)-[r2]->(n2)
-        OPTIONAL MATCH (n2)-[r3]->(n3)
 
-        WITH resume, collect(DISTINCT n1) as nodes1,
-             collect(DISTINCT n2) as nodes2,
-             collect(DISTINCT n3) as nodes3
+        // Delete personal info chain
+        OPTIONAL MATCH (resume)-[:HAS_PERSONAL_INFO]->(pi:PersonalInfoNode)
+        OPTIONAL MATCH (pi)-[:HAS_CONTACT]->(c:ContactNode)
+        OPTIONAL MATCH (c)-[:HAS_LINKS]->(cl:ContactLinksNode)
+        OPTIONAL MATCH (pi)-[:HAS_DEMOGRAPHICS]->(d:DemographicsNode)
+        OPTIONAL MATCH (d)-[:HAS_LOCATION]->(dl:LocationNode)
+        OPTIONAL MATCH (d)-[:HAS_WORK_AUTHORIZATION]->(wa:WorkAuthorizationNode)
 
-        FOREACH (n IN nodes3 | DETACH DELETE n)
-        FOREACH (n IN nodes2 | DETACH DELETE n)
-        FOREACH (n IN nodes1 | DETACH DELETE n)
+        // Delete professional profile
+        OPTIONAL MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(pp:ProfessionalProfileNode)
+        OPTIONAL MATCH (pp)-[:HAS_PREFERENCES]->(pref:PreferencesNode)
+
+        // Delete employment history (but keep companies)
+        OPTIONAL MATCH (resume)-[:HAS_EMPLOYMENT_HISTORY]->(eh:EmploymentHistoryItemNode)
+        OPTIONAL MATCH (eh)-[:HAS_DURATION]->(dur:EmploymentDurationNode)
+        OPTIONAL MATCH (eh)-[:LOCATED_AT]->(eloc:LocationNode)
+        OPTIONAL MATCH (eh)-[:HAS_KEY_POINT]->(kp:KeyPointInfoNode)
+
+        // Delete projects
+        OPTIONAL MATCH (resume)-[:HAS_PROJECT]->(proj:ProjectNode)
+        OPTIONAL MATCH (proj)-[:HAS_KEY_POINT]->(pkp:KeyPointInfoNode)
+
+        // Delete education (but keep institutions)
+        OPTIONAL MATCH (resume)-[:HAS_EDUCATION]->(edu:EducationItemNode)
+        OPTIONAL MATCH (edu)-[:INCLUDES_COURSEWORK]->(cw:CourseworkNode)
+        OPTIONAL MATCH (edu)-[:HAS_EXTRA]->(ex:EducationExtraNode)
+        OPTIONAL MATCH (edu)-[:LOCATED_AT]->(eduloc:LocationNode)
+
+        // Delete courses, certifications, awards, contributions
+        OPTIONAL MATCH (resume)-[:HAS_COURSE]->(course:CourseNode)
+        OPTIONAL MATCH (resume)-[:HAS_CERTIFICATION]->(cert:CertificationNode)
+        OPTIONAL MATCH (resume)-[:HAS_AWARD]->(award:AwardNode)
+        OPTIONAL MATCH (resume)-[:HAS_SCIENTIFIC_CONTRIBUTION]->(sc:ScientificContributionNode)
+
+        // Delete language proficiency (but keep languages)
+        OPTIONAL MATCH (resume)-[:HAS_LANGUAGE_PROFICIENCY]->(lp:LanguageProficiencyNode)
+
+        // Detach and delete relationships to shared entities first (don't delete the entities)
+        DETACH DELETE lp, sc, award, cert, course
+        DETACH DELETE ex, cw, eduloc, edu
+        DETACH DELETE pkp, proj
+        DETACH DELETE kp, eloc, dur, eh
+        DETACH DELETE pref, pp
+        DETACH DELETE wa, dl, d, cl, c, pi
         DETACH DELETE resume
         """
         db.cypher_query(query, {"uid": resume_node.uid})

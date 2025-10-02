@@ -64,6 +64,22 @@ class JobStatusView(APIView):
         serializer = JobResponseSerializer(job_data)
         return Response(serializer.data)
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(description="Deletion result with status for each component"),
+            404: OpenApiResponse(description="Job not found")
+        },
+        description="Delete a job and all associated data including resume from graph DB, vectors from vector DB, and uploaded file. Preserves shared entities like company names and institutions.",
+    )
+    async def delete(self, request, job_id):
+        service = JobService()
+        result = await service.delete_job_complete(job_id)
+
+        if result["errors"] and not result["job_deleted"]:
+            return Response(result, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(result, status=status.HTTP_200_OK)
+
 
 class JobResultView(APIView):
     @extend_schema(
