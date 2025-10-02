@@ -868,14 +868,6 @@ textarea {
   z-index: 1;
 }
 
-.page-container-narrow {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 var(--container-padding);
-  position: relative;
-  z-index: 1;
-}
-
 /* Glassmorphism Cards */
 .glass-card {
   background: rgba(255, 255, 255, 0.95);

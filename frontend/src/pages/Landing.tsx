@@ -17,6 +17,7 @@ import {
   Code2,
   Sparkles
 } from 'lucide-react';
+import AnimatedTerminal from '../components/AnimatedTerminal';
 
 export default function Landing() {
   const [visibleSections, setVisibleSections] = useState(new Set<string>());
@@ -38,6 +39,13 @@ export default function Landing() {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             setVisibleSections(prev => new Set(prev).add(entry.target.id));
+          } else {
+            // Remove from visible sections when scrolling away
+            setVisibleSections(prev => {
+              const next = new Set(prev);
+              next.delete(entry.target.id);
+              return next;
+            });
           }
         });
       },
@@ -134,7 +142,7 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
             display: 'grid',
             gridTemplateColumns: windowWidth < 968 ? '1fr' : '1fr 1fr',
             gap: 'var(--space-10)',
-            alignItems: 'start',
+            alignItems: 'stretch',
             marginBottom: 'var(--space-10)'
           }}>
             {/* Left: Text Content */}
@@ -189,8 +197,7 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 fontSize: 'var(--text-xl)',
                 color: 'var(--neutral-300)',
                 marginBottom: 'var(--space-6)',
-                lineHeight: 1.7,
-                maxWidth: '540px'
+                lineHeight: 1.7
               }}>
                 Vector search, graph relationships, and LLM extraction.
                 Process thousands of resumes with enterprise-grade accuracy.
@@ -201,19 +208,20 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 display: 'flex',
                 gap: 'var(--space-2)',
                 marginBottom: 'var(--space-6)',
-                flexWrap: 'wrap',
-                maxWidth: '465px'
+                flexWrap: 'wrap'
               }}>
                 {[
                   { icon: <Search size={16} />, label: 'Vector Search' },
                   { icon: <Network size={16} />, label: 'Graph DB' },
-                  { icon: <Zap size={16} />, label: 'Sub-30s' }
+                  { icon: <Sparkles size={16} />, label: 'AI Reviews' }
                 ].map((item, idx) => (
                   <div
                     key={idx}
                     style={{
+                      flex: 1,
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '6px',
                       padding: '8px 12px',
                       background: 'rgba(255, 255, 255, 0.05)',
@@ -246,8 +254,10 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 <Link
                   to="/upload"
                   style={{
-                    display: 'inline-flex',
+                    flex: 1,
+                    display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     gap: '8px',
                     padding: '14px 28px',
                     fontSize: 'var(--text-lg)',
@@ -276,8 +286,10 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 <Link
                   to="/search"
                   style={{
-                    display: 'inline-flex',
+                    flex: 1,
+                    display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     gap: '8px',
                     padding: '14px 28px',
                     fontSize: 'var(--text-lg)',
@@ -312,94 +324,7 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 animationDelay: '0.2s'
               }}
             >
-              <div style={{
-                background: 'var(--neutral-900)',
-                border: '1.5px solid var(--neutral-700)',
-                borderRadius: 'var(--radius-lg)',
-                overflow: 'hidden',
-                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-                minHeight: '400px'
-              }}>
-                {/* Terminal Header */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '12px 16px',
-                  background: 'var(--neutral-800)',
-                  borderBottom: '1px solid var(--neutral-700)'
-                }}>
-                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ff5f56' }} />
-                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffbd2e' }} />
-                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#27c93f' }} />
-                  <span style={{
-                    marginLeft: 'auto',
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--neutral-500)',
-                    fontFamily: 'var(--font-mono)'
-                  }}>
-                    resumariner.sh
-                  </span>
-                </div>
-
-                {/* Terminal Content */}
-                <div style={{
-                  padding: 'var(--space-4)',
-                  fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace",
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  color: 'var(--neutral-300)'
-                }}>
-                  <div style={{ marginBottom: '4px' }}>
-                    <span style={{ color: 'var(--accent1-400)' }}>$</span>
-                    <span style={{ color: 'var(--neutral-0)' }}> curl -X POST /api/v1/upload \</span>
-                  </div>
-                  <div style={{ marginBottom: '16px', paddingLeft: '16px' }}>
-                    <span style={{ color: 'var(--neutral-0)' }}>-F "file=@resume.pdf"</span>
-                  </div>
-                  <div style={{ marginBottom: '24px', color: 'var(--neutral-500)', fontSize: '14px', lineHeight: '1.6' }}>
-                    Processing...
-                  </div>
-
-                  {/* Response visualization */}
-                  <div style={{
-                    background: 'rgba(67, 56, 202, 0.1)',
-                    border: '1px solid var(--primary-700)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '12px'
-                  }}>
-                    <div style={{ marginBottom: '8px', fontSize: '14px', lineHeight: '1.6' }}>
-                      <span style={{ color: 'var(--primary-400)' }}>"job_id"</span>
-                      <span style={{ color: 'var(--neutral-500)' }}>: </span>
-                      <span style={{ color: 'var(--accent1-400)' }}>"abc-123"</span>
-                    </div>
-                    <div style={{ marginBottom: '8px', fontSize: '14px', lineHeight: '1.6' }}>
-                      <span style={{ color: 'var(--primary-400)' }}>"status"</span>
-                      <span style={{ color: 'var(--neutral-500)' }}>: </span>
-                      <span style={{ color: 'var(--accent1-400)' }}>"completed"</span>
-                    </div>
-                    <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                      <span style={{ color: 'var(--primary-400)' }}>"processing_time"</span>
-                      <span style={{ color: 'var(--neutral-500)' }}>: </span>
-                      <span style={{ color: 'var(--accent1-400)' }}>"28s"</span>
-                    </div>
-                  </div>
-
-                  {/* Blinking cursor */}
-                  <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', height: '22px' }}>
-                    <span style={{ color: 'var(--accent1-400)', fontSize: '14px', lineHeight: '1.6' }}>$</span>
-                    <span style={{
-                      display: 'inline-block',
-                      width: '9px',
-                      height: '18px',
-                      background: 'var(--neutral-0)',
-                      marginLeft: '6px',
-                      animation: 'cursor-blink 1s infinite',
-                      verticalAlign: 'middle'
-                    }} />
-                  </div>
-                </div>
-              </div>
+              <AnimatedTerminal isVisible={visibleSections.has('hero')} />
             </div>
           </div>
 
@@ -855,7 +780,17 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 animationDelay: '0.1s',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(67, 56, 202, 0.3)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               <div style={{ position: 'relative', zIndex: 1 }}>
@@ -930,7 +865,16 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 animationDelay: '0.2s',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(245, 158, 11, 0.2)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               <div>
@@ -967,33 +911,29 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 'var(--space-1)'
+                gap: 'var(--space-2)'
               }}>
                 {[
-                  { label: 'Redis Queue', icon: <Database size={14} /> },
-                  { label: 'Async Workers', icon: <Cpu size={14} /> },
-                  { label: 'Auto Retry', icon: <GitBranch size={14} /> },
-                  { label: 'Job Tracking', icon: <Terminal size={14} /> }
+                  'Redis Queue',
+                  'Async Workers',
+                  'Auto Retry',
+                  'Job Tracking'
                 ].map((item, idx) => (
                   <div
                     key={idx}
                     style={{
-                      padding: '8px 12px',
+                      padding: '10px 14px',
                       background: 'rgba(255, 255, 255, 0.6)',
                       backdropFilter: 'blur(8px)',
                       border: '1px solid rgba(180, 83, 9, 0.2)',
                       borderLeft: '3px solid var(--accent1-600)',
                       borderRadius: 'var(--radius-sm)',
-                      fontSize: 'var(--text-xs)',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 600,
-                      color: 'var(--accent1-900)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
+                      color: 'var(--accent1-900)'
                     }}
                   >
-                    {item.icon}
-                    {item.label}
+                    {item}
                   </div>
                 ))}
               </div>
@@ -1065,7 +1005,17 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                animationDelay: '0.4s'
+                animationDelay: '0.4s',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(245, 158, 11, 0.2)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               <div>
@@ -1102,34 +1052,29 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: 'var(--space-1)',
-                rowGap: 'var(--space-1)'
+                gap: 'var(--space-2)'
               }}>
                 {[
-                  { label: 'Skills', icon: <Sparkles size={12} /> },
-                  { label: 'Experience', icon: <GitBranch size={12} /> },
-                  { label: 'Education', icon: <Code2 size={12} /> },
-                  { label: 'Projects', icon: <Terminal size={12} /> }
+                  'Skills',
+                  'Experience',
+                  'Education',
+                  'Projects'
                 ].map((item, idx) => (
                   <div
                     key={idx}
                     style={{
-                      padding: '6px 10px',
+                      padding: '10px 14px',
                       background: 'rgba(255, 255, 255, 0.7)',
                       backdropFilter: 'blur(8px)',
                       border: '1px solid rgba(180, 83, 9, 0.25)',
                       borderRadius: 'var(--radius-sm)',
-                      fontSize: 'var(--text-xs)',
+                      fontSize: 'var(--text-sm)',
                       fontWeight: 600,
                       color: 'var(--accent1-900)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px'
+                      textAlign: 'center'
                     }}
                   >
-                    {item.icon}
-                    {item.label}
+                    {item}
                   </div>
                 ))}
               </div>

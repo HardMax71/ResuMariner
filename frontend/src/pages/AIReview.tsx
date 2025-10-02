@@ -1,32 +1,35 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getJobResult, type JobResult } from "../lib/api";
-import { AlertCircle, ChevronDown, ChevronUp, ArrowLeft, FileText, Sparkles } from "lucide-react";
-import Badge from "../components/Badge";
+import { AlertCircle, ChevronDown, ChevronUp, ArrowLeft, FileText, Sparkles, AlertTriangle, Info, Lightbulb } from "lucide-react";
+import { useJobResult } from "../hooks/useJobStatus";
+import {
+  PageWrapper,
+  PageContainer,
+  FlexRow,
+  FlexColumn,
+  ErrorCard,
+  EmptyStateCard,
+  DecorativeBlur,
+  Spinner
+} from "../components/styled";
+import {
+  IconWrapper,
+  ScoreHero,
+  ScoreValue,
+  FeedbackSection,
+  SectionHeader,
+  PriorityIndicator,
+  FeedbackBadge,
+  FeedbackDot,
+  FeedbackItem
+} from "../components/styled/Card";
+import PageHeader from "../components/PageHeader";
 
 export default function AIReview() {
   const { jobId = "" } = useParams();
-  const [result, setResult] = useState<JobResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: result, isLoading: loading, error: queryError } = useJobResult(jobId);
+  const error = queryError ? (queryError as Error).message : null;
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const fetchResult = async () => {
-      try {
-        const data = await getJobResult(jobId);
-        setResult(data);
-      } catch (err: any) {
-        setError(err.message || "Failed to load review");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (jobId) {
-      fetchResult();
-    }
-  }, [jobId]);
 
   const toggleSection = (section: string) => {
     const newExpanded = new Set(expandedSections);
@@ -36,13 +39,6 @@ export default function AIReview() {
       newExpanded.add(section);
     }
     setExpandedSections(newExpanded);
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return { color: "var(--success)", bg: "#10b98120" };
-    if (score >= 60) return { color: "var(--primary-600)", bg: "var(--primary-50)" };
-    if (score >= 40) return { color: "var(--accent1-600)", bg: "var(--accent1-50)" };
-    return { color: "var(--accent2-600)", bg: "var(--accent2-50)" };
   };
 
   const getScoreGrade = (score: number) => {
@@ -56,84 +52,52 @@ export default function AIReview() {
 
   if (loading) {
     return (
-      <div className="page-wrapper">
-        <div className="page-container-narrow">
-          <div style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "400px",
-            gap: "var(--space-3)"
-          }}>
-            <div style={{
-              width: "48px",
-              height: "48px",
-              border: "3px solid var(--primary-100)",
-              borderTopColor: "var(--primary-600)",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite"
-            }}></div>
+      <PageWrapper>
+        <PageContainer>
+          <FlexColumn align="center" justify="center" style={{ minHeight: "400px" }} gap="var(--space-3)">
+            <Spinner />
             <div style={{ textAlign: "center" }}>
               <p style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--neutral-900)", marginBottom: "4px" }}>
                 Analyzing Resume
               </p>
               <p className="small muted">This may take a moment...</p>
             </div>
-          </div>
-        </div>
-      </div>
+          </FlexColumn>
+        </PageContainer>
+      </PageWrapper>
     );
   }
 
   if (error) {
     return (
-      <div className="page-wrapper">
-        <div className="page-container-narrow">
-          <div style={{
-            background: "var(--accent2-50)",
-            border: "1px solid var(--accent2-200)",
-            borderRadius: "var(--radius-sm)",
-            padding: "var(--space-4)",
-            marginBottom: "var(--space-3)"
-          }}>
-            <div className="flex items-center gap-2" style={{ marginBottom: "8px" }}>
+      <PageWrapper>
+        <PageContainer>
+          <ErrorCard>
+            <FlexRow gap="8px" style={{ marginBottom: "8px" }}>
               <AlertCircle size={18} style={{ color: "var(--accent2-600)" }} />
               <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--accent2-700)" }}>
                 Error Loading Review
               </span>
-            </div>
+            </FlexRow>
             <p className="small" style={{ color: "var(--accent2-700)", marginBottom: 0 }}>{error}</p>
-          </div>
+          </ErrorCard>
           <Link to={`/jobs/${jobId}`} className="btn ghost">
             <ArrowLeft size={16} />
             Back to Job
           </Link>
-        </div>
-      </div>
+        </PageContainer>
+      </PageWrapper>
     );
   }
 
   if (!result || !result.review) {
     return (
-      <div className="page-wrapper">
-        <div className="page-container-narrow">
-          <div className="glass-card" style={{
-            textAlign: "center",
-            padding: "var(--space-8) var(--space-4)"
-          }}>
-            <div style={{
-              width: "64px",
-              height: "64px",
-              margin: "0 auto var(--space-3)",
-              background: "var(--neutral-100)",
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}>
+      <PageWrapper>
+        <PageContainer>
+          <EmptyStateCard>
+            <IconWrapper style={{ width: "64px", height: "64px", margin: "0 auto var(--space-3)", background: "var(--neutral-100)", border: "none" }}>
               <FileText size={32} style={{ color: "var(--neutral-400)" }} />
-            </div>
+            </IconWrapper>
             <h3 style={{ marginBottom: "8px" }}>
               No Review Available
             </h3>
@@ -141,107 +105,34 @@ export default function AIReview() {
               AI analysis has not been generated for this resume yet. Reviews are typically available a few minutes after upload.
             </p>
             <Link to={`/jobs/${jobId}`} className="btn">View Job Status</Link>
-          </div>
-        </div>
-      </div>
+          </EmptyStateCard>
+        </PageContainer>
+      </PageWrapper>
     );
   }
 
   return (
-    <div className="page-wrapper">
-      {/* Decorative background elements */}
-      <div className="decorative-blur" style={{
-        position: "absolute",
-        top: "10%",
-        right: "-5%",
-        width: "500px",
-        height: "500px",
-        background: "radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%)",
-        borderRadius: "50%",
-        filter: "blur(60px)",
-        pointerEvents: "none"
-      }}></div>
-      <div className="decorative-blur" style={{
-        position: "absolute",
-        bottom: "20%",
-        left: "-5%",
-        width: "400px",
-        height: "400px",
-        background: "radial-gradient(circle, rgba(245, 158, 11, 0.06) 0%, transparent 70%)",
-        borderRadius: "50%",
-        filter: "blur(60px)",
-        pointerEvents: "none"
-      }}></div>
+    <PageWrapper>
+      <DecorativeBlur />
+      <DecorativeBlur position="bottom-left" />
 
-      <div className="page-container-narrow">
-        {/* Header */}
-        <div style={{ marginBottom: "var(--space-5)" }}>
-          <Link
-            to={`/jobs/${jobId}`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "var(--text-sm)",
-              color: "var(--neutral-600)",
-              textDecoration: "none",
-              marginBottom: "var(--space-2)",
-              transition: "color var(--transition-fast)"
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.color = "var(--primary-600)"}
-            onMouseLeave={(e) => e.currentTarget.style.color = "var(--neutral-600)"}
-          >
-            <ArrowLeft size={16} />
-            Back to Job Details
-          </Link>
-          <div className="flex items-center gap-3">
-            <div style={{
-              width: "40px",
-              height: "40px",
-              background: "linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%)",
-              borderRadius: "var(--radius-sm)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 4px 12px rgba(67, 56, 202, 0.25)"
-            }}>
-              <Sparkles size={20} style={{ color: "white" }} />
-            </div>
-            <div>
-              <h1 style={{ margin: 0 }}>
-                AI Resume Analysis
-              </h1>
-              <p className="small muted" style={{ margin: 0 }}>
-                Comprehensive feedback powered by AI
-              </p>
-            </div>
-          </div>
-        </div>
+      <PageContainer>
+        <PageHeader
+          icon={<Sparkles size={24} style={{ color: "white" }} />}
+          title="AI Resume Analysis"
+          subtitle="Comprehensive feedback powered by AI"
+          actions={
+            <Link to={`/jobs/${jobId}`} className="btn ghost">
+              Back to Job Details
+              <ArrowLeft size={16} style={{ transform: "rotate(180deg)" }} />
+            </Link>
+          }
+        />
 
-        {/* Overall Score Card - Hero Section */}
         {result.review.overall_score !== undefined && (
-          <div style={{
-            background: "linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%)",
-            borderRadius: "var(--radius-sm)",
-            padding: "var(--space-6)",
-            marginBottom: "var(--space-5)",
-            boxShadow: "0 8px 24px rgba(67, 56, 202, 0.2)",
-            position: "relative",
-            overflow: "hidden"
-          }}>
-            {/* Decorative gradient overlay */}
-            <div style={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              width: "400px",
-              height: "400px",
-              background: "radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%)",
-              pointerEvents: "none"
-            }}></div>
-
+          <ScoreHero>
             <div style={{ position: "relative", zIndex: 1 }}>
-              <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-4)" }}>
+              <FlexRow justify="space-between" style={{ marginBottom: "var(--space-4)" }}>
                 <div>
                   <p style={{
                     fontSize: "var(--text-sm)",
@@ -262,18 +153,11 @@ export default function AIReview() {
                     {getScoreGrade(result.review.overall_score)}
                   </p>
                 </div>
-                <div style={{
-                  fontSize: "64px",
-                  fontWeight: 800,
-                  fontFamily: "var(--font-display)",
-                  color: "white",
-                  lineHeight: 1,
-                  textShadow: "0 2px 8px rgba(0, 0, 0, 0.15)"
-                }}>
+                <ScoreValue>
                   {result.review.overall_score}
-                  <span style={{ fontSize: "32px", fontWeight: 700, opacity: 0.8 }}>/100</span>
-                </div>
-              </div>
+                  <span>/100</span>
+                </ScoreValue>
+              </FlexRow>
 
               {result.review.summary && (
                 <div style={{
@@ -294,12 +178,11 @@ export default function AIReview() {
                 </div>
               )}
             </div>
-          </div>
+          </ScoreHero>
         )}
 
-        {/* Feedback Sections */}
         {typeof result.review === "object" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          <FlexColumn gap="var(--space-3)">
             {Object.entries(result.review)
               .filter(([key, value]) =>
                 key !== "overall_score" &&
@@ -316,64 +199,56 @@ export default function AIReview() {
                 if (totalCount === 0) return null;
 
                 const isExpanded = expandedSections.has(section);
-                const priorityColor = mustCount > 0 ? "var(--accent2-600)" :
-                                    shouldCount > 0 ? "var(--accent1-600)" :
-                                    "var(--primary-600)";
-                const priorityBg = mustCount > 0 ? "var(--accent2-50)" :
-                                  shouldCount > 0 ? "var(--accent1-50)" :
-                                  "var(--primary-50)";
+                const priorityLevel = mustCount > 0 ? "critical" : shouldCount > 0 ? "important" : "tip";
+
+                const redPalette = {
+                  dark: { main: "#dc2626", text: "#991b1b", bg: "#fecaca", bgLight: "rgba(254, 226, 226, 0.5)", border: "#fca5a5" },
+                  medium: { main: "#ef4444", text: "#b91c1c", bg: "#fed7d7", bgLight: "rgba(254, 242, 242, 0.5)", border: "#fbb6b6" },
+                  light: { main: "#f87171", text: "#dc2626", bg: "#fee2e2", bgLight: "rgba(254, 245, 245, 0.5)", border: "#fecaca" }
+                };
+
+                const orangePalette = {
+                  dark: { main: "#ea580c", text: "#9a3412", bg: "#fed7aa", bgLight: "rgba(255, 237, 213, 0.5)", border: "#fdba74" },
+                  light: { main: "#f97316", text: "#c2410c", bg: "#ffedd5", bgLight: "rgba(255, 247, 237, 0.5)", border: "#fed7aa" }
+                };
+
+                const bluePalette = {
+                  main: "#2563eb", text: "#1e40af", bg: "#bfdbfe", bgLight: "rgba(219, 234, 254, 0.5)", border: "#93c5fd"
+                };
+
+                const colors = priorityLevel === "critical" ?
+                  { must: redPalette.dark, should: redPalette.medium, advise: redPalette.light } :
+                  priorityLevel === "important" ?
+                  { should: orangePalette.dark, advise: orangePalette.light } :
+                  { advise: bluePalette };
+
+                const priorityColor = priorityLevel === "critical" ? redPalette.dark.main :
+                                     priorityLevel === "important" ? orangePalette.dark.main :
+                                     bluePalette.main;
+                const priorityBg = priorityLevel === "critical" ? redPalette.dark.bgLight :
+                                  priorityLevel === "important" ? orangePalette.dark.bgLight :
+                                  bluePalette.bgLight;
 
                 return (
-                  <div
-                    key={section}
-                    className="glass-card"
-                    style={{
-                      padding: 0,
-                      overflow: "hidden",
-                      transition: "all var(--transition-base)",
-                      cursor: "pointer"
-                    }}
-                  >
-                    {/* Section Header */}
-                    <div
+                  <FeedbackSection key={section}>
+                    <SectionHeader
                       onClick={() => toggleSection(section)}
-                      style={{
-                        padding: "var(--space-3) var(--space-4)",
-                        background: priorityBg,
-                        borderBottom: isExpanded ? `1px solid ${priorityColor}20` : "none",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        userSelect: "none",
-                        transition: "background var(--transition-fast)"
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isExpanded) e.currentTarget.style.background = `${priorityColor}15`;
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isExpanded) e.currentTarget.style.background = priorityBg;
-                      }}
+                      isExpanded={isExpanded}
+                      priorityColor={priorityColor}
+                      priorityBg={priorityBg}
                     >
-                      <div className="flex items-center gap-3" style={{ flex: 1 }}>
-                        <div style={{
-                          width: "4px",
-                          height: "32px",
-                          background: priorityColor,
-                          borderRadius: "var(--radius-full)"
-                        }}></div>
+                      <FlexRow gap="var(--space-3)" style={{ flex: 1 }}>
+                        <PriorityIndicator color={priorityColor} />
                         <div>
-                          <h3 style={{
-                            margin: "0 0 4px 0",
-                            textTransform: "capitalize"
-                          }}>
+                          <h3 style={{ margin: "0 0 4px 0", textTransform: "capitalize" }}>
                             {section.replace(/_/g, " ")}
                           </h3>
-                          <div className="flex gap-2">
-                            {mustCount > 0 && (
-                              <Badge variant="primary" style={{
+                          <FlexRow gap="8px">
+                            {mustCount > 0 && colors.must && (
+                              <span style={{
                                 padding: "2px 8px",
-                                background: "var(--accent2-100)",
-                                color: "var(--accent2-700)",
+                                background: colors.must.bg,
+                                color: colors.must.text,
                                 fontSize: "var(--text-xs)",
                                 fontWeight: 600,
                                 borderRadius: "var(--radius-full)",
@@ -384,17 +259,17 @@ export default function AIReview() {
                                 <span style={{
                                   width: "6px",
                                   height: "6px",
-                                  background: "var(--accent2-600)",
-                                  borderRadius: "50%"
-                                }}></span>
+                                  borderRadius: "50%",
+                                  background: colors.must.main
+                                }} />
                                 {mustCount} Critical
-                              </Badge>
+                              </span>
                             )}
-                            {shouldCount > 0 && (
-                              <Badge variant="primary" style={{
+                            {shouldCount > 0 && colors.should && (
+                              <span style={{
                                 padding: "2px 8px",
-                                background: "var(--accent1-100)",
-                                color: "var(--accent1-700)",
+                                background: colors.should.bg,
+                                color: colors.should.text,
                                 fontSize: "var(--text-xs)",
                                 fontWeight: 600,
                                 borderRadius: "var(--radius-full)",
@@ -405,17 +280,17 @@ export default function AIReview() {
                                 <span style={{
                                   width: "6px",
                                   height: "6px",
-                                  background: "var(--accent1-600)",
-                                  borderRadius: "50%"
-                                }}></span>
+                                  borderRadius: "50%",
+                                  background: colors.should.main
+                                }} />
                                 {shouldCount} Important
-                              </Badge>
+                              </span>
                             )}
-                            {adviseCount > 0 && (
-                              <Badge variant="primary" style={{
+                            {adviseCount > 0 && colors.advise && (
+                              <span style={{
                                 padding: "2px 8px",
-                                background: "var(--primary-100)",
-                                color: "var(--primary-700)",
+                                background: colors.advise.bg,
+                                color: colors.advise.text,
                                 fontSize: "var(--text-xs)",
                                 fontWeight: 600,
                                 borderRadius: "var(--radius-full)",
@@ -426,15 +301,15 @@ export default function AIReview() {
                                 <span style={{
                                   width: "6px",
                                   height: "6px",
-                                  background: "var(--primary-600)",
-                                  borderRadius: "50%"
-                                }}></span>
+                                  borderRadius: "50%",
+                                  background: colors.advise.main
+                                }} />
                                 {adviseCount} Tip
-                              </Badge>
+                              </span>
                             )}
-                          </div>
+                          </FlexRow>
                         </div>
-                      </div>
+                      </FlexRow>
                       <div style={{
                         width: "32px",
                         height: "32px",
@@ -451,227 +326,55 @@ export default function AIReview() {
                           <ChevronDown size={18} style={{ color: priorityColor }} />
                         )}
                       </div>
-                    </div>
+                    </SectionHeader>
 
-                    {/* Section Content */}
                     {isExpanded && (
-                      <div style={{
-                        padding: "var(--space-2)",
-                        animation: "fade-in 0.3s ease-out"
-                      }}>
-                        {feedback.must && feedback.must.length > 0 && (
-                          <div>
-                            <div style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "var(--space-1)",
-                              marginBottom: "var(--space-1)",
-                              paddingBottom: "var(--space-1)",
-                              borderBottom: "2px solid var(--accent2-200)"
-                            }}>
-                              <div style={{
-                                width: "24px",
-                                height: "24px",
-                                background: "var(--accent2-600)",
-                                borderRadius: "50%",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center"
-                              }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                  <line x1="12" y1="9" x2="12" y2="13"/>
-                                  <line x1="12" y1="17" x2="12.01" y2="17"/>
-                                </svg>
-                              </div>
-                              <span style={{
-                                fontSize: "var(--text-sm)",
-                                fontWeight: 700,
-                                color: "var(--accent2-700)",
-                                textTransform: "uppercase",
-                                letterSpacing: "var(--tracking-wide)"
-                              }}>
-                                Critical - Must Fix
-                              </span>
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                              {feedback.must.map((item: string, idx: number) => (
-                                <div
-                                  key={idx}
-                                  style={{
-                                    padding: "var(--space-1) var(--space-2)",
-                                    background: "var(--accent2-50)",
-                                    border: "1px solid var(--accent2-200)",
-                                    borderRadius: "var(--radius-sm)",
-                                    display: "flex",
-                                    gap: "var(--space-1)"
-                                  }}
-                                >
-                                  <span style={{
-                                    color: "var(--accent2-600)",
-                                    fontWeight: 700,
-                                    fontSize: "var(--text-sm)",
-                                    flexShrink: 0
-                                  }}>
-                                    •
-                                  </span>
-                                  <span style={{
-                                    fontSize: "var(--text-sm)",
-                                    color: "var(--neutral-800)",
-                                    lineHeight: "var(--leading-relaxed)"
-                                  }}>
-                                    {item}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                      <div style={{ padding: "var(--space-2)", animation: "fade-in 0.3s ease-out" }}>
+                        {[
+                          { items: feedback.must, color: colors.must, Icon: AlertTriangle, label: "Critical - Must Fix", key: "must" },
+                          { items: feedback.should, color: colors.should, Icon: Info, label: "Important - Should Improve", key: "should" },
+                          { items: feedback.advise, color: colors.advise, Icon: Lightbulb, label: "Optional - Consider These Tips", key: "advise" }
+                        ].map(({ items, color, Icon, label, key }, sectionIdx) => {
+                          if (!items || items.length === 0 || !color) return null;
+                          const needsMargin = sectionIdx > 0 && (
+                            (sectionIdx === 1 && feedback.must && feedback.must.length > 0) ||
+                            (sectionIdx === 2 && ((feedback.must && feedback.must.length > 0) || (feedback.should && feedback.should.length > 0)))
+                          );
 
-                        {feedback.should && feedback.should.length > 0 && (
-                          <div style={{ marginTop: feedback.must && feedback.must.length > 0 ? "var(--space-3)" : 0 }}>
-                            <div style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "var(--space-1)",
-                              marginBottom: "var(--space-1)",
-                              paddingBottom: "var(--space-1)",
-                              borderBottom: "2px solid var(--accent1-200)"
-                            }}>
-                              <div style={{
-                                width: "24px",
-                                height: "24px",
-                                background: "var(--accent1-600)",
-                                borderRadius: "50%",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center"
-                              }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                                  <circle cx="12" cy="12" r="10"/>
-                                  <line x1="12" y1="8" x2="12" y2="12"/>
-                                  <line x1="12" y1="16" x2="12.01" y2="16"/>
-                                </svg>
-                              </div>
-                              <span style={{
-                                fontSize: "var(--text-sm)",
-                                fontWeight: 700,
-                                color: "var(--accent1-700)",
-                                textTransform: "uppercase",
-                                letterSpacing: "var(--tracking-wide)"
-                              }}>
-                                Important - Should Improve
-                              </span>
+                          return (
+                            <div key={key} style={{ marginTop: needsMargin ? "var(--space-3)" : 0 }}>
+                              <FlexRow gap="var(--space-2)" style={{ marginBottom: "var(--space-2)", paddingBottom: "var(--space-1)", borderBottom: `2px solid ${color.border}` }}>
+                                <Icon size={18} color={color.main} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                                <span style={{
+                                  fontSize: "var(--text-sm)",
+                                  fontWeight: 700,
+                                  color: color.text,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "var(--tracking-wide)"
+                                }}>
+                                  {label}
+                                </span>
+                              </FlexRow>
+                              <FlexColumn gap="var(--space-2)">
+                                {items.map((item: string, idx: number) => (
+                                  <FeedbackItem key={idx} dotColor={color.main}>
+                                    <span style={{ fontSize: "var(--text-sm)", color: key === "advise" ? "var(--neutral-700)" : "var(--neutral-800)", lineHeight: "var(--leading-relaxed)" }}>
+                                      {item}
+                                    </span>
+                                  </FeedbackItem>
+                                ))}
+                              </FlexColumn>
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                              {feedback.should.map((item: string, idx: number) => (
-                                <div
-                                  key={idx}
-                                  style={{
-                                    padding: "var(--space-1) var(--space-2)",
-                                    background: "var(--accent1-50)",
-                                    border: "1px solid var(--accent1-200)",
-                                    borderRadius: "var(--radius-sm)",
-                                    display: "flex",
-                                    gap: "var(--space-1)"
-                                  }}
-                                >
-                                  <span style={{
-                                    color: "var(--accent1-600)",
-                                    fontWeight: 700,
-                                    fontSize: "var(--text-sm)",
-                                    flexShrink: 0
-                                  }}>
-                                    •
-                                  </span>
-                                  <span style={{
-                                    fontSize: "var(--text-sm)",
-                                    color: "var(--neutral-800)",
-                                    lineHeight: "var(--leading-relaxed)"
-                                  }}>
-                                    {item}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {feedback.advise && feedback.advise.length > 0 && (
-                          <div style={{ marginTop: (feedback.must && feedback.must.length > 0) || (feedback.should && feedback.should.length > 0) ? "var(--space-3)" : 0 }}>
-                            <div style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "var(--space-1)",
-                              marginBottom: "var(--space-1)",
-                              paddingBottom: "var(--space-1)",
-                              borderBottom: "2px solid var(--primary-200)"
-                            }}>
-                              <div style={{
-                                width: "24px",
-                                height: "24px",
-                                background: "var(--primary-600)",
-                                borderRadius: "50%",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center"
-                              }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                                  <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                                </svg>
-                              </div>
-                              <span style={{
-                                fontSize: "var(--text-sm)",
-                                fontWeight: 700,
-                                color: "var(--primary-700)",
-                                textTransform: "uppercase",
-                                letterSpacing: "var(--tracking-wide)"
-                              }}>
-                                Optional - Consider These Tips
-                              </span>
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                              {feedback.advise.map((item: string, idx: number) => (
-                                <div
-                                  key={idx}
-                                  style={{
-                                    padding: "var(--space-1) var(--space-2)",
-                                    background: "var(--primary-50)",
-                                    border: "1px solid var(--primary-200)",
-                                    borderRadius: "var(--radius-sm)",
-                                    display: "flex",
-                                    gap: "var(--space-1)"
-                                  }}
-                                >
-                                  <span style={{
-                                    color: "var(--primary-600)",
-                                    fontWeight: 700,
-                                    fontSize: "var(--text-sm)",
-                                    flexShrink: 0
-                                  }}>
-                                    •
-                                  </span>
-                                  <span style={{
-                                    fontSize: "var(--text-sm)",
-                                    color: "var(--neutral-700)",
-                                    lineHeight: "var(--leading-relaxed)"
-                                  }}>
-                                    {item}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                          );
+                        })}
                       </div>
                     )}
-                  </div>
+                  </FeedbackSection>
                 );
               })}
-          </div>
+          </FlexColumn>
         )}
 
-        {/* String Review Fallback */}
         {typeof result.review === "string" && (
           <div className="glass-card-lg">
             <p style={{
@@ -685,20 +388,16 @@ export default function AIReview() {
           </div>
         )}
 
-        {/* Empty State */}
         {typeof result.review === "object" &&
          !Object.entries(result.review).some(([key, value]) =>
            key !== "overall_score" && key !== "summary" && value !== null) && (
-          <div className="glass-card" style={{
-            textAlign: "center",
-            padding: "var(--space-6)"
-          }}>
+          <EmptyStateCard>
             <p className="small muted" style={{ margin: 0 }}>
               No detailed feedback sections available. Check back later for a complete analysis.
             </p>
-          </div>
+          </EmptyStateCard>
         )}
-      </div>
-    </div>
+      </PageContainer>
+    </PageWrapper>
   );
 }

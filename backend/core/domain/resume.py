@@ -282,9 +282,9 @@ class EducationItem(BaseModel):
             v["start"] = v.pop("start_date")
         if "end_date" in v and "end" not in v:
             v["end"] = v.pop("end_date")
-        if "coursework" in v:
+        if "coursework" in v and v["coursework"] is not None:
             v["coursework"] = [c if isinstance(c, dict) else {"text": c} for c in v["coursework"]]
-        if "extras" in v:
+        if "extras" in v and v["extras"] is not None:
             v["extras"] = [e if isinstance(e, dict) else {"text": e} for e in v["extras"]]
         return v
 

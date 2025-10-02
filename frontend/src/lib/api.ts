@@ -1,3 +1,129 @@
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
+export class APIError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public response?: any
+  ) {
+    super(message);
+    this.name = 'APIError';
+  }
+}
+
+export class NetworkError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
+interface RequestOptions extends RequestInit {
+  timeout?: number;
+}
+
+async function fetchWithTimeout(
+  url: string,
+  options: RequestOptions = {}
+): Promise<Response> {
+  const { timeout = 30000, ...fetchOptions } = options;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+
+    if (error.name === 'AbortError') {
+      throw new NetworkError('Request timeout');
+    }
+
+    if (error instanceof TypeError) {
+      throw new NetworkError('Network error - please check your connection');
+    }
+
+    throw error;
+  }
+}
+
+export async function apiGet<T>(endpoint: string, options?: RequestOptions): Promise<T> {
+  const response = await fetchWithTimeout(`${API_BASE_URL}${endpoint}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new APIError(
+      error.message || `HTTP ${response.status}: ${response.statusText}`,
+      response.status,
+      error
+    );
+  }
+
+  return response.json();
+}
+
+export async function apiPost<T>(
+  endpoint: string,
+  body?: any,
+  options?: RequestOptions
+): Promise<T> {
+  const response = await fetchWithTimeout(`${API_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    ...options,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new APIError(
+      error.message || `HTTP ${response.status}: ${response.statusText}`,
+      response.status,
+      error
+    );
+  }
+
+  return response.json();
+}
+
+export async function apiUpload<T>(
+  endpoint: string,
+  formData: FormData,
+  options?: RequestOptions
+): Promise<T> {
+  const response = await fetchWithTimeout(`${API_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    body: formData,
+    ...options,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new APIError(
+      error.message || `HTTP ${response.status}: ${response.statusText}`,
+      response.status,
+      error
+    );
+  }
+
+  return response.json();
+}
+
 export type JobStatus = "pending" | "processing" | "completed" | "failed";
 
 export interface JobResponse {
@@ -80,8 +206,8 @@ export interface JobExperience {
   company: string;
   position: string;
   duration_months?: number | null;
-  start?: string | null;  // ISO date string (YYYY-MM-DD)
-  end?: string | null;    // ISO date string or null for ongoing
+  start?: string | null;
+  end?: string | null;
   employment_type?: string | null;
   work_mode?: string | null;
   key_points?: string[] | null;
@@ -108,99 +234,3 @@ export interface SearchResponse {
   query?: string | null;
   search_type: string;
 }
-
-const DEFAULT_BASE = "http://localhost:8000"; // Direct backend URL
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE;
-
-// Export for use in components
-export const API_BASE_URL = BASE_URL;
-
-function withBase(path: string) {
-  const base = BASE_URL.replace(/\/$/, "");
-  const p = path.startsWith("/") ? path : `/${path}`;
-  return `${base}${p}`;
-}
-
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(withBase(path), options);
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  return (await res.json()) as T;
-}
-
-export async function uploadFile(file: File): Promise<JobResponse> {
-  const form = new FormData();
-  form.append("file", file);
-  return request<JobResponse>("/api/v1/upload/", {
-    method: "POST",
-    body: form
-  });
-}
-
-export function getJob(jobId: string) {
-  return request<JobResponse>(`/api/v1/jobs/${encodeURIComponent(jobId)}/`);
-}
-
-export function getJobResult(jobId: string) {
-  return request<JobResult>(`/api/v1/jobs/${encodeURIComponent(jobId)}/result/`);
-}
-
-export function getFilters() {
-  return request<FilterOptions>("/filters/");
-}
-
-export function searchSemantic(body: {
-  query: string;
-  limit?: number;
-  min_score?: number;
-  max_matches_per_result?: number;
-  filters?: SearchFilters;
-}) {
-  return request<SearchResponse>("/search/semantic/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-}
-
-export function searchStructured(body: {
-  query?: string;
-  filters?: SearchFilters;
-  limit?: number;
-}) {
-  return request<SearchResponse>("/search/structured/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-}
-
-export function searchHybrid(body: {
-  query: string;
-  filters?: SearchFilters;
-  vector_weight?: number;
-  graph_weight?: number;
-  limit?: number;
-  max_matches_per_result?: number;
-}) {
-  return request<SearchResponse>("/search/hybrid/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-}
-
-export function getHealth() {
-  return request<Record<string, any>>("/api/v1/health/");
-}
-
-export function cleanupJobs(params: { days?: number; force?: boolean }) {
-  return request<Record<string, any>>("/api/v1/jobs/cleanup/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params)
-  });
-}
-

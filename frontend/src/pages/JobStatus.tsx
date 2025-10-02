@@ -1,10 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getJob, getJobResult, API_BASE_URL, type JobResponse, type JobResult } from "../lib/api";
-import { Copy, Check, Hash } from "lucide-react";
+import { useJobStatus, useJobResult } from "../hooks/useJobStatus";
+import { API_BASE_URL } from "../lib/api";
+import { Copy, Check, Hash, FileText, Network, Database } from "lucide-react";
 import CollapsibleSection from "../components/CollapsibleSection";
+import { PageWrapper, PageContainer } from "../components/styled";
+import PageHeader from "../components/PageHeader";
+import Tooltip from "../components/Tooltip";
 
-// Simple utility to make any value renderable
+type JobResponse = { status: string; id: string; created_at?: string; completed_at?: string; };
+type JobResult = any;
+
 const renderValue = (value: any): string => {
   if (value === null || value === undefined) return "—";
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
@@ -24,11 +30,9 @@ const renderValue = (value: any): string => {
   return String(value);
 };
 
-// Unified badge styling system with gradient color scheme
 const getBadgeStyle = (text: string, category?: string) => {
   const t = text.toLowerCase();
 
-  // Education status - gradient: ongoing (blue) → completed (green)
   if (category === "education_status") {
     if (t.includes("ongoing") || t.includes("current")) {
       return { bg: "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)", color: "#1e40af", border: "#3b82f6" };
@@ -38,7 +42,6 @@ const getBadgeStyle = (text: string, category?: string) => {
     }
   }
 
-  // Employment type - gradient based on commitment level
   if (category === "employment_type") {
     if (t.includes("full-time") || t.includes("full time") || t.includes("fulltime")) {
       return { bg: "linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)", color: "#5b21b6", border: "#8b5cf6" };
@@ -54,7 +57,6 @@ const getBadgeStyle = (text: string, category?: string) => {
     }
   }
 
-  // Work mode - gradient based on flexibility
   if (category === "work_mode") {
     if (t.includes("remote")) {
       return { bg: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)", color: "#065f46", border: "#10b981" };
@@ -67,36 +69,22 @@ const getBadgeStyle = (text: string, category?: string) => {
     }
   }
 
-  // Default gradient - neutral purple
   return { bg: "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)", color: "#374151", border: "#9ca3af" };
 };
 
-// Type definition for resume section configuration
 interface ResumeSection {
-  title: string;       // Display title for the section
-  key: string;         // Unique key for React and expanded state
-  paths: string[];     // Array of possible property paths to check in order
-  alwaysShow?: boolean; // Whether to show section even when empty (shows "No data available")
+  title: string;
+  key: string;
+  paths: string[];
+  alwaysShow?: boolean;
 }
 
-/**
- * Configuration for resume sections - easily extensible and reorderable
- *
- * To add a new section:
- * 1. Add an object with title, key, and paths array
- * 2. Set alwaysShow to true if you want to show "No data" when empty
- *
- * To reorder sections:
- * - Simply move the objects around in this array
- *
- * The paths array contains fallback property names to check in order
- */
 const RESUME_SECTIONS: ResumeSection[] = [
   {
     title: "Experience",
     key: "experience",
     paths: ["employment_history", "experience", "work_experience"],
-    alwaysShow: false // Only show if data exists
+    alwaysShow: false
   },
   {
     title: "Education",
@@ -144,14 +132,17 @@ const RESUME_SECTIONS: ResumeSection[] = [
 
 export default function JobStatus() {
   const { jobId = "" } = useParams();
-  const [job, setJob] = useState<JobResponse | null>(null);
-  const [result, setResult] = useState<JobResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
   const [showMetadata, setShowMetadata] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["personal", "skills"]));
   const [copiedButtons, setCopiedButtons] = useState<Set<string>>(new Set());
-  const timer = useRef<number | null>(null);
+
+  const { data: job, error: jobError } = useJobStatus(jobId);
+  const { data: result, error: resultError } = useJobResult(
+    job?.status === "completed" ? jobId : null
+  );
+
+  const error = jobError || resultError;
 
   const handleCopy = (text: string, buttonId: string) => {
     navigator.clipboard.writeText(text);
@@ -164,28 +155,6 @@ export default function JobStatus() {
       });
     }, 2000);
   };
-
-  useEffect(() => {
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const j = await getJob(jobId);
-        if (cancelled) return;
-        setJob(j);
-        if (j.status === "completed") {
-          const r = await getJobResult(jobId);
-          if (!cancelled) setResult(r);
-          return; // stop polling
-        }
-        if (j.status === "failed") return; // stop polling
-        timer.current = window.setTimeout(poll, 2000);
-      } catch (e: any) {
-        if (!cancelled) setError(String(e.message || e));
-      }
-    };
-    poll();
-    return () => { cancelled = true; if (timer.current) window.clearTimeout(timer.current); };
-  }, [jobId]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
@@ -751,7 +720,7 @@ export default function JobStatus() {
                             color: "var(--gray-900)",
                             lineHeight: 1.3
                           }}>
-                            {renderValue(edu.qualification || edu.degree)}
+                            {renderValue(edu.qualification)}
                             {edu.field && (
                               <>
                                 <span style={{ fontWeight: 400, color: "var(--gray-600)" }}> in </span>
@@ -807,7 +776,7 @@ export default function JobStatus() {
                             {renderValue(edu.year)}
                           </div>
                         )}
-                        {edu.location && (
+                        {edu.location && [edu.location.city, edu.location.state, edu.location.country].filter(Boolean).length > 0 && (
                           <div style={{ fontSize: "12px", marginTop: "2px" }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{
                               marginRight: "4px",
@@ -853,7 +822,7 @@ export default function JobStatus() {
                                 borderRadius: "12px"
                               }}
                             >
-                              {renderValue(course.name || course)}
+                              {renderValue(course.text || course.name || course)}
                             </span>
                           ))}
                         </div>
@@ -1025,30 +994,29 @@ export default function JobStatus() {
   };
 
   return (
-    <div className="page-wrapper">
-      <div className="page-container">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 style={{ margin: 0 }}>Job Processing Status</h1>
-        <Link to="/upload" className="btn ghost">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "var(--space-1)" }}>
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-            <path d="M21 3v5h-5" />
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-            <path d="M8 16H3v5" />
-          </svg>
-          Upload Another
-        </Link>
-      </div>
+    <PageWrapper>
+      <PageContainer>
+      <PageHeader
+        title="Job Processing Status"
+        actions={
+          <Link to="/upload" className="btn ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "var(--space-1)" }}>
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M8 16H3v5" />
+            </svg>
+            Upload Another
+          </Link>
+        }
+      />
 
-      {/* Error Display */}
       {error && (
         <div className="error mb-3">
           <strong>Error loading job:</strong> {error}
         </div>
       )}
 
-      {/* Loading State */}
       {!job && !error && (
         <div className="glass-card" style={{
           padding: "var(--space-6)",
@@ -1059,15 +1027,12 @@ export default function JobStatus() {
         </div>
       )}
 
-      {/* Job Status Card */}
       {job && (
         <div className="glass-card" style={{
           borderTop: `3px solid ${getStatusColor(job.status)}`,
           marginBottom: "var(--space-3)"
         }}>
-          {/* Main Status Row */}
           <div className="flex justify-between items-center" style={{ marginBottom: "var(--space-3)" }}>
-            {/* Status Hero */}
             <div className="flex items-center gap-3">
               <div style={{
                 width: "48px",
@@ -1120,56 +1085,57 @@ export default function JobStatus() {
               </div>
             </div>
 
-            {/* Actions */}
             {job.status === "completed" && (
               <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    const url = `${window.location.origin}/jobs/${job.job_id}`;
-                    handleCopy(url, "copy-link");
-                  }}
-                  style={{
-                    padding: "8px",
-                    background: "white",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontFamily: "inherit"
-                  }}
-                  title={copiedButtons.has("copy-link") ? "Copied!" : "Copy link to clipboard"}
-                >
-                  {copiedButtons.has("copy-link") ? (
-                    <Check size={16} style={{ color: "#10b981" }} />
-                  ) : (
-                    <Copy size={16} style={{ color: "#374151" }} />
-                  )}
-                </button>
-                <a
-                  href={`${API_BASE_URL}/api/v1/jobs/${job.job_id}/result/`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    padding: "8px",
-                    background: "white",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    textDecoration: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center"
-                  }}
-                  title="Open API JSON response"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "#374151" }}>
-                    <polyline points="16 18 22 12 16 6" />
-                    <polyline points="8 6 2 12 8 18" />
-                  </svg>
-                </a>
+                <Tooltip text={copiedButtons.has("copy-link") ? "Copied!" : "Copy link to clipboard"}>
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}/jobs/${job.job_id}`;
+                      handleCopy(url, "copy-link");
+                    }}
+                    style={{
+                      padding: "8px",
+                      background: "white",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontFamily: "inherit"
+                    }}
+                  >
+                    {copiedButtons.has("copy-link") ? (
+                      <Check size={16} style={{ color: "#10b981" }} />
+                    ) : (
+                      <Copy size={16} style={{ color: "#374151" }} />
+                    )}
+                  </button>
+                </Tooltip>
+                <Tooltip text="Open API endpoint">
+                  <a
+                    href={`${API_BASE_URL}/api/v1/jobs/${job.job_id}/result/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: "8px",
+                      background: "white",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      textDecoration: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "#374151" }}>
+                      <polyline points="16 18 22 12 16 6" />
+                      <polyline points="8 6 2 12 8 18" />
+                    </svg>
+                  </a>
+                </Tooltip>
                 {result?.review && (
                   <Link
                     to={`/jobs/${job.job_id}/review`}
@@ -1213,7 +1179,6 @@ export default function JobStatus() {
             )}
           </div>
 
-          {/* Processing Progress */}
           {job.status === "processing" && (
             <div style={{
               padding: "var(--space-2)",
@@ -1242,18 +1207,18 @@ export default function JobStatus() {
             </div>
           )}
 
-          {/* Error Display */}
           {job.error && (
             <div className="error" style={{ marginTop: 0 }}>
               <strong>Error:</strong> {job.error}
             </div>
           )}
 
-          {/* Timing Information Footer */}
           <div className="flex gap-4" style={{
             paddingTop: "var(--space-2)",
             borderTop: "1px solid var(--gray-100)",
-            marginTop: job.status === "processing" ? 0 : "var(--space-2)"
+            marginTop: job.status === "processing" ? 0 : "var(--space-2)",
+            flexWrap: "wrap",
+            alignItems: "center"
           }}>
             <span className="small muted">
               <strong>Started:</strong> {new Date(job.created_at).toLocaleTimeString()}
@@ -1268,14 +1233,49 @@ export default function JobStatus() {
                 <strong>Duration:</strong> {formatDuration(job.created_at, job.updated_at)}
               </span>
             )}
+            {result?.metadata && (
+              <>
+                {result.metadata.page_count && (
+                  <Tooltip text={`Pages: ${result.metadata.page_count}`}>
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "var(--text-sm)",
+                      color: "var(--gray-700)",
+                      cursor: "help"
+                    }}>
+                      <FileText size={14} style={{ color: "var(--blue-600)" }} strokeWidth={2} />
+                      <span>{result.metadata.page_count}</span>
+                    </span>
+                  </Tooltip>
+                )}
+                <Tooltip text={`Saved to Graph DB: ${result.metadata.graph_id ? 'Yes' : 'No'}`}>
+                  <span style={{ cursor: "help", display: "inline-flex", alignItems: "center" }}>
+                    <Network
+                      size={14}
+                      style={{ color: result.metadata.graph_id ? "#10b981" : "#ef4444" }}
+                      strokeWidth={2}
+                    />
+                  </span>
+                </Tooltip>
+                <Tooltip text={`Saved to Vector DB: ${result.metadata.embeddings_stored ? 'Yes' : 'No'}`}>
+                  <span style={{ cursor: "help", display: "inline-flex", alignItems: "center" }}>
+                    <Database
+                      size={14}
+                      style={{ color: result.metadata.embeddings_stored ? "#10b981" : "#ef4444" }}
+                      strokeWidth={2}
+                    />
+                  </span>
+                </Tooltip>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {/* Results Display */}
       {result && (
         <>
-          {/* Resume Data */}
           {result.resume && (
             <div className="mb-4">
               <div className="flex justify-between items-center mb-3">
@@ -1403,7 +1403,6 @@ export default function JobStatus() {
                             personal.location = r.personal_info.demographics.current_location;
                           }
                         } else {
-                          // Fallback to flat structure
                           personal.name = r.name;
                           personal.email = r.email;
                           personal.phone = r.phone;
@@ -1424,25 +1423,28 @@ export default function JobStatus() {
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-2)" }}>
                               <h3 className="title" style={{ margin: 0, fontSize: "var(--text-sm)", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--gray-600)", fontWeight: 600 }}>Personal Information</h3>
                               {resumeLang && (
-                                <span style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "4px",
-                                  padding: "2px 8px",
-                                  background: "var(--blue-50)",
-                                  border: "1px solid var(--blue-200)",
-                                  borderRadius: "var(--radius-full)",
-                                  fontSize: "10px",
-                                  fontWeight: 600,
-                                  color: "var(--blue-700)",
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.02em"
-                                }}>
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
-                                    <path d="M4 5h16M4 9h16M4 13h16M4 17h10"/>
-                                  </svg>
-                                  {renderValue(resumeLang)}
-                                </span>
+                                <Tooltip text={`Resume Language: ${renderValue(resumeLang)}`}>
+                                  <span style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    padding: "2px 8px",
+                                    background: "var(--blue-50)",
+                                    border: "1px solid var(--blue-200)",
+                                    borderRadius: "var(--radius-full)",
+                                    fontSize: "10px",
+                                    fontWeight: 600,
+                                    color: "var(--blue-700)",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.02em",
+                                    cursor: "help"
+                                  }}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                                      <path d="M4 5h16M4 9h16M4 13h16M4 17h10"/>
+                                    </svg>
+                                    {renderValue(resumeLang)}
+                                  </span>
+                                </Tooltip>
                               )}
                             </div>
 
@@ -1462,7 +1464,6 @@ export default function JobStatus() {
                                 )}
                               </div>
 
-                            {/* Contact info in compact layout */}
                             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                               {personal.email && (
                                 <a href={`mailto:${renderValue(personal.email)}`} style={{
@@ -1510,7 +1511,6 @@ export default function JobStatus() {
                               )}
                             </div>
 
-                            {/* Social Links */}
                             {(personal.linkedin || personal.github || personal.website) && (
                               <div style={{
                                 display: "flex",
@@ -1618,7 +1618,6 @@ export default function JobStatus() {
                       })()}
                     </div>
 
-                    {/* Skills Card */}
                     <div className="glass-card">
                       <h3 className="title" style={{ marginBottom: "var(--space-2)" }}>Skills</h3>
                       <div style={{ position: "relative" }}>
@@ -1633,7 +1632,6 @@ export default function JobStatus() {
                             <span className="small muted">No skills data available</span>
                           )}
                         </div>
-                        {/* Gradient fade overlay to indicate scrollable content */}
                         <div style={{
                           position: "absolute",
                           bottom: 0,
@@ -1647,14 +1645,11 @@ export default function JobStatus() {
                       </div>
                     </div>
                   </div>
-                  {/* Dynamically render all configured resume sections */}
                   {RESUME_SECTIONS.map(section => {
-                    // Find the first available data path for this section
                     const data = section.paths.reduce((found, path) => {
                       return found || result.resume[path];
                     }, null);
 
-                    // Skip rendering if no data and alwaysShow is false
                     const isEmpty = !data ||
                                    (Array.isArray(data) && data.length === 0) ||
                                    (typeof data === 'object' && Object.keys(data).length === 0);
@@ -1663,7 +1658,6 @@ export default function JobStatus() {
                       return null;
                     }
 
-                    // Use React key for proper rendering optimization
                     return (
                       <div key={section.key}>
                         {renderResumeSection(section.title, section.key, data)}
@@ -1678,7 +1672,7 @@ export default function JobStatus() {
 
         </>
       )}
-      </div>
-    </div>
+      </PageContainer>
+    </PageWrapper>
   );
 }

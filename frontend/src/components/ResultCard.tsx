@@ -48,7 +48,7 @@ export default function ResultCard({ result }: Props) {
     const eduLevels = ["PhD", "Doctorate", "Master", "Bachelor", "Associate", "Diploma"];
     for (const level of eduLevels) {
       const edu = result.education.find(e =>
-        (e.degree || e.qualification || "").toLowerCase().includes(level.toLowerCase())
+        (e.qualification || "").toLowerCase().includes(level.toLowerCase())
       );
       if (edu) {
         const status = edu.status === "ongoing" ? "ongoing" : "completed";
@@ -175,7 +175,7 @@ export default function ResultCard({ result }: Props) {
             </span>
           )}
 
-          {result.years_experience && (
+          {result.years_experience != null && result.years_experience > 0 && (
             <span className="small" style={{
               color: "var(--gray-700)",
               background: "var(--gray-50)",
@@ -206,7 +206,7 @@ export default function ResultCard({ result }: Props) {
             </span>
           )}
 
-          {result.desired_role && (
+          {result.desired_role && result.desired_role.trim() && (
             <span className="small muted">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline", marginRight: "4px", verticalAlign: "-2px" }}>
                 <circle cx="12" cy="12" r="10"/>
@@ -287,7 +287,7 @@ export default function ResultCard({ result }: Props) {
       )}
 
       {/* Languages */}
-      {result.languages && result.languages.length > 0 && (
+      {result.languages && result.languages.length > 0 && result.languages.filter(lang => lang.language && lang.cefr).length > 0 && (
         <div>
           <div style={{
             display: "flex",
@@ -296,7 +296,9 @@ export default function ResultCard({ result }: Props) {
             maxWidth: "100%",
             overflow: "hidden"
           }}>
-            {result.languages.map((lang, idx) => (
+            {result.languages
+              .filter(lang => lang.language && lang.cefr)
+              .map((lang, idx) => (
               <Chip key={idx} style={{
                 fontSize: "11px",
                 padding: "3px 8px",
@@ -594,7 +596,7 @@ export default function ResultCard({ result }: Props) {
                   >
                     <div>
                       <div className="small" style={{ fontWeight: 500 }}>
-                        {edu.degree || edu.qualification}
+                        {edu.qualification}
                         {edu.field && ` in ${edu.field}`}
                       </div>
                       {edu.institution && (

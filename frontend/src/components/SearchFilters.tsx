@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type {
-  FilterOptions,
   SearchFilters,
   LanguageRequirement,
   LocationRequirement,
   EducationRequirement
 } from "../lib/api";
-import { getFilters } from "../lib/api";
+import { useFilterOptions } from "../hooks/useResumeSearch";
 import Badge from "./Badge";
 import Chip from "./Chip";
 
@@ -18,18 +17,9 @@ type Props = {
 };
 
 export default function SearchFiltersComp({ value, onChange }: Props) {
-  const [opts, setOpts] = useState<FilterOptions | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { data: opts, isLoading: loading, error: queryError } = useFilterOptions();
+  const error = queryError ? (queryError as Error).message : null;
   const [showAllSkills, setShowAllSkills] = useState(false);
-
-  useEffect(() => {
-    setLoading(true);
-    getFilters()
-      .then((o) => setOpts(o))
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
-  }, []);
 
   const companies = useMemo(() => opts?.companies ?? [], [opts]);
   const roles = useMemo(() => opts?.roles ?? [], [opts]);

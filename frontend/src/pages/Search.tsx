@@ -3,13 +3,10 @@ import SearchFiltersComp from "../components/SearchFilters";
 import ResultCard from "../components/ResultCard";
 import CollapsibleSection from "../components/CollapsibleSection";
 import Badge from "../components/Badge";
-import {
-  type SearchFilters,
-  type SearchResponse,
-  searchSemantic,
-  searchStructured,
-  searchHybrid
-} from "../lib/api";
+import { useSemanticSearch, useStructuredSearch, useHybridSearch } from "../hooks/useResumeSearch";
+import type { SearchFilters } from "../lib/api";
+import { PageWrapper, PageContainer } from "../components/styled";
+import PageHeader from "../components/PageHeader";
 
 type Tab = "semantic" | "structured" | "hybrid";
 
@@ -22,54 +19,50 @@ export default function Search() {
   const [maxMatches, setMaxMatches] = useState(5);
   const [vectorWeight, setVectorWeight] = useState(0.7);
   const [graphWeight, setGraphWeight] = useState(0.3);
-  const [res, setRes] = useState<SearchResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const semanticSearch = useSemanticSearch();
+  const structuredSearch = useStructuredSearch();
+  const hybridSearch = useHybridSearch();
+
+  const activeSearch = tab === "semantic" ? semanticSearch
+    : tab === "structured" ? structuredSearch
+    : hybridSearch;
+
+  const { data: res, isPending: loading, error } = activeSearch;
 
   useEffect(() => {
-    // Keep weights normalized
     const total = vectorWeight + graphWeight;
     if (total !== 1) {
       setGraphWeight(+(1 - vectorWeight).toFixed(2));
     }
   }, [vectorWeight]);
 
-  const onSearch = async (e: React.FormEvent) => {
+  const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      let out: SearchResponse;
-      if (tab === "semantic") {
-        out = await searchSemantic({
-          query,
-          limit,
-          min_score: minScore,
-          max_matches_per_result: maxMatches,
-          filters
-        });
-      } else if (tab === "structured") {
-        out = await searchStructured({
-          query: query || "",
-          filters,
-          limit
-        });
-      } else {
-        out = await searchHybrid({
-          query,
-          filters,
-          vector_weight: vectorWeight,
-          graph_weight: graphWeight,
-          limit,
-          max_matches_per_result: maxMatches
-        });
-      }
-      setRes(out);
-    } catch (e: any) {
-      setError(String(e.message || e));
-    } finally {
-      setLoading(false);
+
+    if (tab === "semantic") {
+      semanticSearch.mutate({
+        query,
+        limit,
+        min_score: minScore,
+        max_matches_per_result: maxMatches,
+        filters
+      });
+    } else if (tab === "structured") {
+      structuredSearch.mutate({
+        query: query || "",
+        filters,
+        limit
+      });
+    } else {
+      hybridSearch.mutate({
+        query,
+        filters,
+        vector_weight: vectorWeight,
+        graph_weight: graphWeight,
+        limit,
+        max_matches_per_result: maxMatches
+      });
     }
   };
 
@@ -90,14 +83,11 @@ export default function Search() {
   ).length;
 
   return (
-    <div className="page-wrapper">
-      <div className="page-container">
-      <div className="mb-4">
-        <div className="flex justify-between align-center mb-2">
-          <h1 style={{ margin: 0 }}>Search Candidates</h1>
-        </div>
-        {res && (
-          <div className="flex align-center gap-2">
+    <PageWrapper>
+      <PageContainer>
+      <PageHeader title="Search Candidates" />
+      {res && (
+        <div className="flex align-center gap-2" style={{ marginBottom: "var(--space-3)" }}>
             <Badge>
               {res.results.length} {res.results.length === 1 ? 'Result' : 'Results'}
             </Badge>
@@ -112,10 +102,8 @@ export default function Search() {
               Search completed in {res.execution_time ? `${res.execution_time.toFixed(2)}s` : '<1s'}
             </span>
           </div>
-        )}
-      </div>
+      )}
 
-      {/* Search Tabs */}
       <div className="tabs mb-3">
         <button
           className={`tab ${tab === "semantic" ? "active" : ""}`}
@@ -138,10 +126,8 @@ export default function Search() {
       </div>
 
       <div className="search-wrap">
-      {/* Search Form */}
       <form onSubmit={onSearch}>
         <div className="glass-card" style={{ marginBottom: "var(--space-3)" }}>
-          {/* Query Input */}
           {tab !== "structured" && (
             <div className="field">
               <label className="label">Search Query</label>
@@ -154,7 +140,6 @@ export default function Search() {
             </div>
           )}
 
-          {/* Compact Filters Section - Only for structured and hybrid */}
           {tab === "structured" && (
             <div>
               <div className="flex align-center" style={{ marginBottom: "var(--space-2)" }}>
@@ -187,7 +172,6 @@ export default function Search() {
             </CollapsibleSection>
           )}
 
-          {/* Advanced Options */}
           {tab !== "structured" && (
             <CollapsibleSection
               title="Advanced Options"
@@ -311,7 +295,6 @@ export default function Search() {
             </CollapsibleSection>
           )}
 
-          {/* Search Button */}
           <div className="flex gap-2" style={{ marginTop: "var(--space-3)" }}>
             <button
               className="btn"
@@ -340,7 +323,9 @@ export default function Search() {
                 type="button"
                 className="btn ghost"
                 onClick={() => {
-                  setRes(null);
+                  semanticSearch.reset();
+                  structuredSearch.reset();
+                  hybridSearch.reset();
                   clearFilters();
                 }}
               >
@@ -353,11 +338,10 @@ export default function Search() {
 
       {error && (
         <div className="error mb-3">
-          Search failed: {error}
+          Search failed: {error.message || 'Unknown error'}
         </div>
       )}
 
-      {/* Results */}
       {res && (
         <div>
           {res.results.length === 0 ? (
@@ -391,7 +375,7 @@ export default function Search() {
         </div>
       )}
       </div>
-      </div>
-    </div>
+      </PageContainer>
+    </PageWrapper>
   );
 }
