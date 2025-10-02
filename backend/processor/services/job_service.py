@@ -135,7 +135,7 @@ class JobService:
             "resume_deleted": False,
             "vectors_deleted": 0,
             "file_deleted": False,
-            "errors": []
+            "errors": [],
         }
 
         job = await self.get_job(job_id)

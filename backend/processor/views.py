@@ -3,10 +3,15 @@ import uuid
 
 from adrf.views import APIView
 from django.conf import settings
+from django.core.cache import cache
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
+
+from core.file_types import FILE_TYPE_REGISTRY
 
 from .serializers import FileUploadSerializer, JobResponseSerializer, JobStatus
 from .services.cleanup_service import CleanupService
@@ -21,7 +26,7 @@ class UploadCVView(APIView):
     @extend_schema(
         request=FileUploadSerializer,
         responses={202: JobResponseSerializer},
-        description="Upload a resume file for processing. Accepts PDF, DOCX, DOC, TXT formats. Returns a job ID for tracking.",
+        description="Upload a resume file for processing. Supported formats available at /api/v1/config/file-types/. Returns a job ID for tracking.",
     )
     async def post(self, request: Request) -> Response:
         serializer = FileUploadSerializer(data=request.data)
@@ -67,7 +72,7 @@ class JobStatusView(APIView):
     @extend_schema(
         responses={
             200: OpenApiResponse(description="Deletion result with status for each component"),
-            404: OpenApiResponse(description="Job not found")
+            404: OpenApiResponse(description="Job not found"),
         },
         description="Delete a job and all associated data including resume from graph DB, vectors from vector DB, and uploaded file. Preserves shared entities like company names and institutions.",
     )
@@ -146,3 +151,29 @@ class HealthView(APIView):
             },
         }
         return Response(health_data, status=status.HTTP_200_OK)
+
+
+class FileConfigView(APIView):
+    @extend_schema(
+        responses={200: OpenApiResponse(description="File upload configuration")},
+        description="Get file upload configuration. Returns allowed extensions, MIME types, max sizes, and categories.",
+    )
+    @method_decorator(cache_page(60 * 60 * 24))
+    def get(self, request):
+        cache_key = "file_config_v1"
+        cached = cache.get(cache_key)
+        if cached:
+            return Response(cached, status=status.HTTP_200_OK)
+
+        config = {
+            ext: {
+                "media_type": spec["media_type"],
+                "category": spec["category"],
+                "max_size_mb": spec["max_size_mb"],
+                "parser": spec["parser"],
+            }
+            for ext, spec in FILE_TYPE_REGISTRY.items()
+        }
+
+        cache.set(cache_key, config, 60 * 60 * 24)
+        return Response(config, status=status.HTTP_200_OK)

@@ -441,7 +441,7 @@ export default function JobStatus() {
                             {exp.duration.start} – {exp.duration.end || "Present"}
                           </div>
                         )}
-                        {exp.location && (
+                        {exp.location && [exp.location.city, exp.location.state, exp.location.country].filter(Boolean).length > 0 && (
                           <div style={{ fontSize: "12px", marginTop: "2px" }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{
                               marginRight: "4px",
@@ -450,7 +450,7 @@ export default function JobStatus() {
                             }}>
                               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                             </svg>
-                            {[exp.location.city, exp.location.country].filter(Boolean).join(", ")}
+                            {[exp.location.city, exp.location.state, exp.location.country].filter(Boolean).join(", ")}
                           </div>
                         )}
                         {exp.duration?.duration_months && (
@@ -947,8 +947,123 @@ export default function JobStatus() {
               </div>
             )}
 
+            {(key === "publications" || key === "scientific_contributions") && Array.isArray(data) && (
+              <div className="flex flex-col gap-3">
+                {data.map((pub: any, idx: number) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: "14px",
+                      background: "var(--white)",
+                      border: "1px solid var(--gray-200)",
+                      borderRadius: "var(--radius-sm)",
+                      borderLeft: "3px solid var(--blue-600)"
+                    }}
+                  >
+                    <div className="flex justify-between items-start" style={{ marginBottom: "8px" }}>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: "15px",
+                          fontWeight: 600,
+                          margin: 0,
+                          color: "var(--gray-900)"
+                        }}>
+                          {pub.url ? (
+                            <a
+                              href={renderValue(pub.url)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "var(--gray-900)",
+                                textDecoration: "none"
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
+                              onMouseLeave={(e) => e.currentTarget.style.textDecoration = "none"}
+                            >
+                              {renderValue(pub.title)}
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{
+                                marginLeft: "6px",
+                                verticalAlign: "middle",
+                                opacity: 0.6
+                              }}>
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                <polyline points="15 3 21 3 21 9" />
+                                <line x1="10" y1="14" x2="21" y2="3" />
+                              </svg>
+                            </a>
+                          ) : (
+                            renderValue(pub.title)
+                          )}
+                        </h4>
+                        <div style={{
+                          display: "flex",
+                          gap: "8px",
+                          marginTop: "6px",
+                          flexWrap: "wrap",
+                          alignItems: "center"
+                        }}>
+                          {pub.publication_type && (
+                            <span style={{
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              padding: "3px 8px",
+                              background: "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)",
+                              color: "#1e40af",
+                              border: "1px solid #3b82f640",
+                              borderRadius: "12px",
+                              textTransform: "capitalize"
+                            }}>
+                              {renderValue(pub.publication_type).replace(/_/g, ' ')}
+                            </span>
+                          )}
+                          {pub.year && (
+                            <span style={{
+                              fontSize: "12px",
+                              color: "var(--gray-600)",
+                              fontWeight: 500
+                            }}>
+                              {pub.year}
+                            </span>
+                          )}
+                          {pub.venue && (
+                            <span style={{
+                              fontSize: "12px",
+                              color: "var(--gray-600)",
+                              fontStyle: "italic"
+                            }}>
+                              {renderValue(pub.venue)}
+                            </span>
+                          )}
+                        </div>
+                        {pub.description && (
+                          <div style={{
+                            fontSize: "13px",
+                            color: "var(--gray-600)",
+                            marginTop: "8px",
+                            lineHeight: 1.5
+                          }}>
+                            {renderValue(pub.description)}
+                          </div>
+                        )}
+                        {pub.doi && (
+                          <div style={{
+                            fontSize: "12px",
+                            color: "var(--gray-500)",
+                            marginTop: "6px",
+                            fontFamily: "var(--font-mono)"
+                          }}>
+                            DOI: {renderValue(pub.doi)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Default rendering for other types */}
-            {!["personal", "skills", "experience", "education", "projects", "languages"].includes(key) && (
+            {!["personal", "skills", "experience", "education", "projects", "languages", "publications", "scientific_contributions"].includes(key) && (
               <div style={{ position: "relative" }}>
                 <button
                   className="btn ghost"

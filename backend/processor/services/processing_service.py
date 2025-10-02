@@ -17,6 +17,7 @@ from core.file_types import ParserType, get_parser_type
 from core.services import EmbeddingService
 from processor.services.parsing.parse_image_service import ParseImageService
 from processor.services.parsing.parse_pdf_service import ParsePdfService
+from processor.services.parsing.parse_word_service import ParseWordService
 from storage.services.graph_db_service import GraphDBService
 from storage.services.vector_db_service import VectorDBService
 
@@ -119,6 +120,8 @@ class ProcessingService:
                 return ParsePdfService(file_path)
             case ParserType.IMAGE:
                 return ParseImageService(file_path)
+            case ParserType.WORD:
+                return ParseWordService(file_path)
             case _:
                 raise ValueError(f"Unsupported file type: {file_ext}")
 

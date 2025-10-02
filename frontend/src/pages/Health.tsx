@@ -117,7 +117,7 @@ export default function Health() {
                 { label: "Total", value: data.queue.stream_length + data.queue.active_jobs + data.queue.cleanup_queue_length + data.queue.scheduled_retries, color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.1)", Icon: Activity }
               ].map((metric) => (
                 <MetricCard key={metric.label} color={metric.color} bgColor={metric.bgColor}>
-                  <FlexRow gap="var(--space-2)" style={{ marginBottom: "var(--space-2)" }}>
+                  <FlexRow gap="var(--space-2)" align="center" style={{ marginBottom: "var(--space-2)" }}>
                     <metric.Icon size={18} strokeWidth={2.5} color={metric.color} />
                     <MetricLabel>{metric.label}</MetricLabel>
                   </FlexRow>

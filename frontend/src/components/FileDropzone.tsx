@@ -1,31 +1,54 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
+import { useFileConfig } from "../hooks/useFileConfig";
 
 type Props = {
   onFileSelected: (file: File) => void;
   selectedFile?: File | null;
 };
 
-const ACCEPTED = [
-  "application/pdf",
-  "image/jpeg",
-  "image/png"
-];
-
-const MAX_MB: Record<string, number> = {
-  "application/pdf": 10,
-  "image/jpeg": 5,
-  "image/png": 5
-};
-
 export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { data: fileConfig, isLoading } = useFileConfig();
+
+  const { acceptedTypes, maxSizes, groupedBySize } = useMemo(() => {
+    if (!fileConfig) {
+      return { acceptedTypes: [], maxSizes: {}, groupedBySize: [] };
+    }
+    const types = Object.values(fileConfig).map(cfg => cfg.media_type);
+    const sizes: Record<string, number> = {};
+    Object.values(fileConfig).forEach(cfg => {
+      sizes[cfg.media_type] = cfg.max_size_mb;
+    });
+
+    const sizeGroups: Record<number, string[]> = {};
+    Object.entries(fileConfig).forEach(([ext, config]) => {
+      const size = config.max_size_mb;
+      if (!sizeGroups[size]) {
+        sizeGroups[size] = [];
+      }
+      sizeGroups[size].push(ext.replace('.', '').toUpperCase());
+    });
+
+    const grouped = Object.entries(sizeGroups)
+      .sort(([a], [b]) => Number(b) - Number(a))
+      .map(([size, exts]) => ({
+        size: Number(size),
+        extensions: exts.sort()
+      }));
+
+    return { acceptedTypes: types, maxSizes: sizes, groupedBySize: grouped };
+  }, [fileConfig]);
 
   const validate = (file: File) => {
-    if (!ACCEPTED.includes(file.type)) {
-      return "Unsupported file type. PDF, JPG, or PNG only.";
+    if (!fileConfig) {
+      return "Configuration loading, please wait...";
     }
-    const maxMb = MAX_MB[file.type] ?? 10;
+    if (!acceptedTypes.includes(file.type)) {
+      const allExts = groupedBySize.flatMap(g => g.extensions).join(', ');
+      return `Unsupported file type. Allowed: ${allExts}`;
+    }
+    const maxMb = maxSizes[file.type] ?? 10;
     if (file.size > maxMb * 1024 * 1024) {
       return `File too large. Max ${maxMb}MB for this type.`;
     }
@@ -42,7 +65,7 @@ export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
     }
     setError(null);
     onFileSelected(file);
-  }, [onFileSelected]);
+  }, [onFileSelected, validate]);
 
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -85,7 +108,7 @@ export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
           {selectedFile ? (
             <>
               <div className="dz-file-icon" style={{ fontSize: "48px", marginBottom: "var(--space-2)" }}>
-                {selectedFile.type === "application/pdf" ? "📄" : "🖼️"}
+                {selectedFile.type.startsWith("image/") ? "🖼️" : "📄"}
               </div>
               <div className="dz-title">{selectedFile.name}</div>
               <div className="dz-sub">
@@ -97,18 +120,44 @@ export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
           ) : (
             <>
               <div className="dz-title">Drop your CV here</div>
-              <div className="dz-sub">or click to choose a file (PDF, JPG, PNG)</div>
+              <div className="dz-sub">
+                {isLoading ? "Loading supported file types..." : "or click to choose a file of any supported type"}
+              </div>
             </>
           )}
           <input
             type="file"
-            accept={ACCEPTED.join(",")}
+            accept={acceptedTypes.join(",")}
             className="file-input"
             onChange={(e) => handleFiles(e.target.files)}
           />
         </div>
       </div>
       {error && <div className="error mt-2">{error}</div>}
+      {!isLoading && !selectedFile && fileConfig && groupedBySize.length > 0 && (
+        <div style={{
+          marginTop: "var(--space-1)",
+          textAlign: "center",
+          fontSize: "var(--text-xs)",
+          color: "var(--neutral-600)",
+          lineHeight: 1.6
+        }}>
+          {groupedBySize.map((group, idx) => (
+            <span key={group.size}>
+              <span style={{ fontWeight: 600, color: "var(--neutral-700)" }}>
+                {group.extensions.join(', ')}
+              </span>
+              {' '}
+              <span style={{ color: "var(--neutral-500)" }}>
+                (max {group.size}MB)
+              </span>
+              {idx < groupedBySize.length - 1 && (
+                <span style={{ margin: "0 var(--space-2)", color: "var(--neutral-400)" }}>•</span>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

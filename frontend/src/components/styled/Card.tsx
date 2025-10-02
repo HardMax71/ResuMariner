@@ -13,6 +13,10 @@ export const MetricCard = styled.div<{ color?: string; bgColor?: string }>`
   border: 1px solid rgba(67, 56, 202, 0.15);
   border-radius: var(--radius-sm);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 
   &:hover {
     transform: translateY(-2px);
@@ -22,8 +26,8 @@ export const MetricCard = styled.div<{ color?: string; bgColor?: string }>`
 
 export const MetricLabel = styled.div`
   font-size: 11px;
-  color: var(--neutral-600);
-  font-weight: 700;
+  color: var(--neutral-700);
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: var(--space-1);

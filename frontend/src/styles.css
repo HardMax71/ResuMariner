@@ -588,8 +588,8 @@ textarea {
 }
 
 .dz-title {
-  font-size: var(--text-lg);
-  font-weight: 600;
+  font-size: var(--text-2xl);
+  font-weight: 700;
   color: var(--neutral-900);
   margin-bottom: var(--space-1);
 }

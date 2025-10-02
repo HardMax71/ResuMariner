@@ -25,7 +25,7 @@ class ParserType(StrEnum):
 
     PDF = "pdf"
     IMAGE = "image"
-    # DOCX = "docx"  # Future: when DOCX parser is implemented
+    WORD = "word"
 
 
 class FileTypeSpec(TypedDict):
@@ -68,14 +68,20 @@ FILE_TYPE_REGISTRY: dict[str, FileTypeSpec] = {
         "category": FileCategory.IMAGE,
         "max_size_mb": 5,
     },
-    # Note: .docx support commented out until parser is implemented
-    # ".docx": {
-    #     "media_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    #     "signature": b"PK\x03\x04",  # ZIP file signature (DOCX is ZIP-based)
-    #     "parser": ParserType.DOCX,
-    #     "category": FileCategory.DOCUMENT,
-    #     "max_size_mb": 10,
-    # },
+    ".docx": {
+        "media_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "signature": b"PK\x03\x04",
+        "parser": ParserType.WORD,
+        "category": FileCategory.DOCUMENT,
+        "max_size_mb": 10,
+    },
+    ".doc": {
+        "media_type": "application/msword",
+        "signature": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",
+        "parser": ParserType.WORD,
+        "category": FileCategory.DOCUMENT,
+        "max_size_mb": 10,
+    },
 }
 
 # Derived constants for backward compatibility
