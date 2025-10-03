@@ -66,6 +66,8 @@ SECTION-SPECIFIC RULES:
 PERSONAL INFO:
 - Location: TRANSLATE city and country names to English (e.g., "Paris, France" not "Paris, Frankreich")
 - Personal name: Capitalize first letters (e.g., John Doe)
+- Email: REQUIRED - MUST extract valid email address. If not found in resume, use "noemail@example.com" as placeholder.
+  NEVER return empty string for email.
 - If employment types are not explicitly specified - put a list of all possible employment types,
   same applies to work modes.
 
@@ -101,8 +103,23 @@ LOCATION:
 - If only the country is specified, set "city" to null. Do not copy the country name into the city or state
   fields unless explicitly provided.
 
-CERTIFICATIONS:
+CERTIFICATIONS vs AWARDS - CRITICAL DISTINCTION:
+CERTIFICATIONS (goes to "certifications" field):
+- Professional credentials and technical certifications (AWS Certified, Google Cloud Professional, etc.)
+- Course completion certificates from recognized training providers (Coursera, Udemy, edX, etc.)
+- Industry-recognized certifications (PMP, CISSP, CPA, etc.)
+- Professional licenses and qualifications
+- Language proficiency certificates (TOEFL, IELTS, DELF, etc.)
 - If no certifications are mentioned, set "certifications" to null.
+
+AWARDS (goes to "awards" field):
+- Competition wins and prizes (hackathons, coding competitions, contests)
+- Academic honors and distinctions (Dean's List, scholarships, merit awards)
+- Recognition for achievements (Employee of the Month, Best Project Award)
+- Sports and extracurricular achievements
+- Research grants and fellowships
+- Any competitive recognition or honor
+- If no awards are mentioned, set "awards" to null.
 
 VALIDATION METADATA RULES:
 1. COUNT AND REPORT:

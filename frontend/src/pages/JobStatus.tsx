@@ -2,7 +2,12 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useJobStatus, useJobResult } from "../hooks/useJobStatus";
 import { API_BASE_URL } from "../lib/api";
-import { Copy, Check, Hash, FileText, Network, Database } from "lucide-react";
+import {
+  Copy, Check, Hash, FileText, Network, Database,
+  Clock, Loader2, CheckCircle2, XCircle, RefreshCw,
+  Mail, Phone, MapPin, Linkedin, Github, Globe, ExternalLink,
+  Flag, Shield, FileCheck, Calendar, Code2
+} from "lucide-react";
 import CollapsibleSection from "../components/CollapsibleSection";
 import { PageWrapper, PageContainer } from "../components/styled";
 import PageHeader from "../components/PageHeader";
@@ -171,29 +176,13 @@ export default function JobStatus() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "pending":
-        return (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--gray-600)" }}>
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-        );
+        return <Clock size={24} strokeWidth={2} style={{ color: "var(--gray-600)" }} />;
       case "processing":
-        return <span className="spinner" style={{ width: "24px", height: "24px" }}></span>;
+        return <Loader2 size={24} className="spinner" />;
       case "completed":
-        return (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: "var(--success)" }}>
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
-        );
+        return <CheckCircle2 size={24} strokeWidth={2.5} style={{ color: "var(--success)" }} />;
       case "failed":
-        return (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: "var(--danger)" }}>
-            <circle cx="12" cy="12" r="10" />
-            <line x1="15" y1="9" x2="9" y2="15" />
-            <line x1="9" y1="9" x2="15" y2="15" />
-          </svg>
-        );
+        return <XCircle size={24} strokeWidth={2.5} style={{ color: "var(--danger)" }} />;
       default:
         return null;
     }
@@ -306,25 +295,17 @@ export default function JobStatus() {
                   <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                     {data.linkedin && (
                       <a href={renderValue(data.linkedin)} target="_blank" rel="noopener noreferrer" title="LinkedIn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-600)" }}>
-                          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
-                        </svg>
+                        <Linkedin size={18} style={{ color: "var(--gray-600)" }} />
                       </a>
                     )}
                     {data.github && (
                       <a href={renderValue(data.github)} target="_blank" rel="noopener noreferrer" title="GitHub">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-600)" }}>
-                          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                        </svg>
+                        <Github size={18} style={{ color: "var(--gray-600)" }} />
                       </a>
                     )}
                     {data.website && (
                       <a href={renderValue(data.website)} target="_blank" rel="noopener noreferrer" title="Website">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--gray-600)" }}>
-                          <circle cx="12" cy="12" r="10" />
-                          <line x1="2" y1="12" x2="22" y2="12" />
-                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                        </svg>
+                        <Globe size={18} strokeWidth={2} style={{ color: "var(--gray-600)" }} />
                       </a>
                     )}
                   </div>
@@ -443,13 +424,11 @@ export default function JobStatus() {
                         )}
                         {exp.location && [exp.location.city, exp.location.state, exp.location.country].filter(Boolean).length > 0 && (
                           <div style={{ fontSize: "12px", marginTop: "2px" }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{
+                            <MapPin size={10} style={{
                               marginRight: "4px",
                               verticalAlign: "middle",
                               color: "var(--gray-500)"
-                            }}>
-                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                            </svg>
+                            }} />
                             {[exp.location.city, exp.location.state, exp.location.country].filter(Boolean).join(", ")}
                           </div>
                         )}
@@ -551,15 +530,11 @@ export default function JobStatus() {
                               onMouseLeave={(e) => e.currentTarget.style.textDecoration = "none"}
                             >
                               {renderValue(proj.title)}
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{
+                              <ExternalLink size={12} strokeWidth={2} style={{
                                 marginLeft: "6px",
                                 verticalAlign: "middle",
                                 opacity: 0.6
-                              }}>
-                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                                <polyline points="15 3 21 3 21 9" />
-                                <line x1="10" y1="14" x2="21" y2="3" />
-                              </svg>
+                              }} />
                             </a>
                           ) : (
                             renderValue(proj.title)
@@ -632,12 +607,7 @@ export default function JobStatus() {
                               );
                             }
                             // Generic code/link icon for other sites
-                            return (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--gray-600)" }}>
-                                <polyline points="16 18 22 12 16 6" />
-                                <polyline points="8 6 2 12 8 18" />
-                              </svg>
-                            );
+                            return <Code2 size={16} strokeWidth={2} style={{ color: "var(--gray-600)" }} />;
                           })()}
                         </a>
                       )}
@@ -778,13 +748,11 @@ export default function JobStatus() {
                         )}
                         {edu.location && [edu.location.city, edu.location.state, edu.location.country].filter(Boolean).length > 0 && (
                           <div style={{ fontSize: "12px", marginTop: "2px" }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{
+                            <MapPin size={10} style={{
                               marginRight: "4px",
                               verticalAlign: "middle",
                               color: "var(--gray-500)"
-                            }}>
-                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                            </svg>
+                            }} />
                             {[edu.location.city, edu.location.state, edu.location.country].filter(Boolean).join(", ")}
                           </div>
                         )}
@@ -947,6 +915,137 @@ export default function JobStatus() {
               </div>
             )}
 
+            {key === "certifications" && Array.isArray(data) && (
+              <div className="flex flex-col gap-3">
+                {data.map((cert: any, idx: number) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: "14px",
+                      background: "var(--white)",
+                      border: "1px solid var(--gray-200)",
+                      borderRadius: "var(--radius-sm)",
+                      borderLeft: "3px solid var(--purple-600)"
+                    }}
+                  >
+                    <div className="flex justify-between items-start" style={{ marginBottom: cert.issue_org ? "6px" : "0" }}>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: "15px",
+                          fontWeight: 600,
+                          margin: 0,
+                          color: "var(--gray-900)"
+                        }}>
+                          {cert.certificate_link ? (
+                            <a
+                              href={renderValue(cert.certificate_link)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "var(--gray-900)",
+                                textDecoration: "none"
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
+                              onMouseLeave={(e) => e.currentTarget.style.textDecoration = "none"}
+                            >
+                              {renderValue(cert.name)}
+                              <ExternalLink size={12} strokeWidth={2} style={{
+                                marginLeft: "6px",
+                                verticalAlign: "middle",
+                                opacity: 0.6
+                              }} />
+                            </a>
+                          ) : (
+                            renderValue(cert.name)
+                          )}
+                        </h4>
+                      </div>
+                      {cert.issue_year && (
+                        <span style={{
+                          fontSize: "13px",
+                          color: "var(--gray-600)",
+                          fontWeight: 500,
+                          marginLeft: "12px",
+                          flexShrink: 0
+                        }}>
+                          {cert.issue_year}
+                        </span>
+                      )}
+                    </div>
+                    {cert.issue_org && (
+                      <div style={{
+                        fontSize: "12px",
+                        color: "var(--gray-600)",
+                        fontWeight: 500
+                      }}>
+                        {renderValue(cert.issue_org)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {key === "awards" && Array.isArray(data) && (
+              <div className="flex flex-col gap-3">
+                {data.map((award: any, idx: number) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: "14px",
+                      background: "var(--white)",
+                      border: "1px solid var(--gray-200)",
+                      borderRadius: "var(--radius-sm)",
+                      borderLeft: "3px solid var(--orange-600)"
+                    }}
+                  >
+                    <div className="flex justify-between items-start" style={{ marginBottom: (award.issuer || award.organization || award.description) ? "6px" : "0" }}>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{
+                          fontSize: "15px",
+                          fontWeight: 600,
+                          margin: 0,
+                          color: "var(--gray-900)"
+                        }}>
+                          {renderValue(award.name || award.title)}
+                        </h4>
+                      </div>
+                      {(award.year || award.date) && (
+                        <span style={{
+                          fontSize: "13px",
+                          color: "var(--gray-600)",
+                          fontWeight: 500,
+                          marginLeft: "12px",
+                          flexShrink: 0
+                        }}>
+                          {renderValue(award.year || award.date)}
+                        </span>
+                      )}
+                    </div>
+                    {(award.issuer || award.organization) && (
+                      <div style={{
+                        fontSize: "12px",
+                        color: "var(--gray-600)",
+                        fontWeight: 500,
+                        marginBottom: award.description ? "6px" : "0"
+                      }}>
+                        {renderValue(award.issuer || award.organization)}
+                      </div>
+                    )}
+                    {award.description && (
+                      <div style={{
+                        fontSize: "13px",
+                        color: "var(--gray-700)",
+                        lineHeight: 1.5
+                      }}>
+                        {renderValue(award.description)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {(key === "publications" || key === "scientific_contributions") && Array.isArray(data) && (
               <div className="flex flex-col gap-3">
                 {data.map((pub: any, idx: number) => (
@@ -981,15 +1080,11 @@ export default function JobStatus() {
                               onMouseLeave={(e) => e.currentTarget.style.textDecoration = "none"}
                             >
                               {renderValue(pub.title)}
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{
+                              <ExternalLink size={12} strokeWidth={2} style={{
                                 marginLeft: "6px",
                                 verticalAlign: "middle",
                                 opacity: 0.6
-                              }}>
-                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                                <polyline points="15 3 21 3 21 9" />
-                                <line x1="10" y1="14" x2="21" y2="3" />
-                              </svg>
+                              }} />
                             </a>
                           ) : (
                             renderValue(pub.title)
@@ -1063,7 +1158,7 @@ export default function JobStatus() {
             )}
 
             {/* Default rendering for other types */}
-            {!["personal", "skills", "experience", "education", "projects", "languages", "publications", "scientific_contributions"].includes(key) && (
+            {!["personal", "skills", "experience", "education", "projects", "languages", "publications", "scientific_contributions", "certifications", "awards"].includes(key) && (
               <div style={{ position: "relative" }}>
                 <button
                   className="btn ghost"
@@ -1086,14 +1181,9 @@ export default function JobStatus() {
                   title={copiedButtons.has(`section-${key}`) ? "Copied!" : "Copy to clipboard"}
                 >
                   {copiedButtons.has(`section-${key}`) ? (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
+                    <Check size={12} strokeWidth={2.5} />
                   ) : (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
+                    <Copy size={12} strokeWidth={2} />
                   )}
                 </button>
                 <pre className="json-view" style={{ fontSize: "var(--text-sm)", paddingTop: "28px" }}>
@@ -1115,12 +1205,7 @@ export default function JobStatus() {
         title="Job Processing Status"
         actions={
           <Link to="/upload" className="btn ghost">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: "var(--space-1)" }}>
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-              <path d="M21 3v5h-5" />
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-              <path d="M8 16H3v5" />
-            </svg>
+            <RefreshCw size={16} strokeWidth={2} style={{ marginRight: "var(--space-1)" }} />
             Upload Another
           </Link>
         }
@@ -1245,10 +1330,7 @@ export default function JobStatus() {
                       justifyContent: "center"
                     }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "#374151" }}>
-                      <polyline points="16 18 22 12 16 6" />
-                      <polyline points="8 6 2 12 8 18" />
-                    </svg>
+                    <Code2 size={16} strokeWidth={2} style={{ color: "#374151" }} />
                   </a>
                 </Tooltip>
                 {result?.review && (
@@ -1280,13 +1362,7 @@ export default function JobStatus() {
                       e.currentTarget.style.borderColor = "#9333ea";
                     }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "#ffffff" }}>
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                      <polyline points="10 9 9 9 8 9" />
-                    </svg>
+                    <FileText size={14} strokeWidth={2} style={{ color: "#ffffff" }} />
                     AI Review
                   </Link>
                 )}
@@ -1441,14 +1517,9 @@ export default function JobStatus() {
                     title={copiedButtons.has("metadata-json") ? "Copied!" : "Copy metadata to clipboard"}
                   >
                     {copiedButtons.has("metadata-json") ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+                      <Check size={14} strokeWidth={2.5} />
                     ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                      </svg>
+                      <Copy size={14} strokeWidth={2} />
                     )}
                   </button>
                   <pre className="json-view" style={{ fontSize: "var(--text-sm)", paddingTop: "var(--space-4)" }}>
@@ -1480,14 +1551,9 @@ export default function JobStatus() {
                     title={copiedButtons.has("main-json") ? "Copied!" : "Copy JSON to clipboard"}
                   >
                     {copiedButtons.has("main-json") ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+                      <Check size={14} strokeWidth={2.5} />
                     ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                      </svg>
+                      <Copy size={14} strokeWidth={2} />
                     )}
                   </button>
                   <pre className="json-view" style={{ paddingTop: "var(--space-4)" }}>{JSON.stringify(result.resume, null, 2)}</pre>
@@ -1505,6 +1571,7 @@ export default function JobStatus() {
                         const personal: any = {};
 
                         // Try different paths for personal info
+                        let workAuth: any = null;
                         if (r.personal_info) {
                           personal.name = r.personal_info.name;
                           if (r.personal_info.contact) {
@@ -1516,6 +1583,9 @@ export default function JobStatus() {
                           }
                           if (r.personal_info.demographics?.current_location) {
                             personal.location = r.personal_info.demographics.current_location;
+                          }
+                          if (r.personal_info.demographics?.work_authorization) {
+                            workAuth = r.personal_info.demographics.work_authorization;
                           }
                         } else {
                           personal.name = r.name;
@@ -1554,9 +1624,7 @@ export default function JobStatus() {
                                     letterSpacing: "0.02em",
                                     cursor: "help"
                                   }}>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
-                                      <path d="M4 5h16M4 9h16M4 13h16M4 17h10"/>
-                                    </svg>
+                                    <FileText size={10} strokeWidth={2.5} style={{ flexShrink: 0 }} />
                                     {renderValue(resumeLang)}
                                   </span>
                                 </Tooltip>
@@ -1571,9 +1639,7 @@ export default function JobStatus() {
                                 </h4>
                                 {personal.location && (
                                   <span style={{ fontSize: "var(--text-xs)", color: "var(--gray-600)", display: "flex", alignItems: "center", gap: "4px" }}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-500)", flexShrink: 0 }}>
-                                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                                    </svg>
+                                    <MapPin size={12} style={{ color: "var(--gray-500)", flexShrink: 0 }} />
                                     {renderValue(personal.location)}
                                   </span>
                                 )}
@@ -1594,10 +1660,7 @@ export default function JobStatus() {
                                 }}
                                 onMouseEnter={(e) => e.currentTarget.style.background = "var(--blue-50)"}
                                 onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-                                    <rect x="2" y="4" width="20" height="16" rx="2"/>
-                                    <path d="m22,7-10,5L2,7"/>
-                                  </svg>
+                                  <Mail size={16} strokeWidth={2} style={{ flexShrink: 0 }} />
                                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                     {renderValue(personal.email)}
                                   </span>
@@ -1618,9 +1681,7 @@ export default function JobStatus() {
                                 }}
                                 onMouseEnter={(e) => e.currentTarget.style.background = "var(--blue-50)"}
                                 onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                                  </svg>
+                                  <Phone size={16} strokeWidth={2} style={{ flexShrink: 0 }} />
                                   {renderValue(personal.phone)}
                                 </a>
                               )}
@@ -1647,20 +1708,19 @@ export default function JobStatus() {
                                       alignItems: "center",
                                       justifyContent: "center",
                                       transition: "all 0.2s",
-                                      cursor: "pointer"
+                                      cursor: "pointer",
+                                      color: "var(--gray-700)"
                                     }}
                                     onMouseEnter={(e) => {
                                       e.currentTarget.style.background = "var(--blue-600)";
-                                      e.currentTarget.querySelector('svg')!.style.color = "white";
+                                      e.currentTarget.style.color = "white";
                                     }}
                                     onMouseLeave={(e) => {
                                       e.currentTarget.style.background = "var(--gray-100)";
-                                      e.currentTarget.querySelector('svg')!.style.color = "var(--gray-700)";
+                                      e.currentTarget.style.color = "var(--gray-700)";
                                     }}
                                   >
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-700)", transition: "color 0.2s" }}>
-                                      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
-                                    </svg>
+                                    <Linkedin size={16} />
                                   </a>
                                 )}
                                 {personal.github && (
@@ -1677,20 +1737,19 @@ export default function JobStatus() {
                                       alignItems: "center",
                                       justifyContent: "center",
                                       transition: "all 0.2s",
-                                      cursor: "pointer"
+                                      cursor: "pointer",
+                                      color: "var(--gray-700)"
                                     }}
                                     onMouseEnter={(e) => {
                                       e.currentTarget.style.background = "var(--gray-900)";
-                                      e.currentTarget.querySelector('svg')!.style.color = "white";
+                                      e.currentTarget.style.color = "white";
                                     }}
                                     onMouseLeave={(e) => {
                                       e.currentTarget.style.background = "var(--gray-100)";
-                                      e.currentTarget.querySelector('svg')!.style.color = "var(--gray-700)";
+                                      e.currentTarget.style.color = "var(--gray-700)";
                                     }}
                                   >
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--gray-700)", transition: "color 0.2s" }}>
-                                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                                    </svg>
+                                    <Github size={16} />
                                   </a>
                                 )}
                                 {personal.website && (
@@ -1707,24 +1766,89 @@ export default function JobStatus() {
                                       alignItems: "center",
                                       justifyContent: "center",
                                       transition: "all 0.2s",
-                                      cursor: "pointer"
+                                      cursor: "pointer",
+                                      color: "var(--gray-700)"
                                     }}
                                     onMouseEnter={(e) => {
                                       e.currentTarget.style.background = "var(--purple-600)";
-                                      e.currentTarget.querySelector('svg')!.style.stroke = "white";
+                                      e.currentTarget.style.color = "white";
                                     }}
                                     onMouseLeave={(e) => {
                                       e.currentTarget.style.background = "var(--gray-100)";
-                                      e.currentTarget.querySelector('svg')!.style.stroke = "var(--gray-700)";
+                                      e.currentTarget.style.color = "var(--gray-700)";
                                     }}
                                   >
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--gray-700)", transition: "stroke 0.2s" }}>
-                                      <circle cx="12" cy="12" r="10" />
-                                      <line x1="2" y1="12" x2="22" y2="12" />
-                                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                                    </svg>
+                                    <Globe size={16} />
                                   </a>
                                 )}
+                              </div>
+                            )}
+
+                            {workAuth && (workAuth.citizenship || workAuth.work_permit !== null || workAuth.visa_sponsorship_required !== null) && (
+                              <div style={{
+                                paddingTop: "var(--space-2)",
+                                borderTop: "1px solid var(--gray-200)",
+                                marginTop: "var(--space-2)"
+                              }}>
+                                <div style={{
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  color: "var(--gray-500)",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.5px",
+                                  marginBottom: "6px"
+                                }}>
+                                  Work Authorization
+                                </div>
+                                <div style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "4px"
+                                }}>
+                                  {workAuth.citizenship && (
+                                    <div style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "6px",
+                                      fontSize: "12px",
+                                      color: "var(--gray-700)"
+                                    }}>
+                                      <Flag size={14} strokeWidth={2} style={{ color: "var(--gray-500)", flexShrink: 0 }} />
+                                      <span style={{ fontWeight: 500 }}>Citizenship:</span>
+                                      <span>{renderValue(workAuth.citizenship)}</span>
+                                    </div>
+                                  )}
+                                  {workAuth.work_permit !== null && (
+                                    <div style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "6px",
+                                      fontSize: "12px",
+                                      color: "var(--gray-700)"
+                                    }}>
+                                      {workAuth.work_permit ? (
+                                        <CheckCircle2 size={14} strokeWidth={2} style={{ color: "var(--green-600)", flexShrink: 0 }} />
+                                      ) : (
+                                        <XCircle size={14} strokeWidth={2} style={{ color: "var(--gray-500)", flexShrink: 0 }} />
+                                      )}
+                                      <span style={{ fontWeight: 500 }}>Work Permit:</span>
+                                      <span>{workAuth.work_permit ? "Yes" : "No"}</span>
+                                    </div>
+                                  )}
+                                  {workAuth.visa_sponsorship_required !== null && (
+                                    <div style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "6px",
+                                      fontSize: "12px",
+                                      color: "var(--gray-700)"
+                                    }}>
+                                      <FileCheck size={14} strokeWidth={2} style={{ color: workAuth.visa_sponsorship_required ? "var(--orange-600)" : "var(--gray-500)", flexShrink: 0 }} />
+                                      <span style={{ fontWeight: 500 }}>Visa Sponsorship:</span>
+                                      <span>{workAuth.visa_sponsorship_required ? "Required" : "Not Required"}</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
