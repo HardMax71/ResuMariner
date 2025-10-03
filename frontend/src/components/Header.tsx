@@ -56,13 +56,28 @@ export default function Header() {
               textDecoration: "none",
               display: "flex",
               alignItems: "center",
+              gap: "12px",
               transition: "opacity 0.2s",
             }}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
           >
-            <span style={{ color: "#818cf8" }}>Resu</span>
-            <span style={{ color: "#ffffff" }}>Mariner</span>
+            <img
+              src="/icons/icon.png"
+              alt="ResuMariner"
+              style={{
+                width: "40px",
+                height: "40px",
+                flexShrink: 0
+              }}
+            />
+            <span style={{
+              display: "flex",
+              whiteSpace: "nowrap"
+            }}>
+              <span style={{ color: "#818cf8" }}>Resu</span>
+              <span style={{ color: "#ffffff" }}>Mariner</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation */}

@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="frontend/public/icons/icon.png" alt="ResuMariner" width="128" height="128" />
+</p>
 <h1 align="center">ResuMariner</h1>
 <p align="center">
   <a href="https://github.com/HardMax71/ResuMariner/actions/workflows/tests.yml">
