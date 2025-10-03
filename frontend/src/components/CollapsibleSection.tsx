@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -51,22 +52,16 @@ export default function CollapsibleSection({
               </span>
             )}
           </h3>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
+          <ChevronDown
+            size={20}
+            strokeWidth={2}
             style={{
               flexShrink: 0,
               display: "block",
               transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 0.2s ease"
             }}
-          >
-            <path d="M7 10l5 5 5-5" />
-          </svg>
+          />
         </div>
         {isExpanded && children}
       </div>
@@ -87,18 +82,12 @@ export default function CollapsibleSection({
           ...headerStyle
         }}
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
+        <ChevronDown
+          size={16}
+          strokeWidth={2}
           className="chevron"
           style={{ flexShrink: 0, display: "block" }}
-        >
-          <path d="M7 10l5 5 5-5" />
-        </svg>
+        />
         <span className="title" style={{ margin: 0, lineHeight: 1, display: "flex", alignItems: "center" }}>
           {title}
           {badge !== undefined && badge !== null && (

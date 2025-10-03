@@ -7,6 +7,7 @@ import { useSemanticSearch, useStructuredSearch, useHybridSearch } from "../hook
 import type { SearchFilters } from "../lib/api";
 import { PageWrapper, PageContainer } from "../components/styled";
 import PageHeader from "../components/PageHeader";
+import { Search as SearchIcon, AlertCircle } from "lucide-react";
 
 type Tab = "semantic" | "structured" | "hybrid";
 
@@ -309,10 +310,7 @@ export default function Search() {
                 </>
               ) : (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.35-4.35" />
-                  </svg>
+                  <SearchIcon size={16} strokeWidth={2} />
                   Search
                 </>
               )}
@@ -349,17 +347,11 @@ export default function Search() {
               padding: "var(--space-6)",
               textAlign: "center"
             }}>
-              <svg
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
+              <AlertCircle
+                size={48}
+                strokeWidth={1.5}
                 style={{ margin: "0 auto var(--space-3)", color: "var(--gray-400)" }}
-              >
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-              </svg>
+              />
               <h3 className="mb-2">No Results Found</h3>
               <p className="muted">
                 Try adjusting your search query or filters

@@ -56,6 +56,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "silk.middleware.SilkyMiddleware",
+    "core.middleware.PrometheusMiddleware",
 ]
 
 ROOT_URLCONF = "backend.urls"
@@ -279,14 +280,6 @@ AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")
 AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL", "")
 AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN", "")
 AWS_DEFAULT_ACL = None
-
-# =============================================================================
-# MONITORING
-# =============================================================================
-
-TRACING_ENABLED = os.getenv("TRACING_ENABLED", "false").lower() == "true"
-PROMETHEUS_ENABLED = os.getenv("PROMETHEUS_ENABLED", "false").lower() == "true"
-METRICS_ENABLED = os.getenv("METRICS_ENABLED", "false").lower() == "true"
 
 # =============================================================================
 # LOGGING

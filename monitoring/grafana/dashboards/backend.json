@@ -1,0 +1,112 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "unit": "reqps"},
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
+      "targets": [{"expr": "rate(django_requests_total[5m])", "legendFormat": "{{method}} {{endpoint}}", "refId": "A"}],
+      "title": "HTTP Request Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "unit": "s"},
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
+      "targets": [{"expr": "histogram_quantile(0.95, rate(django_request_duration_seconds_bucket[5m]))", "legendFormat": "p95 {{method}} {{endpoint}}", "refId": "A"}],
+      "title": "Request Duration (p95)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 400}, {"color": "red", "value": 500}]}},
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 8},
+      "id": 3,
+      "options": {"orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showThresholdLabels": false, "showThresholdMarkers": true},
+      "targets": [{"expr": "sum(rate(django_requests_total{status=~\"2..\"}[5m]))", "legendFormat": "2xx", "refId": "A"}, {"expr": "sum(rate(django_requests_total{status=~\"4..\"}[5m]))", "legendFormat": "4xx", "refId": "B"}, {"expr": "sum(rate(django_requests_total{status=~\"5..\"}[5m]))", "legendFormat": "5xx", "refId": "C"}],
+      "title": "Status Codes",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "unit": "short"},
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 8},
+      "id": 4,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
+      "targets": [{"expr": "redis_queue_length", "legendFormat": "Main Queue", "refId": "A"}, {"expr": "redis_cleanup_queue_length", "legendFormat": "Cleanup Queue", "refId": "B"}, {"expr": "redis_active_jobs", "legendFormat": "Active Jobs", "refId": "C"}],
+      "title": "Redis Queue Metrics",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "unit": "bytes"},
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 8},
+      "id": 5,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
+      "targets": [{"expr": "redis_memory_usage_bytes", "legendFormat": "Memory Usage", "refId": "A"}],
+      "title": "Redis Memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "unit": "ops"},
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 14},
+      "id": 6,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
+      "targets": [{"expr": "rate(embedding_api_calls_total[5m])", "legendFormat": "{{status}} {{batch_size}}", "refId": "A"}],
+      "title": "Embedding API Calls",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "unit": "s"},
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 14},
+      "id": 7,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
+      "targets": [{"expr": "histogram_quantile(0.95, rate(embedding_api_duration_seconds_bucket[5m]))", "legendFormat": "p95 {{batch_size}}", "refId": "A"}],
+      "title": "Embedding API Duration",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["backend", "django"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Backend Metrics",
+  "uid": "backend-metrics",
+  "version": 0
+}

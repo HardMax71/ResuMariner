@@ -70,21 +70,28 @@ services:
     networks:
       - internal-network
 
-  jaeger:
-    image: jaegertracing/all-in-one:latest
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
     expose:
-      - "16686"
-      - "6831"
-      - "14268"
+      - "9121"
     environment:
-      - COLLECTOR_OTLP_ENABLED=true
+      - REDIS_ADDR=redis:6379
     networks:
       - internal-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jaeger.rule=Host(`jaeger.internal.localhost`)"
-      - "traefik.http.routers.jaeger.entrypoints=internal"
-      - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
+    depends_on:
+      - redis
+
+  neo4j-exporter:
+    image: ghcr.io/petrov-e/neo4j_exporter:v1.0.0-5-g1e176d2
+    expose:
+      - "5000"
+    environment:
+      - NEO4J_SERVICE=neo4j:${NEO4J_PASSWORD:-secure_default_password}@neo4j
+    networks:
+      - internal-network
+    depends_on:
+      neo4j:
+        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:latest
@@ -117,7 +124,8 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana:/etc/grafana/provisioning
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
     networks:
       - internal-network
     labels:
