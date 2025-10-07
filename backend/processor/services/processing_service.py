@@ -137,16 +137,16 @@ class ProcessingService:
         Updates metadata with storage results.
         """
         try:
-            self._store_to_graph(resume, job_id, metadata)
+            await self._store_to_graph(resume, job_id, metadata)
             resume_id = metadata.graph_id or job_id
-            self._store_embeddings(resume, resume_id, metadata)
+            await self._store_embeddings(resume, resume_id, metadata)
         except Exception as e:
             logger.error("Error storing data for job %s: %s", job_id, e)
             metadata.storage_error = str(e)
 
-    def _store_to_graph(self, resume: Resume, job_id: str, metadata: ProcessingMetadata) -> None:
-        graph = GraphDBService()
-        success = graph.upsert_resume(resume)
+    async def _store_to_graph(self, resume: Resume, job_id: str, metadata: ProcessingMetadata) -> None:
+        graph = await GraphDBService.get_instance()
+        success = await graph.upsert_resume(resume)
 
         if success:
             metadata.graph_id = resume.uid or job_id
@@ -156,7 +156,7 @@ class ProcessingService:
             metadata.graph_operation = "failed"
             raise Exception(f"Failed to store resume {resume.uid} in Neo4j")
 
-    def _store_embeddings(self, resume: Resume, resume_id: str, metadata: ProcessingMetadata) -> None:
+    async def _store_embeddings(self, resume: Resume, resume_id: str, metadata: ProcessingMetadata) -> None:
         logger.info("Starting embedding storage for resume %s", resume_id)
         vectors = self._generate_embeddings_from_resume(resume)
         if not vectors:
@@ -166,8 +166,8 @@ class ProcessingService:
             return
 
         logger.info("Storing %d vectors for resume %s", len(vectors), resume_id)
-        vector_db = VectorDBService()
-        stored_ids = vector_db.store_vectors(resume_id, vectors)
+        vector_db = await VectorDBService.get_instance()
+        stored_ids = await vector_db.store_vectors(resume_id, vectors)
 
         logger.info("Successfully stored %d vectors for resume %s", len(stored_ids), resume_id)
         metadata.embeddings_stored = True

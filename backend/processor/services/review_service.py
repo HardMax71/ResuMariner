@@ -102,12 +102,7 @@ class ReviewService:
         Returns:
             Structured ReviewResult as dict
         """
-        try:
-            prompt = self._build_review_prompt()
-            result = await self.llm_service.run(prompt, temperature=0.3)
-            logger.info("Resume review completed successfully")
-            return result  # type: ignore[no-any-return]
-
-        except Exception as e:
-            logger.error(f"Review generation failed: {e}")
-            return ReviewResult()
+        prompt = self._build_review_prompt()
+        result = await self.llm_service.run(prompt, temperature=0.3)
+        logger.info("Resume review completed successfully")
+        return result  # type: ignore[no-any-return]

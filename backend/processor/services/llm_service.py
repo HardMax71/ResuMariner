@@ -1,9 +1,12 @@
+import logging
 import os
 from typing import Any, Literal
 
 from django.conf import settings
 from pydantic_ai import Agent
 from pydantic_ai.settings import ModelSettings
+
+logger = logging.getLogger(__name__)
 
 LLMMode = Literal["text", "ocr"]
 
@@ -49,15 +52,10 @@ class LLMService:
 
     async def run(self, prompt: str | list, temperature: float = 0.1) -> Any:
         model_settings = ModelSettings(temperature=temperature, parallel_tool_calls=False)
+
         try:
             result = await self.agent.run(prompt, model_settings=model_settings)
-            data = result.data
-        except Exception:
-            # Retry once on failure
-            result = await self.agent.run(prompt, model_settings=model_settings)
-            data = result.data
-
-        # Ensure we return the correct type
-        if isinstance(data, self.result_type):
-            return data
-        return data
+            return result.data
+        except Exception as e:
+            logger.error(f"Unexpected error in LLM service ({self.mode} mode): {e}")
+            raise

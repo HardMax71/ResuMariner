@@ -157,7 +157,7 @@ SPECTACULAR_SETTINGS = {
 # NEO4J GRAPH DATABASE
 # =============================================================================
 
-NEO4J_HOST = os.getenv("NEO4J_HOST", "neo4j")  # Docker service name
+NEO4J_HOST = os.getenv("NEO4J_HOST", "neo4j")
 NEO4J_PORT = int(os.getenv("NEO4J_PORT", "7687"))
 NEO4J_URI = f"bolt://{NEO4J_HOST}:{NEO4J_PORT}"
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME", "neo4j")
@@ -171,7 +171,7 @@ NEO4J_CONNECTION_TIMEOUT = int(os.getenv("NEO4J_CONNECTION_TIMEOUT", "30"))
 # QDRANT VECTOR DATABASE
 # =============================================================================
 
-QDRANT_HOST = os.getenv("QDRANT_HOST", "qdrant")  # Docker service name
+QDRANT_HOST = os.getenv("QDRANT_HOST", "qdrant")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "cv_key_points")
 VECTOR_SIZE = int(os.getenv("VECTOR_SIZE", "1536"))
@@ -182,7 +182,7 @@ QDRANT_PREFER_GRPC = os.getenv("QDRANT_PREFER_GRPC", "False").lower() == "true"
 # REDIS
 # =============================================================================
 
-REDIS_HOST = os.getenv("REDIS_HOST", "redis")  # Docker service name
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
 REDIS_JOB_PREFIX = os.getenv("REDIS_JOB_PREFIX", "cv:job:")

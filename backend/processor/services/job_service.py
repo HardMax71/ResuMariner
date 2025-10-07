@@ -153,16 +153,16 @@ class JobService:
         if filename:
             file_ext = os.path.splitext(filename)[1].lower()
 
-        graph_service = GraphDBService()
-        deleted = graph_service.delete_resume(resume_id)
+        graph_service = await GraphDBService.get_instance()
+        deleted = await graph_service.delete_resume(resume_id)
         result["resume_deleted"] = deleted
         if deleted:
             logger.info(f"Deleted resume {resume_id} from graph DB")
         else:
             result["errors"].append(f"Resume {resume_id} not found in graph DB")
 
-        vector_service = VectorDBService()
-        count = vector_service.delete_resume_vectors(resume_id)
+        vector_service = await VectorDBService.get_instance()
+        count = await vector_service.delete_resume_vectors(resume_id)
         result["vectors_deleted"] = count
         logger.info(f"Deleted {count} vectors for resume {resume_id}")
 

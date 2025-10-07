@@ -309,7 +309,7 @@ requires-dist = [
     { name = "pydantic", specifier = "==2.11.9" },
     { name = "pydantic-ai", specifier = "==0.0.27" },
     { name = "pydantic-extra-types", specifier = "==2.6.0" },
-    { name = "pydantic-neomodel-dict", specifier = "==0.3.0" },
+    { name = "pydantic-neomodel-dict", specifier = "==0.4.2" },
     { name = "pypdf", specifier = "==5.0.0" },
     { name = "python-docx", specifier = ">=1.1.0" },
     { name = "python-dotenv", specifier = "==1.0.1" },
@@ -1907,15 +1907,15 @@ wheels = [
 
 [[package]]
 name = "pydantic-neomodel-dict"
-version = "0.3.0"
+version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "neomodel" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6e/64/e84f33e1794ec14a5b6430dac75eb8d53cfb4462451b67ec2aa71632f140/pydantic_neomodel_dict-0.3.0.tar.gz", hash = "sha256:05fcf64735d96eb44221159b9fc93933fd2a507f8f04b1917599d094ee455099", size = 22901, upload-time = "2025-09-25T21:39:53.571Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ba/84/2ef1bbe737fd721c9ed7c42fa7b44897fdf7ee8bdedf98ee65e9ec864e09/pydantic_neomodel_dict-0.4.2.tar.gz", hash = "sha256:e3800a5f6b0b31b55ec444ca6874d093eb72cd49493c360658da7a7bc9bff04d", size = 24815, upload-time = "2025-10-07T20:11:47.172Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b7/02/5fb3a1750352284313941365b153b720a9d99ccd9d9d1a9584c4cdef74ff/pydantic_neomodel_dict-0.3.0-py3-none-any.whl", hash = "sha256:10fa6ce03161ae260d4555d17d60ae8ebe8c600dfe858e5b9c270fefcb85f1b2", size = 17850, upload-time = "2025-09-25T21:39:52.058Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/8e/dcac960de60eedafa84e6cf8973e1b39fffddef651ec17ec8fa6f4085150/pydantic_neomodel_dict-0.4.2-py3-none-any.whl", hash = "sha256:4fc1e79295842f8f19a5a22e62415772b90f1f3d111c2ad38a0e010dad4c0990", size = 25156, upload-time = "2025-10-07T20:11:45.391Z" },
 ]
 
 [[package]]

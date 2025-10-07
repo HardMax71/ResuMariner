@@ -8,6 +8,8 @@ from django.conf import settings
 
 from processor.models import QueuedTask
 from processor.services.processing_service import ProcessingService
+from storage.services.graph_db_service import GraphDBService
+from storage.services.vector_db_service import VectorDBService
 
 from ..services.job_service import JobService
 from ..utils.redis_queue import RedisJobQueue
@@ -103,9 +105,15 @@ class ProcessingWorker(BaseWorker):
             self.logger.warning("Failed to schedule cleanup for job %s: %s", job_id, e)
 
     async def startup(self):
-        """Initialize Redis connections"""
+        """Initialize Redis and database connections"""
         await self.redis_queue.get_redis()
         self.logger.info("Redis connections initialized")
+
+        await GraphDBService.configure()
+        self.logger.info("GraphDBService configured")
+
+        await VectorDBService.configure()
+        self.logger.info("VectorDBService configured")
 
     async def shutdown(self):
         """Clean shutdown"""

@@ -19,7 +19,7 @@ dependencies = [
     "neo4j==5.28.2",
     "neomodel==5.5.0",
     "prometheus-client==0.23.1",
-    "pydantic-neomodel-dict==0.3.0",
+    "pydantic-neomodel-dict==0.4.2",
     "qdrant-client==1.15.1",
     "redis==6.4.0",
     "pydantic==2.11.9",
