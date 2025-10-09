@@ -16,8 +16,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/upload" element={<Upload />} />
-          <Route path="/jobs/:jobId" element={<JobStatus />} />
-          <Route path="/jobs/:jobId/review" element={<AIReview />} />
+          <Route path="/resumes/:uid" element={<JobStatus />} />
+          <Route path="/resumes/:uid/review" element={<AIReview />} />
           <Route path="/search" element={<Search />} />
           <Route path="/health" element={<Health />} />
         </Routes>

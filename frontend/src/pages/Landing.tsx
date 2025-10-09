@@ -64,14 +64,14 @@ export default function Landing() {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const curlExample = `curl -X POST ${API_BASE_URL}/api/v1/upload/ \\
+  const curlExample = `curl -X POST ${API_BASE_URL}/api/v1/resumes/ \\
   -H "Content-Type: multipart/form-data" \\
   -F "file=@resume.pdf"`;
 
   const pythonExample = `import requests
 
 response = requests.post(
-    '${API_BASE_URL}/api/v1/upload/',
+    '${API_BASE_URL}/api/v1/resumes/',
     files={'file': open('resume.pdf', 'rb')}
 )
 print(response.json())`;
@@ -82,7 +82,7 @@ const fs = require('fs');
 const form = new FormData();
 form.append('file', fs.createReadStream('resume.pdf'));
 
-fetch('${API_BASE_URL}/api/v1/upload/', {
+fetch('${API_BASE_URL}/api/v1/resumes/', {
   method: 'POST',
   body: form
 }).then(r => r.json()).then(console.log);`;

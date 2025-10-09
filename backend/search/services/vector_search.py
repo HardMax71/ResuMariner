@@ -54,19 +54,19 @@ class VectorSearchService:
             if not point.payload:
                 continue
 
-            resume_id = point.payload.get("resume_id")
-            if not resume_id:  # Skip if no resume_id
+            uid = point.payload.get("uid")
+            if not uid:  # Skip if no uid
                 continue
 
             results.append(
                 VectorHit(
-                    resume_id=resume_id,
+                    uid=uid,
                     text=point.payload.get("text", ""),
                     score=point.score,
                     source=point.payload.get("source", "unknown"),
+                    name=point.payload.get("name", "Unknown"),
+                    email=point.payload.get("email", ""),
                     context=point.payload.get("context"),
-                    name=point.payload.get("name"),
-                    email=point.payload.get("email"),
                 )
             )
 

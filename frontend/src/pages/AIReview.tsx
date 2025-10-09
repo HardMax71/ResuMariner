@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle, ChevronDown, ChevronUp, ArrowLeft, FileText, Sparkles, AlertTriangle, Info, Lightbulb } from "lucide-react";
-import { useJobResult } from "../hooks/useJobStatus";
+import { useResumeStatus } from "../hooks/useJobStatus";
 import {
   PageWrapper,
   PageContainer,
@@ -26,9 +26,10 @@ import {
 import PageHeader from "../components/PageHeader";
 
 export default function AIReview() {
-  const { jobId = "" } = useParams();
-  const { data: result, isLoading: loading, error: queryError } = useJobResult(jobId);
+  const { uid = "" } = useParams();
+  const { data: job, isLoading: loading, error: queryError } = useResumeStatus(uid);
   const error = queryError ? (queryError as Error).message : null;
+  const result = job?.status === "completed" ? job.data : null;
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (section: string) => {
@@ -81,9 +82,9 @@ export default function AIReview() {
             </FlexRow>
             <p className="small" style={{ color: "var(--accent2-700)", marginBottom: 0 }}>{error}</p>
           </ErrorCard>
-          <Link to={`/jobs/${jobId}`} className="btn ghost">
+          <Link to={`/resumes/${uid}`} className="btn ghost">
             <ArrowLeft size={16} />
-            Back to Job
+            Back to Resume
           </Link>
         </PageContainer>
       </PageWrapper>
@@ -104,7 +105,7 @@ export default function AIReview() {
             <p className="small muted" style={{ marginBottom: "var(--space-4)", maxWidth: "400px", margin: "0 auto var(--space-4)" }}>
               AI analysis has not been generated for this resume yet. Reviews are typically available a few minutes after upload.
             </p>
-            <Link to={`/jobs/${jobId}`} className="btn">View Job Status</Link>
+            <Link to={`/resumes/${uid}`} className="btn">View Resume Status</Link>
           </EmptyStateCard>
         </PageContainer>
       </PageWrapper>
@@ -122,8 +123,8 @@ export default function AIReview() {
           title="AI Resume Analysis"
           subtitle="Comprehensive feedback powered by AI"
           actions={
-            <Link to={`/jobs/${jobId}`} className="btn ghost">
-              Back to Job Details
+            <Link to={`/resumes/${uid}`} className="btn ghost">
+              Back to Resume Details
               <ArrowLeft size={16} style={{ transform: "rotate(180deg)" }} />
             </Link>
           }

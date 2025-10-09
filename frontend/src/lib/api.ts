@@ -66,7 +66,7 @@ export async function apiGet<T>(endpoint: string, options?: RequestOptions): Pro
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new APIError(
-      error.message || `HTTP ${response.status}: ${response.statusText}`,
+      error.detail || error.message || `HTTP ${response.status}: ${response.statusText}`,
       response.status,
       error
     );
@@ -92,7 +92,7 @@ export async function apiPost<T>(
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new APIError(
-      error.message || `HTTP ${response.status}: ${response.statusText}`,
+      error.detail || error.message || `HTTP ${response.status}: ${response.statusText}`,
       response.status,
       error
     );
@@ -115,7 +115,7 @@ export async function apiUpload<T>(
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new APIError(
-      error.message || `HTTP ${response.status}: ${response.statusText}`,
+      error.detail || error.message || `HTTP ${response.status}: ${response.statusText}`,
       response.status,
       error
     );
@@ -124,21 +124,19 @@ export async function apiUpload<T>(
   return response.json();
 }
 
-export type JobStatus = "pending" | "processing" | "completed" | "failed";
+export type ResumeStatus = "pending" | "processing" | "completed" | "failed";
 
-export interface JobResponse {
-  job_id: string;
-  status: JobStatus;
+export interface ResumeResponse {
+  uid: string;
+  status: ResumeStatus;
   created_at: string;
   updated_at: string;
-  result_url?: string | null;
+  data?: {
+    resume: Record<string, any>;
+    review: Record<string, any> | null;
+    metadata: Record<string, any>;
+  };
   error?: string | null;
-}
-
-export interface JobResult {
-  resume: Record<string, any>;
-  review: Record<string, any> | null;
-  metadata: Record<string, any>;
 }
 
 export interface FilterOption { value: string; count: number }
@@ -214,7 +212,7 @@ export interface JobExperience {
 }
 
 export interface SearchResult {
-  resume_id: string;
+  uid: string;
   name: string;
   email: string;
   score: number;

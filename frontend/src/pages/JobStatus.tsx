@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useJobStatus, useJobResult } from "../hooks/useJobStatus";
+import { useResumeStatus } from "../hooks/useJobStatus";
 import { API_BASE_URL } from "../lib/api";
 import {
   Copy, Check, Hash, FileText, Network, Database,
@@ -12,9 +12,6 @@ import CollapsibleSection from "../components/CollapsibleSection";
 import { PageWrapper, PageContainer } from "../components/styled";
 import PageHeader from "../components/PageHeader";
 import Tooltip from "../components/Tooltip";
-
-type JobResponse = { status: string; id: string; created_at?: string; completed_at?: string; };
-type JobResult = any;
 
 const renderValue = (value: any): string => {
   if (value === null || value === undefined) return "—";
@@ -136,18 +133,31 @@ const RESUME_SECTIONS: ResumeSection[] = [
 ];
 
 export default function JobStatus() {
-  const { jobId = "" } = useParams();
+  const { uid = "" } = useParams();
   const [showRawJson, setShowRawJson] = useState(false);
   const [showMetadata, setShowMetadata] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["personal", "skills"]));
   const [copiedButtons, setCopiedButtons] = useState<Set<string>>(new Set());
+  const [isSkillsOverflowing, setIsSkillsOverflowing] = useState(false);
+  const skillsContainerRef = useRef<HTMLDivElement>(null);
 
-  const { data: job, error: jobError } = useJobStatus(jobId);
-  const { data: result, error: resultError } = useJobResult(
-    job?.status === "completed" ? jobId : null
-  );
+  const { data: job, error: jobError } = useResumeStatus(uid);
 
-  const error = jobError || resultError;
+  const result = job?.status === "completed" ? job.data : null;
+  const error = jobError;
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (skillsContainerRef.current) {
+        const hasOverflow = skillsContainerRef.current.scrollHeight > skillsContainerRef.current.clientHeight;
+        setIsSkillsOverflowing(hasOverflow);
+      }
+    };
+
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [result]);
 
   const handleCopy = (text: string, buttonId: string) => {
     navigator.clipboard.writeText(text);
@@ -1144,8 +1154,100 @@ export default function JobStatus() {
               </div>
             )}
 
+            {key === "courses" && Array.isArray(data) && (
+              <div className="flex flex-col gap-3">
+                {data.map((course: any, idx: number) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: "14px",
+                      background: "var(--white)",
+                      border: "1px solid var(--gray-200)",
+                      borderRadius: "var(--radius-sm)",
+                      borderLeft: "3px solid var(--indigo-600)"
+                    }}
+                  >
+                    <div className="flex justify-between items-start" style={{ marginBottom: "4px" }}>
+                      <h4 style={{
+                        fontSize: "15px",
+                        fontWeight: 600,
+                        margin: 0,
+                        color: "var(--gray-900)"
+                      }}>
+                        {course.course_url ? (
+                          <a
+                            href={renderValue(course.course_url)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: "var(--gray-900)",
+                              textDecoration: "none"
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
+                            onMouseLeave={(e) => e.currentTarget.style.textDecoration = "none"}
+                          >
+                            {renderValue(course.name)}
+                            <ExternalLink size={12} strokeWidth={2} style={{
+                              marginLeft: "6px",
+                              verticalAlign: "middle",
+                              opacity: 0.6
+                            }} />
+                          </a>
+                        ) : (
+                          renderValue(course.name)
+                        )}
+                      </h4>
+                      {course.year && (
+                        <span style={{
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          color: "var(--gray-500)",
+                          whiteSpace: "nowrap",
+                          marginLeft: "12px"
+                        }}>
+                          {renderValue(course.year)}
+                        </span>
+                      )}
+                    </div>
+                    {course.organization && (
+                      <div style={{
+                        fontSize: "13px",
+                        color: "var(--gray-600)",
+                        fontWeight: 500,
+                        marginTop: "6px"
+                      }}>
+                        {renderValue(course.organization)}
+                      </div>
+                    )}
+                    {course.certificate_url && (
+                      <a
+                        href={renderValue(course.certificate_url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          marginTop: "8px",
+                          fontSize: "12px",
+                          color: "var(--indigo-600)",
+                          textDecoration: "none",
+                          fontWeight: 500
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
+                        onMouseLeave={(e) => e.currentTarget.style.textDecoration = "none"}
+                      >
+                        <ExternalLink size={12} strokeWidth={2} />
+                        View Certificate
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Default rendering for other types */}
-            {!["personal", "skills", "experience", "education", "projects", "languages", "publications", "scientific_contributions", "certifications", "awards"].includes(key) && (
+            {!["personal", "skills", "experience", "education", "projects", "languages", "publications", "scientific_contributions", "certifications", "awards", "courses"].includes(key) && (
               <div style={{ position: "relative" }}>
                 <button
                   className="btn ghost"
@@ -1189,7 +1291,7 @@ export default function JobStatus() {
     <PageWrapper>
       <PageContainer>
       <PageHeader
-        title="Job Processing Status"
+        title="Resume Processing Status"
         actions={
           <Link to="/upload" className="btn ghost">
             <RefreshCw size={16} strokeWidth={2} style={{ marginRight: "var(--space-1)" }} />
@@ -1245,7 +1347,7 @@ export default function JobStatus() {
                      job.status === "failed" ? "Processing Failed" : "Queued for Processing"}
                   </h1>
                   <button
-                    onClick={() => handleCopy(job.job_id, "job-id")}
+                    onClick={() => handleCopy(job.uid, "resume-id")}
                     style={{
                       padding: "4px",
                       background: "transparent",
@@ -1258,11 +1360,11 @@ export default function JobStatus() {
                       transition: "background var(--transition-fast)",
                       color: "var(--gray-600)"
                     }}
-                    title={copiedButtons.has("job-id") ? "Copied!" : `Job ID: ${job.job_id}`}
+                    title={copiedButtons.has("resume-id") ? "Copied!" : `Resume ID: ${job.uid}`}
                     onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-100)"}
                     onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                   >
-                    {copiedButtons.has("job-id") ? (
+                    {copiedButtons.has("resume-id") ? (
                       <Check size={14} style={{ color: "var(--success)" }} />
                     ) : (
                       <Hash size={14} />
@@ -1277,7 +1379,7 @@ export default function JobStatus() {
                 <Tooltip text={copiedButtons.has("copy-link") ? "Copied!" : "Copy link to clipboard"}>
                   <button
                     onClick={() => {
-                      const url = `${window.location.origin}/jobs/${job.job_id}`;
+                      const url = `${window.location.origin}/resumes/${job.uid}`;
                       handleCopy(url, "copy-link");
                     }}
                     style={{
@@ -1302,7 +1404,7 @@ export default function JobStatus() {
                 </Tooltip>
                 <Tooltip text="Open API endpoint">
                   <a
-                    href={`${API_BASE_URL}/api/v1/jobs/${job.job_id}/result/`}
+                    href={`${API_BASE_URL}/api/v1/resumes/${job.uid}/`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -1322,7 +1424,7 @@ export default function JobStatus() {
                 </Tooltip>
                 {result?.review && (
                   <Link
-                    to={`/jobs/${job.job_id}/review`}
+                    to={`/resumes/${job.uid}/review`}
                     style={{
                       padding: "6px 12px",
                       fontSize: "14px",
@@ -1428,20 +1530,20 @@ export default function JobStatus() {
                     </span>
                   </Tooltip>
                 )}
-                <Tooltip text={`Saved to Graph DB: ${result.metadata.graph_id ? 'Yes' : 'No'}`}>
+                <Tooltip text={`Saved to Graph DB: ${result.metadata.graph_stored ? 'Yes' : 'No'}`}>
                   <span style={{ cursor: "help", display: "inline-flex", alignItems: "center" }}>
                     <Network
                       size={14}
-                      style={{ color: result.metadata.graph_id ? "#10b981" : "#ef4444" }}
+                      style={{ color: result.metadata.graph_stored ? "#10b981" : "#ef4444" }}
                       strokeWidth={2}
                     />
                   </span>
                 </Tooltip>
-                <Tooltip text={`Saved to Vector DB: ${result.metadata.embeddings_stored ? 'Yes' : 'No'}`}>
+                <Tooltip text={`Saved to Vector DB: ${result.metadata.vector_stored ? 'Yes' : 'No'}`}>
                   <span style={{ cursor: "help", display: "inline-flex", alignItems: "center" }}>
                     <Database
                       size={14}
-                      style={{ color: result.metadata.embeddings_stored ? "#10b981" : "#ef4444" }}
+                      style={{ color: result.metadata.vector_stored ? "#10b981" : "#ef4444" }}
                       strokeWidth={2}
                     />
                   </span>
@@ -1847,7 +1949,7 @@ export default function JobStatus() {
                     <div className="glass-card">
                       <h3 className="title" style={{ marginBottom: "var(--space-2)" }}>Skills</h3>
                       <div style={{ position: "relative" }}>
-                        <div className="chips" style={{ maxHeight: "150px", overflowY: "auto", paddingBottom: "var(--space-2)" }}>
+                        <div ref={skillsContainerRef} className="chips" style={{ maxHeight: "150px", overflowY: "auto", paddingBottom: "var(--space-2)" }}>
                           {result.resume.skills && Array.isArray(result.resume.skills) ? (
                             result.resume.skills.map((skill: any, idx: number) => (
                               <span key={idx} className="chip" style={{ fontSize: "var(--text-xs)" }}>
@@ -1858,16 +1960,18 @@ export default function JobStatus() {
                             <span className="small muted">No skills data available</span>
                           )}
                         </div>
-                        <div style={{
-                          position: "absolute",
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          height: "40px",
-                          background: "linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95))",
-                          pointerEvents: "none",
-                          borderRadius: "0 0 var(--radius-sm) var(--radius-sm)"
-                        }}></div>
+                        {isSkillsOverflowing && (
+                          <div style={{
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: "40px",
+                            background: "linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95))",
+                            pointerEvents: "none",
+                            borderRadius: "0 0 var(--radius-sm) var(--radius-sm)"
+                          }}></div>
+                        )}
                       </div>
                     </div>
                   </div>

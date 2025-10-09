@@ -14,11 +14,10 @@ from core.domain import ProcessingMetadata, Resume, ReviewResult
 class CVProcessingTest:
     def __init__(self, backend_url: str = "http://localhost:8000"):
         """Initialize with backend URL"""
-        # Ensure no trailing slash for clean URL joins
         self.backend_url = backend_url.rstrip("/")
-        self.cv_id: str | None = None  # Graph/Resume ID when available
-        self.resume: Resume | None = None  # Properly typed Resume object
-        self.review: ReviewResult | None = None  # Properly typed Review object
+        self.uid: str | None = None
+        self.resume: Resume | None = None
+        self.review: ReviewResult | None = None
         self.metadata: ProcessingMetadata | None = None
         self.search_results: dict = {}
 
@@ -35,12 +34,11 @@ class CVProcessingTest:
         try:
             with open(file_path, "rb") as file:
                 files = {"file": (file_name, file, self._get_mime_type(file_ext))}
-                # Backend now ignores client-provided toggles and uses settings; only send file
-                print(f"Sending to: {self.backend_url}/api/v1/upload/")
+                print(f"Sending to: {self.backend_url}/api/v1/resumes/")
                 response = requests.post(
-                    f"{self.backend_url}/api/v1/upload/",
+                    f"{self.backend_url}/api/v1/resumes/",
                     files=files,
-                    timeout=180,  # 3-minute timeout for processing
+                    timeout=180,
                 )
 
                 if response.status_code not in (200, 202):
@@ -48,21 +46,20 @@ class CVProcessingTest:
                     sys.exit(1)
 
                 upload_result = response.json()
-                job_id = upload_result.get("job_id")
+                self.uid = upload_result.get("uid")
 
-                if not job_id:
-                    print("Error: No job ID returned from upload")
+                if not self.uid:
+                    print("Error: No UID returned from upload")
                     sys.exit(1)
 
-                print(f"Upload accepted. Job ID: {job_id}")
+                print(f"Upload accepted. UID: {self.uid}")
 
-            # Poll for processing completion
             print("\nWaiting for processing to complete...")
             max_retries = 120
-            retry_interval = 2  # seconds
+            retry_interval = 2
 
             for _ in tqdm(range(max_retries)):
-                response = requests.get(f"{self.backend_url}/api/v1/jobs/{job_id}/", timeout=10)
+                response = requests.get(f"{self.backend_url}/api/v1/resumes/{self.uid}/", timeout=10)
 
                 if response.status_code != 200:
                     print(f"Status check failed: {response.status_code} - {response.text}")
@@ -71,19 +68,13 @@ class CVProcessingTest:
 
                 status = response.json()
                 if status.get("status") == "completed":
-                    print("\nJob completed! Fetching results...")
-
-                    result_response = requests.get(status["result_url"], timeout=120)
-                    print(f"Fetching result from: {status['result_url']}")
-                    result_data = result_response.json()
+                    print("\nProcessing completed!")
+                    result_data = status.get("data")
 
                     # Parse metadata
                     metadata_dict = result_data.get("metadata", {})
                     if metadata_dict:
                         self.metadata = ProcessingMetadata(**metadata_dict)
-                        self.cv_id = self.metadata.graph_id or job_id
-                    else:
-                        self.cv_id = job_id
 
                     # Parse resume using Pydantic model
                     resume_data = result_data.get("resume")
@@ -95,7 +86,7 @@ class CVProcessingTest:
                     if review_data:
                         self.review = ReviewResult(**review_data)
 
-                    print(f"Processing completed! CV ID: {self.cv_id}")
+                    print(f"Processing completed! UID: {self.uid}")
                     break  # EXIT THE LOOP IMMEDIATELY!
                 elif status.get("status") == "failed":
                     print(f"Processing failed: {status.get('message')}")
@@ -510,21 +501,21 @@ class CVProcessingTest:
         for method, results in self.search_results.items():
             method_counts[method] = len(results)
             for result in results:
-                rid = result.get("resume_id") or result.get("cv_id")
-                if rid:
-                    if rid not in cv_counts:
-                        cv_counts[rid] = {"total": 0, "methods": []}
-                    cv_counts[rid]["total"] += 1
-                    cv_counts[rid]["methods"].append(method)
-        print(f"Total unique CVs found: {len(cv_counts)}")
+                uid = result.get("uid")
+                if uid:
+                    if uid not in cv_counts:
+                        cv_counts[uid] = {"total": 0, "methods": []}
+                    cv_counts[uid]["total"] += 1
+                    cv_counts[uid]["methods"].append(method)
+        print(f"Total unique resumes found: {len(cv_counts)}")
         print(f"Search methods: {len(self.search_results)}")
         print("\nResults by search method:")
         for method, count in method_counts.items():
             print(f"  {method}: {count} results")
-        print("\nCVs found by multiple methods:")
-        for cv_id, data in sorted(cv_counts.items(), key=lambda x: x[1]["total"], reverse=True):
+        print("\nResumes found by multiple methods:")
+        for uid, data in sorted(cv_counts.items(), key=lambda x: x[1]["total"], reverse=True):
             if data["total"] > 1:
-                print(f"  CV ID: {cv_id}")
+                print(f"  UID: {uid}")
                 print(f"    Found by {data['total']} methods: {', '.join(data['methods'])}")
         print("=" * 80)
 

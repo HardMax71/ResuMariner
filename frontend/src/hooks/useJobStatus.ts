@@ -1,27 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
-import { getJobStatus, getJobResult } from '../services/resumeService';
+import { getResumeStatus } from '../services/resumeService';
 
-export function useJobStatus(jobId: string | null) {
+export function useResumeStatus(uid: string | null) {
   return useQuery({
-    queryKey: ['job', 'status', jobId],
-    queryFn: () => getJobStatus(jobId!),
-    enabled: !!jobId,
+    queryKey: ['resume', 'status', uid],
+    queryFn: () => getResumeStatus(uid!),
+    enabled: !!uid,
     refetchInterval: (query) => {
       const data = query.state.data;
-      if (data?.status === 'processing' || data?.status === 'queued') {
+      if (data?.status === 'processing' || data?.status === 'pending') {
         return 2000;
       }
       return false;
     },
     staleTime: 1000,
-  });
-}
-
-export function useJobResult(jobId: string | null) {
-  return useQuery({
-    queryKey: ['job', 'result', jobId],
-    queryFn: () => getJobResult(jobId!),
-    enabled: !!jobId,
-    staleTime: Infinity,
   });
 }

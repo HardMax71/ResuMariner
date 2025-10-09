@@ -28,13 +28,13 @@ class RedisJobQueue:
         self.retry_set = "cv:retry:scheduled"
         self.pubsub = None
 
-    async def enqueue_job(self, job_id: str, file_path: str, task_data: dict | None = None, priority: int = 0) -> str:
+    async def enqueue_job(self, uid: str, file_path: str, task_data: dict | None = None, priority: int = 0) -> str:
         redis_client = await self.get_redis()
         task_id = str(uuid.uuid4())
 
         task = QueuedTask(
             task_id=task_id,
-            job_id=job_id,
+            uid=uid,
             file_path=file_path,
             priority=priority,
             enqueued_at=datetime.now().isoformat(),
@@ -51,7 +51,7 @@ class RedisJobQueue:
         pipeline.expire(task_key, settings.REDIS_JOB_TIMEOUT)
 
         # Add to stream for instant delivery
-        stream_data = {"task_id": task_id, "job_id": job_id, "priority": str(priority), "timestamp": str(time.time())}
+        stream_data = {"task_id": task_id, "uid": uid, "priority": str(priority), "timestamp": str(time.time())}
         pipeline.xadd(self.job_stream, stream_data)
 
         # Publish event for instant notification
@@ -60,9 +60,9 @@ class RedisJobQueue:
         await pipeline.execute()
         return task_id
 
-    def enqueue_job_sync(self, job_id: str, file_path: str, task_data: dict | None = None, priority: int = 0) -> str:
+    def enqueue_job_sync(self, uid: str, file_path: str, task_data: dict | None = None, priority: int = 0) -> str:
         """Sync wrapper for enqueue_job for use in sync Django views"""
-        return async_to_sync(self.enqueue_job)(job_id, file_path, task_data, priority)
+        return async_to_sync(self.enqueue_job)(uid, file_path, task_data, priority)
 
     async def get_redis(self) -> aioredis.Redis:
         if not self.redis:
@@ -112,19 +112,19 @@ class RedisJobQueue:
                 await asyncio.sleep(1)
                 self.redis = None  # Force reconnection
 
-    async def mark_job_processing(self, task_id: str, job_id: str) -> bool:
+    async def mark_job_processing(self, task_id: str, uid: str) -> bool:
         redis_client = await self.get_redis()
         task_key = f"{self.task_key_prefix}{task_id}"
 
         pipeline = redis_client.pipeline()
         pipeline.hset(task_key, "status", "processing")
         pipeline.publish(
-            f"cv:job:{job_id}:status", json.dumps({"status": "processing", "timestamp": datetime.now().isoformat()})
+            f"cv:job:{uid}:status", json.dumps({"status": "processing", "timestamp": datetime.now().isoformat()})
         )
         results = await pipeline.execute()
         return bool(results[0] > 0)
 
-    async def mark_job_completed(self, task_id: str, job_id: str, result: dict[str, Any]) -> bool:
+    async def mark_job_completed(self, task_id: str, uid: str, result: dict[str, Any]) -> bool:
         redis_client = await self.get_redis()
         task_key = f"{self.task_key_prefix}{task_id}"
 
@@ -136,14 +136,14 @@ class RedisJobQueue:
 
         # Publish completion event for real-time updates
         pipeline.publish(
-            f"cv:job:{job_id}:completed",
-            json.dumps({"status": "completed", "job_id": job_id, "timestamp": datetime.now().isoformat()}),
+            f"cv:job:{uid}:completed",
+            json.dumps({"status": "completed", "uid": uid, "timestamp": datetime.now().isoformat()}),
         )
 
         await pipeline.execute()
         return True
 
-    async def mark_job_failed(self, task_id: str, job_id: str, error: str, retry: bool = True) -> bool:
+    async def mark_job_failed(self, task_id: str, uid: str, error: str, retry: bool = True) -> bool:
         redis_client = await self.get_redis()
         task_key = f"{self.task_key_prefix}{task_id}"
         job_data = await redis_client.hgetall(task_key)
@@ -164,7 +164,7 @@ class RedisJobQueue:
             pipeline.zadd(self.retry_set, {task_id: time.time() + delay})
 
             # Set expiry key for notification
-            pipeline.setex(f"cv:retry:{task_id}", delay, job_id)
+            pipeline.setex(f"cv:retry:{task_id}", delay, uid)
 
             await pipeline.execute()
             return True
@@ -177,7 +177,7 @@ class RedisJobQueue:
 
         # Publish failure event
         pipeline.publish(
-            f"cv:job:{job_id}:failed",
+            f"cv:job:{uid}:failed",
             json.dumps({"status": "failed", "error": error, "timestamp": datetime.now().isoformat()}),
         )
 
@@ -218,7 +218,7 @@ class RedisJobQueue:
                             self.job_stream,
                             {
                                 "task_id": task_id,
-                                "job_id": job_data.get("job_id", ""),
+                                "uid": job_data.get("uid", ""),
                                 "priority": "1",  # Higher priority for retries
                                 "timestamp": str(time.time()),
                             },
@@ -266,7 +266,7 @@ class RedisJobQueue:
     async def schedule_cleanup(self, cleanup_task: CleanupTask) -> None:
         """Schedule a cleanup task for a completed job."""
         redis_client = await self.get_redis()
-        cleanup_data = {"job_id": cleanup_task.job_id, "cleanup_time": cleanup_task.cleanup_time}
+        cleanup_data = {"uid": cleanup_task.uid, "cleanup_time": cleanup_task.cleanup_time}
         await redis_client.rpush(self.cleanup_queue, json.dumps(cleanup_data))
 
     async def get_cleanup_tasks(self) -> list[CleanupTask]:
@@ -277,19 +277,19 @@ class RedisJobQueue:
         for item in cleanup_items:
             try:
                 data = json.loads(item)
-                tasks.append(CleanupTask(job_id=data["job_id"], cleanup_time=data["cleanup_time"]))
+                tasks.append(CleanupTask(uid=data["uid"], cleanup_time=data["cleanup_time"]))
             except (json.JSONDecodeError, KeyError) as e:
                 logger.warning("Invalid cleanup task data: %s, error: %s", item, e)
         return tasks
 
-    async def remove_cleanup_task(self, job_id: str) -> bool:
+    async def remove_cleanup_task(self, uid: str) -> bool:
         """Remove a cleanup task for a specific job."""
         redis_client = await self.get_redis()
         cleanup_items = await redis_client.lrange(self.cleanup_queue, 0, -1)
         for item in cleanup_items:
             try:
                 task = json.loads(item)
-                if task.get("job_id") == job_id:
+                if task.get("uid") == uid:
                     await redis_client.lrem(self.cleanup_queue, 1, item)
                     return True
             except json.JSONDecodeError:

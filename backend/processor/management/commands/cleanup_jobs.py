@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from neomodel import adb
 
+from core.database import create_graph_service, create_vector_service
 from processor.serializers import JobStatus
 from processor.services.cleanup_service import CleanupService
 from processor.services.job_service import JobService
@@ -34,6 +36,14 @@ class Command(BaseCommand):
         asyncio.run(self._cleanup(days, cleanup_all, dry_run, force))
 
     async def _cleanup(self, days: int, cleanup_all: bool, dry_run: bool, force: bool):
+        # Neo4j connection
+        host = settings.NEO4J_URI.replace("bolt://", "")
+        connection_url = f"bolt://{settings.NEO4J_USERNAME}:{settings.NEO4J_PASSWORD}@{host}"
+        await adb.set_connection(url=connection_url)
+
+        graph_db = create_graph_service()
+        vector_db = create_vector_service()
+
         job_service = JobService()
         cleanup_service = CleanupService()
 
@@ -50,7 +60,7 @@ class Command(BaseCommand):
         total_skipped = 0
 
         for job in jobs:
-            job_id = job.job_id
+            uid = job.uid
             status = job.status
             created_at = job.created_at
 
@@ -66,22 +76,22 @@ class Command(BaseCommand):
 
             if should_delete:
                 if dry_run:
-                    self.stdout.write(f"  Would delete: {job_id} (status: {status}, created: {created_at})")
+                    self.stdout.write(f"  Would delete: {uid} (status: {status}, created: {created_at})")
                 else:
                     try:
-                        success = await cleanup_service.cleanup_job(job_id)
+                        success = await cleanup_service.cleanup_job(uid, graph_db, vector_db)
                         if success:
                             self.stdout.write(
-                                self.style.SUCCESS(f"  Deleted: {job_id} (status: {status}, created: {created_at})")
+                                self.style.SUCCESS(f"  Deleted: {uid} (status: {status}, created: {created_at})")
                             )
                             total_deleted += 1
                         else:
-                            self.stdout.write(self.style.ERROR(f"  Failed to delete {job_id}"))
+                            self.stdout.write(self.style.ERROR(f"  Failed to delete {uid}"))
                     except Exception as e:
-                        self.stdout.write(self.style.ERROR(f"  Failed to delete {job_id}: {e}"))
+                        self.stdout.write(self.style.ERROR(f"  Failed to delete {uid}: {e}"))
             else:
                 if status not in [JobStatus.COMPLETED, JobStatus.FAILED] and not force:
-                    self.stdout.write(f"  Skipped: {job_id} (still {status})")
+                    self.stdout.write(f"  Skipped: {uid} (still {status})")
                     total_skipped += 1
 
         if dry_run:

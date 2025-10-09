@@ -46,7 +46,7 @@ class JobExperienceSerializer(serializers.Serializer):
 
 
 class SearchResultSerializer(serializers.Serializer):
-    resume_id = serializers.CharField(help_text="Resume identifier")
+    uid = serializers.CharField(help_text="Resume identifier")
     name = serializers.CharField(help_text="Person name")
     email = serializers.EmailField(help_text="Email address")
     score = serializers.FloatField(help_text="Overall similarity score")
@@ -266,7 +266,7 @@ class FilterOptionsSerializer(serializers.Serializer):
 
 
 class VectorHitSerializer(serializers.Serializer):
-    resume_id = serializers.CharField(help_text="Resume identifier")
+    uid = serializers.CharField(help_text="Resume identifier")
     text = serializers.CharField(default="", help_text="Matched text fragment")
     score = serializers.FloatField(default=0.0, help_text="Match score")
     source = serializers.CharField(default="unknown", help_text="Source of the fragment")  # type: ignore[assignment]

@@ -90,7 +90,7 @@ class JobUpdateSerializer(serializers.Serializer):
 
 
 class JobSerializer(serializers.Serializer):
-    job_id = serializers.CharField()
+    uid = serializers.CharField()
     status = serializers.ChoiceField(choices=[s.value for s in JobStatus], default=JobStatus.PENDING)
     file_path = serializers.CharField()
     created_at = serializers.DateTimeField(default=datetime.now)
@@ -98,14 +98,13 @@ class JobSerializer(serializers.Serializer):
     result = serializers.JSONField(required=False, allow_null=True)
     result_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
     error = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    user_id = serializers.CharField(required=False, allow_null=True)
     completed_at = serializers.DateTimeField(required=False, allow_null=True)
     error_message = serializers.CharField(required=False, allow_null=True)
 
 
-class JobResponseSerializer(serializers.Serializer):
-    job_id = serializers.CharField()
-    status = serializers.ChoiceField(choices=[s.value for s in JobStatus])
+class ResumeResponseSerializer(serializers.Serializer):
+    uid = serializers.CharField(help_text="Resume unique identifier")
+    status = serializers.ChoiceField(choices=[s.value for s in JobStatus], help_text="Processing status")
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
     result_url = serializers.URLField(required=False, allow_null=True)

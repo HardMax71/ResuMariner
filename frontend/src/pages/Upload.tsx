@@ -16,7 +16,7 @@ export default function Upload() {
 
     uploadResume(file, {
       onSuccess: (data) => {
-        navigate(`/jobs/${data.job_id}`);
+        navigate(`/resumes/${data.uid}`);
       },
     });
   };

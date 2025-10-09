@@ -5,6 +5,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from django.conf import settings
+from neomodel import adb
+
+from core.database import create_graph_service, create_vector_service
 
 from ..serializers import JobStatus
 from ..services.cleanup_service import CleanupService
@@ -24,7 +27,9 @@ class CleanupWorker(BaseWorker):
         self.redis_queue = RedisJobQueue()
         self.cleanup_batch_size = 50
         self.retention_days = settings.JOB_RETENTION_DAYS
-        self.cleanup_interval = 60  # Run cleanup every minute
+        self.cleanup_interval = 60
+        self.graph_db = None
+        self.vector_db = None
 
     async def create_tasks(self) -> list[asyncio.Task]:
         """Create cleanup tasks that run periodically"""
@@ -68,19 +73,21 @@ class CleanupWorker(BaseWorker):
         cleaned = False
 
         for task in cleanup_tasks[: self.cleanup_batch_size]:
-            job_id = task.job_id
+            uid = task.uid
             cleanup_time = task.cleanup_time
 
-            if job_id and current_time >= cleanup_time:
-                await self._cleanup_job(job_id)
-                await self.redis_queue.remove_cleanup_task(job_id)
+            if uid and current_time >= cleanup_time:
+                await self._cleanup_job(uid)
+                await self.redis_queue.remove_cleanup_task(uid)
                 cleaned = True
 
         return cleaned
 
     async def _cleanup_old_jobs(self) -> int:
         try:
-            deleted = await self.cleanup_service.cleanup_old_jobs(self.retention_days, force=False)
+            deleted = await self.cleanup_service.cleanup_old_jobs(
+                self.retention_days, self.graph_db, self.vector_db, force=False
+            )
             if deleted > 0:
                 self.logger.info("Cleaned up %d old jobs", deleted)
             return deleted
@@ -97,14 +104,14 @@ class CleanupWorker(BaseWorker):
                 cutoff_time = datetime.now() - timedelta(days=self.retention_days)
 
                 jobs = await self.job_service.list_jobs(limit=1000)
-                active_job_ids = {job.job_id for job in jobs}
+                active_uids = {job.uid for job in jobs}
 
                 for file_path in upload_dir.glob("*"):
                     if file_path.is_file():
                         file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
                         if file_mtime < cutoff_time:
-                            job_id = file_path.stem
-                            if job_id not in active_job_ids:
+                            uid = file_path.stem
+                            if uid not in active_uids:
                                 try:
                                     file_path.unlink()
                                     cleaned_count += 1
@@ -132,36 +139,44 @@ class CleanupWorker(BaseWorker):
 
         return cleaned_count
 
-    async def _cleanup_job(self, job_id: str) -> None:
+    async def _cleanup_job(self, uid: str) -> None:
         try:
-            self.logger.info("Cleaning up job %s", job_id)
+            self.logger.info("Cleaning up job %s", uid)
 
-            job = await self.job_service.get_job(job_id)
+            job = await self.job_service.get_job(uid)
             if not job:
-                self.logger.warning("Job %s not found for cleanup", job_id)
+                self.logger.warning("Job %s not found for cleanup", uid)
                 return
 
             if job.status not in [JobStatus.COMPLETED, JobStatus.FAILED]:
-                self.logger.info("Job %s still processing, skipping cleanup", job_id)
+                self.logger.info("Job %s still processing, skipping cleanup", uid)
                 return
 
             file_ext = None
             if job.file_path:
                 file_ext = Path(job.file_path).suffix
 
-            await FileService.cleanup_all_job_files(job_id, file_ext)
-            success = await self.cleanup_service.cleanup_job(job_id)
+            await FileService.cleanup_all_job_files(uid, file_ext)
+            success = await self.cleanup_service.cleanup_job(uid, self.graph_db, self.vector_db)
             if success:
-                self.logger.info("Successfully cleaned up job %s", job_id)
+                self.logger.info("Successfully cleaned up job %s", uid)
             else:
-                self.logger.warning("Failed to cleanup job %s", job_id)
+                self.logger.warning("Failed to cleanup job %s", uid)
 
         except Exception as e:
-            self.logger.error("Failed to cleanup job %s: %s", job_id, e)
+            self.logger.error("Failed to cleanup job %s: %s", uid, e)
 
     async def startup(self):
-        """Initialize connections"""
-        self.logger.info("Cleanup worker initialized")
+        """Initialize services"""
+        # Neo4j connection for this worker process
+        host = settings.NEO4J_URI.replace("bolt://", "")
+        connection_url = f"bolt://{settings.NEO4J_USERNAME}:{settings.NEO4J_PASSWORD}@{host}"
+        await adb.set_connection(url=connection_url)
+
+        self.graph_db = create_graph_service()
+        self.vector_db = create_vector_service()
+
+        self.logger.info("Cleanup worker ready")
 
     async def shutdown(self):
         """Clean shutdown"""

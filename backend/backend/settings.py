@@ -4,6 +4,7 @@ import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
+from neomodel import config as neomodel_config
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -41,9 +42,9 @@ INSTALLED_APPS = [
     "corsheaders",
     "silk",
     "drf_spectacular",
+    "core",
     "processor",
     "search",
-    "storage",
 ]
 
 MIDDLEWARE = [
@@ -56,6 +57,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "silk.middleware.SilkyMiddleware",
+    "core.middleware.DatabaseServicesMiddleware",
     "core.middleware.PrometheusMiddleware",
 ]
 
@@ -77,7 +79,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "backend.wsgi.application"
+ASGI_APPLICATION = "backend.asgi.application"
 
 # =============================================================================
 # DATABASE (Minimal - we use Neo4j/Qdrant directly)
@@ -166,6 +168,8 @@ NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
 NEO4J_MAX_CONNECTION_LIFETIME = int(os.getenv("NEO4J_MAX_CONNECTION_LIFETIME", "3600"))
 NEO4J_MAX_CONNECTION_POOL_SIZE = int(os.getenv("NEO4J_MAX_CONNECTION_POOL_SIZE", "50"))
 NEO4J_CONNECTION_TIMEOUT = int(os.getenv("NEO4J_CONNECTION_TIMEOUT", "30"))
+
+neomodel_config.DATABASE_URL = f"bolt://{NEO4J_USERNAME}:{NEO4J_PASSWORD}@{NEO4J_HOST}:{NEO4J_PORT}"
 
 # =============================================================================
 # QDRANT VECTOR DATABASE
@@ -322,11 +326,6 @@ LOGGING = {
             "propagate": False,
         },
         "search": {
-            "handlers": ["console"],
-            "level": LOG_LEVEL,
-            "propagate": False,
-        },
-        "storage": {
             "handlers": ["console"],
             "level": LOG_LEVEL,
             "propagate": False,

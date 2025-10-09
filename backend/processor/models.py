@@ -9,7 +9,7 @@ from .serializers import JobStatus
 
 
 class Job(BaseModel):
-    job_id: str
+    uid: str
     status: JobStatus = JobStatus.PENDING
     file_path: str
     created_at: datetime = Field(default_factory=datetime.now)
@@ -18,16 +18,16 @@ class Job(BaseModel):
     result: dict[str, Any] = Field(default_factory=dict)
     result_url: str = ""
     error: str = ""
-    user_id: str | None = None
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}
 
     def update(self, **kwargs) -> None:
         """Update job fields and set updated_at."""
+        allowed_fields = {"status", "result", "error", "completed_at", "result_url"}
         for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
+            if key in allowed_fields:
+                object.__setattr__(self, key, value)
         self.updated_at = datetime.now()
 
 
@@ -36,7 +36,7 @@ class QueuedTask:
     """Represents a task queued in Redis for processing."""
 
     task_id: str
-    job_id: str
+    uid: str
     file_path: str
     priority: int = 0
     enqueued_at: str | None = None
@@ -55,7 +55,7 @@ class QueuedTask:
         """Convert to dict for Redis storage."""
         data: dict[str, str | int] = {
             "task_id": self.task_id,
-            "job_id": self.job_id,
+            "uid": self.uid,
             "file_path": self.file_path,
             "priority": self.priority,
             "retries": self.retries,
@@ -88,7 +88,7 @@ class QueuedTask:
         """Create from Redis dict data."""
         task = cls(
             task_id=data["task_id"],
-            job_id=data["job_id"],
+            uid=data["uid"],
             file_path=data["file_path"],
             priority=int(data.get("priority", 0)),
             enqueued_at=data.get("enqueued_at"),
@@ -114,5 +114,5 @@ class QueuedTask:
 class CleanupTask:
     """Represents a cleanup task in Redis."""
 
-    job_id: str
+    uid: str
     cleanup_time: float

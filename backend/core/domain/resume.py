@@ -8,9 +8,9 @@ class EmbeddingVector(BaseModel):
     vector: list[float]
     text: str
     source: str
+    name: str
+    email: str
     context: str | None = None
-    name: str | None = None
-    email: str | None = None
     # Searchable metadata fields
     skills: list[str] = Field(default_factory=list)
     companies: list[str] = Field(default_factory=list)
@@ -354,7 +354,7 @@ class ProfessionalProfile(BaseModel):
 
 
 class Resume(BaseModel):
-    uid: str | None = None
+    uid: str
     personal_info: PersonalInfo
     professional_profile: ProfessionalProfile | None = None
     skills: list[Skill] = Field(default_factory=list)

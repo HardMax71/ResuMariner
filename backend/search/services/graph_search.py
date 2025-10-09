@@ -39,13 +39,15 @@ class GraphSearchService:
         query = """
         MATCH (resume:ResumeNode)
         WHERE
-            ($skills IS NULL OR $skills = [] OR EXISTS {
-                MATCH (resume)-[:HAS_SKILL]->(s:SkillNode)
-                WHERE s.name IN $skills
-            } OR EXISTS {
-                MATCH (resume)-[:HAS_EMPLOYMENT_HISTORY|HAS_PROJECT]->(entity)-[:HAS_SKILL]->(s:SkillNode)
-                WHERE s.name IN $skills
-            })
+            ($skills IS NULL OR $skills = [] OR ALL(skill IN $skills WHERE
+                EXISTS {
+                    MATCH (resume)-[:HAS_SKILL]->(s:SkillNode)
+                    WHERE s.name = skill
+                } OR EXISTS {
+                    MATCH (resume)-[:HAS_EMPLOYMENT_HISTORY|HAS_PROJECT]->(entity)-[:HAS_SKILL]->(s:SkillNode)
+                    WHERE s.name = skill
+                }
+            ))
             AND ($role IS NULL OR EXISTS {
                 MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(pp:ProfessionalProfileNode)
                       -[:HAS_PREFERENCES]->(pref:PreferencesNode)
@@ -153,7 +155,7 @@ class GraphSearchService:
              CASE WHEN $years_experience IS NULL THEN 1 ELSE CASE WHEN years_experience >= $years_experience THEN 1 ELSE 0 END END AS experience_match
         WHERE experience_match = 1
 
-        RETURN resume.uid AS resume_id, name, email, summary, skills, experiences, education,
+        RETURN resume.uid AS uid, name, email, summary, skills, experiences, education,
                years_experience, location, desired_role, languages,
                (size(skills) * 0.2 + years_experience * 0.1) AS score
         ORDER BY score DESC
@@ -172,17 +174,17 @@ class GraphSearchService:
             logger.info("Graph search returned %s results", len(results))
             return results
 
-    async def get_resumes_by_ids(self, resume_ids: list[str]) -> list[ResumeSearchResult]:
+    async def get_resumes_by_ids(self, uids: list[str]) -> list[ResumeSearchResult]:
         """
         Batch fetch complete resume data for given IDs.
         Returns ResumeSearchResult objects with all available fields.
         """
-        if not resume_ids:
+        if not uids:
             return []
 
         query = """
         MATCH (resume:ResumeNode)
-        WHERE resume.uid IN $resume_ids
+        WHERE resume.uid IN $uids
         WITH resume
         MATCH (resume)-[:HAS_PERSONAL_INFO]->(p:PersonalInfoNode)-[:HAS_CONTACT]->(contact:ContactNode)
         OPTIONAL MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(prof:ProfessionalProfileNode)
@@ -234,12 +236,12 @@ class GraphSearchService:
         WITH resume, name, email, summary, skills, experiences, education, years_experience,
              loc, pref, collect({language: lang.name, cefr: lp.cefr, self_assessed: lp.self_assessed}) AS languages
 
-        RETURN resume.uid AS resume_id, name, email, summary, skills, experiences, education, years_experience,
+        RETURN resume.uid AS uid, name, email, summary, skills, experiences, education, years_experience,
                loc {.*} AS location, pref.role AS desired_role, languages, 1.0 AS score
         """
 
         async def run_query(tx):
-            result = await tx.run(query, {"resume_ids": resume_ids})
+            result = await tx.run(query, {"uids": uids})
             return await result.data()
 
         async with self.driver.session() as session:

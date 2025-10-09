@@ -53,7 +53,9 @@ class ParsePdfService(BaseExtractionService):
                 for page_num, (plumber_page, pypdf_page) in enumerate(
                     zip(pdf_doc.pages, reader.pages, strict=False), start=1
                 ):
-                    text = plumber_page.extract_text()
+                    # TODO: pypdf extract also hidden text, but at a cost of missed formatting + weird symbols
+                    # maybe better way exists?
+                    text = pypdf_page.extract_text()  # Use PyPDF to get ALL text including covered text
                     links = self._extract_links(plumber_page, pypdf_page)
                     pages.append(Page(page_number=page_num, text=text, links=links))
 
@@ -97,8 +99,10 @@ class ParsePdfService(BaseExtractionService):
             return None
 
         anchor_text = self._find_anchor_text(rect, page.height, words)
+
+        # If no anchor text found (e.g., covered by shapes), use URI directly
         if not anchor_text:
-            return None
+            anchor_text = uri  # Use full URL for any link
 
         return Link(text=anchor_text, url=uri)
 

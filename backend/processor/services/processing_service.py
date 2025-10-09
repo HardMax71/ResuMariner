@@ -13,47 +13,37 @@ from core.domain import (
     ReviewResult,
 )
 from core.domain.extraction import ParsedDocument
-from core.file_types import ParserType, get_parser_type
 from core.services import EmbeddingService
-from processor.services.parsing.parse_image_service import ParseImageService
-from processor.services.parsing.parse_pdf_service import ParsePdfService
-from processor.services.parsing.parse_word_service import ParseWordService
-from storage.services.graph_db_service import GraphDBService
-from storage.services.vector_db_service import VectorDBService
+from core.services.graph_db_service import GraphDBService
+from core.services.vector_db_service import VectorDBService
 
 from .content_structure_service import LLMContentStructureService
 from .file_service import FileService
+from .parsing import ParsingService
 from .review_service import ReviewService
 
 logger = logging.getLogger(__name__)
 
 
 class ProcessingService:
-    """
-    Unified resume processing service.
-
-    Handles the complete pipeline:
-    1. File validation and parsing
-    2. Content structuring with LLM
-    3. Storage to graph and vector DBs
-    4. Resume review generation
-    """
-
-    def __init__(self) -> None:
+    def __init__(self, graph_db: GraphDBService, vector_db: VectorDBService) -> None:
         self.embedding_service = EmbeddingService(settings.EMBEDDING_MODEL)
-        logger.info("ProcessingService initialized with batch-optimized EmbeddingService")
+        self.graph_db = graph_db
+        self.vector_db = vector_db
+        self.parsing_service = ParsingService()
+        logger.info("ProcessingService initialized")
 
     async def process_resume(
         self,
         file_path: str,
-        job_id: str,
+        uid: str,
     ) -> ProcessingResult:
         """
         Process a resume file through the complete pipeline.
 
         Args:
             file_path: Path to resume file (local or s3:// prefix)
-            job_id: Unique job identifier
+            uid: Unique identifier for both job and resume
 
         Returns:
             ProcessingResult with resume data, review, and metadata
@@ -61,11 +51,10 @@ class ProcessingService:
         file_path, source = await self._prepare_file_path(file_path)
         file_info = self._validate_file(file_path)
 
-        parser = self._get_parser(file_path, file_info["ext"])
-        parsed_doc = await parser.parse_to_json()
+        parsed_doc = await self.parsing_service.parse_file(file_path)
         resume = await self._structure_content(parsed_doc)
-        # Ensure resume has a stable uid equal to job_id for downstream storage and search
-        resume = resume.model_copy(update={"uid": job_id})
+
+        resume = resume.model_copy(update={"uid": uid})
 
         # Create metadata
         metadata = ProcessingMetadata(
@@ -73,11 +62,11 @@ class ProcessingService:
         )
 
         if settings.WORKER_STORE_IN_DB:
-            await self._store_to_databases(resume, job_id, metadata)
+            await self._store_to_databases(resume, uid, metadata)
 
         review = None
         if settings.WORKER_GENERATE_REVIEW:
-            review = await self._generate_review(parsed_doc, resume, job_id, metadata)
+            review = await self._generate_review(parsed_doc, resume, uid, metadata)
 
         return ProcessingResult(resume=resume, review=review, metadata=metadata)
 
@@ -112,69 +101,58 @@ class ProcessingService:
 
         return {"name": path.name, "ext": path.suffix.lower()}
 
-    def _get_parser(self, file_path: str, file_ext: str):
-        parser_type = get_parser_type(file_ext)
-
-        match parser_type:
-            case ParserType.PDF:
-                return ParsePdfService(file_path)
-            case ParserType.IMAGE:
-                return ParseImageService(file_path)
-            case ParserType.WORD:
-                return ParseWordService(file_path)
-            case _:
-                raise ValueError(f"Unsupported file type: {file_ext}")
-
     async def _structure_content(self, parsed_data: ParsedDocument) -> Resume:
         content_organizer = LLMContentStructureService(parsed_data)
         result = await content_organizer.structure_content()
         return result
 
-    async def _store_to_databases(self, resume: Resume, job_id: str, metadata: ProcessingMetadata) -> None:
+    async def _store_to_databases(self, resume: Resume, uid: str, metadata: ProcessingMetadata) -> None:
         """
         Store resume in graph and vector databases.
 
         Updates metadata with storage results.
         """
+        await self._store_to_graph(resume, uid, metadata)
+        await self._store_embeddings(resume, uid, metadata)
+
+    async def _store_to_graph(self, resume: Resume, uid: str, metadata: ProcessingMetadata) -> None:
         try:
-            await self._store_to_graph(resume, job_id, metadata)
-            resume_id = metadata.graph_id or job_id
-            await self._store_embeddings(resume, resume_id, metadata)
+            success = await self.graph_db.upsert_resume(resume)
+            if success:
+                metadata.graph_stored = True
+                logger.info("Stored resume %s in Neo4j", uid)
+            else:
+                metadata.graph_error = "Graph storage returned failure"
+                raise Exception(f"Failed to store resume {uid} in Neo4j")
         except Exception as e:
-            logger.error("Error storing data for job %s: %s", job_id, e)
-            metadata.storage_error = str(e)
+            metadata.graph_error = str(e)
+            logger.error("Error storing resume %s in Neo4j: %s", uid, e)
+            raise
 
-    async def _store_to_graph(self, resume: Resume, job_id: str, metadata: ProcessingMetadata) -> None:
-        graph = await GraphDBService.get_instance()
-        success = await graph.upsert_resume(resume)
+    async def _store_embeddings(self, resume: Resume, uid: str, metadata: ProcessingMetadata) -> None:
+        try:
+            logger.info("Starting embedding storage for uid %s", uid)
+            vectors = self._generate_embeddings_from_resume(resume)
+            if not vectors:
+                logger.warning("No vectors generated for uid %s", uid)
+                metadata.vector_stored = False
+                metadata.vector_count = 0
+                return
 
-        if success:
-            metadata.graph_id = resume.uid or job_id
-            metadata.graph_operation = "stored"
-        else:
-            metadata.graph_id = job_id
-            metadata.graph_operation = "failed"
-            raise Exception(f"Failed to store resume {resume.uid} in Neo4j")
+            logger.info("Storing %d vectors for uid %s", len(vectors), uid)
+            stored_ids = await self.vector_db.store_vectors(uid, vectors)
 
-    async def _store_embeddings(self, resume: Resume, resume_id: str, metadata: ProcessingMetadata) -> None:
-        logger.info("Starting embedding storage for resume %s", resume_id)
-        vectors = self._generate_embeddings_from_resume(resume)
-        if not vectors:
-            logger.warning("No vectors generated for resume %s", resume_id)
-            metadata.embeddings_stored = False
-            metadata.embeddings_count = 0
-            return
-
-        logger.info("Storing %d vectors for resume %s", len(vectors), resume_id)
-        vector_db = await VectorDBService.get_instance()
-        stored_ids = await vector_db.store_vectors(resume_id, vectors)
-
-        logger.info("Successfully stored %d vectors for resume %s", len(stored_ids), resume_id)
-        metadata.embeddings_stored = True
-        metadata.embeddings_count = len(stored_ids)
+            logger.info("Successfully stored %d vectors for uid %s", len(stored_ids), uid)
+            metadata.vector_stored = True
+            metadata.vector_count = len(stored_ids)
+        except Exception as e:
+            metadata.vector_error = str(e)
+            metadata.vector_stored = False
+            logger.error("Error storing vectors for uid %s: %s", uid, e)
+            raise
 
     async def _generate_review(
-        self, parsed_doc: ParsedDocument, resume: Resume, job_id: str, metadata: ProcessingMetadata
+        self, parsed_doc: ParsedDocument, resume: Resume, uid: str, metadata: ProcessingMetadata
     ) -> ReviewResult | None:
         try:
             review_service = ReviewService(parsed_doc, resume)
@@ -186,7 +164,7 @@ class ProcessingService:
             return review
 
         except Exception as e:
-            logger.error("Error generating review for job %s: %s", job_id, e)
+            logger.error("Error generating review for uid %s: %s", uid, e)
             metadata.review_error = str(e)
             metadata.review_generated = False
             return None

@@ -54,27 +54,27 @@ class SearchCoordinator:
             filters=None,
         )
 
-        grouped = self._group_vector_hits_by_resume_id(vector_hits)
+        grouped = self._group_vector_hits_by_uid(vector_hits)
 
-        resume_ids = list(grouped.keys())
-        complete_resumes = await self.graph_search.get_resumes_by_ids(resume_ids)
+        uids = list(grouped.keys())
+        complete_resumes = await self.graph_search.get_resumes_by_ids(uids)
 
         # Create a map for quick lookup
-        resume_map = {r.resume_id: r for r in complete_resumes}
+        resume_map = {r.uid: r for r in complete_resumes}
 
         # Combine vector hits with complete resume data
         results = []
-        for resume_id, hits in grouped.items():
-            if resume_id in resume_map:
+        for uid, hits in grouped.items():
+            if uid in resume_map:
                 # Use complete data from graph
-                result = resume_map[resume_id]
+                result = resume_map[uid]
                 # Keep the VectorHit objects for matches, just limit them
                 result.matches = hits[: request.max_matches_per_result]
                 result.score = max(hit.score for hit in hits)
             else:
                 # Fallback if not found in graph (shouldn't happen normally)
                 limited_hits = hits[: request.max_matches_per_result]
-                result = ResumeSearchResult.from_matches(resume_id, limited_hits)
+                result = ResumeSearchResult.from_matches(uid, limited_hits)
 
             results.append(result)
 
@@ -95,8 +95,8 @@ class SearchCoordinator:
             max_matches_per_result=request.max_matches_per_result,
         )
 
-    def _group_vector_hits_by_resume_id(self, hits: list[VectorHit]) -> dict[str, list[VectorHit]]:
+    def _group_vector_hits_by_uid(self, hits: list[VectorHit]) -> dict[str, list[VectorHit]]:
         grouped = defaultdict(list)
         for hit in hits:
-            grouped[hit.resume_id].append(hit)
+            grouped[hit.uid].append(hit)
         return dict(grouped)

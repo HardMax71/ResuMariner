@@ -8,13 +8,13 @@ export default function AnimatedTerminal({ isVisible }: AnimatedTerminalProps) {
   const [terminalStep, setTerminalStep] = useState(0);
   const [typedCommand, setTypedCommand] = useState('');
   const [typedResultCommand, setTypedResultCommand] = useState('');
-  const [commandText, setCommandText] = useState('curl -X POST /api/v1/upload -F "file=@resume.pdf"');
+  const [commandText, setCommandText] = useState('curl -X POST /api/v1/resumes -F "file=@resume.pdf"');
   const typingSpeed = 50;
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const singleLineCommand = 'curl -X POST /api/v1/upload -F "file=@resume.pdf"';
-  const multiLineCommand = 'curl -X POST /api/v1/upload \\\n  -F "file=@resume.pdf"';
-  const resultCommand = 'curl /api/v1/jobs/abc-123/result/';
+  const singleLineCommand = 'curl -X POST /api/v1/resumes -F "file=@resume.pdf"';
+  const multiLineCommand = 'curl -X POST /api/v1/resumes \\\n  -F "file=@resume.pdf"';
+  const resultCommand = 'curl /api/v1/resumes/abc-123/';
 
   // Measure and decide which command format to use
   useEffect(() => {
@@ -218,7 +218,7 @@ export default function AnimatedTerminal({ isVisible }: AnimatedTerminalProps) {
               <span style={{ color: 'var(--neutral-500)' }}>{'{'}</span>
             </div>
             <div style={{ fontSize: '14px', lineHeight: '1.6', paddingLeft: '16px' }}>
-              <span style={{ color: 'var(--primary-400)' }}>"job_id"</span>
+              <span style={{ color: 'var(--primary-400)' }}>"uid"</span>
               <span style={{ color: 'var(--neutral-500)' }}>: </span>
               <span style={{ color: 'var(--accent1-400)' }}>"abc-123"</span>
               <span style={{ color: 'var(--neutral-500)' }}>,</span>

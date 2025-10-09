@@ -1,4 +1,6 @@
 import logging
+import os
+import re
 import uuid
 
 from adrf.views import APIView
@@ -13,72 +15,118 @@ from rest_framework.response import Response
 
 from core.file_types import FILE_TYPE_REGISTRY
 
-from .serializers import FileUploadSerializer, JobResponseSerializer, JobStatus
+from .serializers import FileUploadSerializer, JobStatus, ResumeResponseSerializer
 from .services.cleanup_service import CleanupService
 from .services.file_service import FileService
 from .services.job_service import JobService
+from .services.parsing.parsing_service import ParsingService
 from .utils.redis_queue import RedisJobQueue
 
 logger = logging.getLogger(__name__)
 
 
-class UploadCVView(APIView):
+class ResumeCollectionView(APIView):
+    @extend_schema(
+        responses={200: OpenApiResponse(description="List of all resumes with their processing status")},
+        description="List all resumes in the system.",
+    )
+    async def get(self, request: Request) -> Response:
+        service = JobService()
+        jobs = await service.list_jobs(limit=100)
+
+        jobs_data = []
+        for job in jobs:
+            job_dict = job.model_dump(mode="json")
+            jobs_data.append(job_dict)
+
+        return Response({"count": len(jobs_data), "resumes": jobs_data})
+
     @extend_schema(
         request=FileUploadSerializer,
-        responses={202: JobResponseSerializer},
-        description="Upload a resume file for processing. Supported formats available at /api/v1/config/file-types/. Returns a job ID for tracking.",
+        responses={202: ResumeResponseSerializer},
+        description="Upload a resume file for processing. Supported formats available at /api/v1/config/file-types/. Returns resume ID for tracking.",
     )
     async def post(self, request: Request) -> Response:
         serializer = FileUploadSerializer(data=request.data)
         if not serializer.is_valid():
+            logger.error(f"File upload validation failed: {serializer.errors}")
             return Response({"detail": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
         file = serializer.validated_data["file"]
-        job_id = str(uuid.uuid4())
+        file_content = file.read()
 
         try:
-            file.seek(0)
-            temp_path = await FileService.save_validated_content(file.read(), file.name, job_id)
+            uid = str(uuid.uuid4())
+            temp_path = await FileService.save_validated_content(file_content, file.name, uid)
+
+            parser = ParsingService()
+            parsed_doc = await parser.parse_file(temp_path)
+            text = " ".join(filter(None, [page.text for page in parsed_doc.pages]))
+
+            email_match = re.search(r"[\w._%+-]+@[\w.-]+\.[A-Z]{2,}", text, re.I)
+            if not email_match:
+                file_ext = os.path.splitext(file.name)[1].lower()
+                await FileService.cleanup_all_job_files(uid, file_ext)
+                return Response(
+                    {"detail": "Cannot process resume without email address"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
+            email = email_match.group(0).lower()
+            existing = await request.graph_db.get_resume_by_email(email)
+
+            if existing:
+                file_ext = os.path.splitext(file.name)[1].lower()
+                await FileService.cleanup_all_job_files(uid, file_ext)
+                return Response({"uid": existing.uid, "message": "Resume already exists"}, status=status.HTTP_200_OK)
 
             service = JobService()
-            job = await service.create_job(temp_path)
-            _ = await service.process_job(job.job_id)
+            job = await service.create_job(file_path=temp_path, uid=uid)
+            _ = await service.process_job(job.uid)
 
-            response_data = JobResponseSerializer(job.model_dump()).data
+            job_data = job.model_dump()
+            response_data = ResumeResponseSerializer(job_data).data
             return Response(response_data, status=status.HTTP_202_ACCEPTED)
         except Exception as e:
+            logger.error("Upload failed: %s", e)
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class JobStatusView(APIView):
+class ResumeDetailView(APIView):
     @extend_schema(
-        responses={200: JobResponseSerializer},
-        description="Get the status of a processing job. Returns job status (pending, processing, completed, failed) and result URL if completed.",
+        responses={200: OpenApiResponse(description="Resume data with processing status")},
+        description="Get resume by ID. Returns status and full data if completed.",
     )
-    async def get(self, request, job_id):
+    async def get(self, request, uid):
         service = JobService()
-        job = await service.get_job(job_id)
+        job = await service.get_job(uid)
         if not job:
-            return Response({"detail": "Job not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Resume not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Add result_url to response
-        job_data = job.model_dump()
+        response_data = {
+            "uid": job.uid,
+            "status": job.status,
+            "created_at": job.created_at,
+            "updated_at": job.updated_at,
+        }
+
         if job.status == JobStatus.COMPLETED:
-            job_data["result_url"] = request.build_absolute_uri(f"/api/v1/jobs/{job_id}/result/")
+            if job.result:
+                response_data["data"] = job.result
+        elif job.status == JobStatus.FAILED:
+            response_data["error"] = job.error
 
-        serializer = JobResponseSerializer(job_data)
-        return Response(serializer.data)
+        return Response(response_data)
 
     @extend_schema(
         responses={
-            200: OpenApiResponse(description="Deletion result with status for each component"),
-            404: OpenApiResponse(description="Job not found"),
+            200: OpenApiResponse(description="Deletion result"),
+            404: OpenApiResponse(description="Resume not found"),
         },
-        description="Delete a job and all associated data including resume from graph DB, vectors from vector DB, and uploaded file. Preserves shared entities like company names and institutions.",
+        description="Delete resume and all associated data (vectors, files). Preserves shared entities.",
     )
-    async def delete(self, request, job_id):
+    async def delete(self, request, uid):
         service = JobService()
-        result = await service.delete_job_complete(job_id)
+        result = await service.delete_job_complete(uid, request.graph_db, request.vector_db)
 
         if result["errors"] and not result["job_deleted"]:
             return Response(result, status=status.HTTP_404_NOT_FOUND)
@@ -86,27 +134,29 @@ class JobStatusView(APIView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class JobResultView(APIView):
+class ResumeByEmailView(APIView):
     @extend_schema(
-        responses={200: OpenApiResponse(description="Job result containing resume data, review, and metadata")},
-        description="Get the result of a completed job. Returns structured resume data, review feedback, and processing metadata.",
+        responses={
+            200: OpenApiResponse(description="Resume deleted successfully"),
+            404: OpenApiResponse(description="Resume not found"),
+        },
+        description="Delete resume by email address.",
     )
-    async def get(self, request, job_id):
+    async def delete(self, request, email: str):
+        existing = await request.graph_db.get_resume_by_email(email.lower())
+        if not existing:
+            return Response({"detail": "Resume not found"}, status=status.HTTP_404_NOT_FOUND)
+
         service = JobService()
-        job = await service.get_job(job_id)
-        if not job:
-            return Response({"detail": "Job not found"}, status=status.HTTP_404_NOT_FOUND)
+        result = await service.delete_job_complete(existing.uid, request.graph_db, request.vector_db)
 
-        if job.status != JobStatus.COMPLETED:
-            return Response({"detail": "Job not completed yet"}, status=status.HTTP_400_BAD_REQUEST)
+        if result["errors"] and not result["job_deleted"]:
+            return Response(result, status=status.HTTP_404_NOT_FOUND)
 
-        if not job.result:
-            return Response({"detail": "No result data available"}, status=status.HTTP_404_NOT_FOUND)
-
-        return Response(job.result)
+        return Response(result, status=status.HTTP_200_OK)
 
 
-class CleanupJobsView(APIView):
+class CleanupResumesView(APIView):
     @extend_schema(
         request={
             "application/json": {
@@ -115,14 +165,14 @@ class CleanupJobsView(APIView):
             }
         },
         responses={200: OpenApiResponse(description="Cleanup result with deleted count")},
-        description="Cleanup old jobs. Deletes jobs older than specified days. Use force=true to delete all jobs.",
+        description="Cleanup old resumes. Deletes resumes older than specified days. Use force=true to delete all.",
     )
     async def post(self, request: Request) -> Response:
         days = request.data.get("days", settings.JOB_RETENTION_DAYS)
         force = request.data.get("force", False)
 
         cleanup = CleanupService()
-        deleted_count = await cleanup.cleanup_old_jobs(days=days, force=force)
+        deleted_count = await cleanup.cleanup_old_jobs(days, request.graph_db, request.vector_db, force=force)
 
         return Response(
             {"status": "success", "deleted_count": deleted_count, "retention_days": days}, status=status.HTTP_200_OK

@@ -1,8 +1,10 @@
+import glob
 import logging
 import os
 import uuid
 from pathlib import Path
 
+import aioboto3
 import aiofiles
 import aiofiles.os
 from botocore.exceptions import ClientError
@@ -21,14 +23,14 @@ class FileService:
     _temp_files: dict[str, str] = {}
 
     @staticmethod
-    async def save_validated_content(content: bytes, filename: str, job_id: str) -> str:
+    async def save_validated_content(content: bytes, filename: str, uid: str) -> str:
         """
         Save already-validated file content to temporary and durable storage.
 
         Args:
             content: Validated file content as bytes
             filename: Original filename (for extension extraction)
-            job_id: Unique job identifier
+            uid: Unique identifier
 
         Returns:
             Path to the saved temporary file
@@ -36,32 +38,32 @@ class FileService:
         file_ext = os.path.splitext(filename)[1].lower()
 
         Path(settings.TEMP_DIR).mkdir(parents=True, exist_ok=True)
-        temp_filename = f"{job_id}{file_ext}"
+        temp_filename = f"{uid}{file_ext}"
         temp_path = os.path.join(settings.TEMP_DIR, temp_filename)
 
         async with aiofiles.open(temp_path, "wb") as f:
             await f.write(content)
 
-        FileService._temp_files[job_id] = temp_path
-        await FileService._handle_durable_storage(temp_path, job_id, file_ext)
+        FileService._temp_files[uid] = temp_path
+        await FileService._handle_durable_storage(temp_path, uid, file_ext)
 
         return temp_path
 
     @staticmethod
-    async def _handle_durable_storage(temp_path: str, job_id: str, file_ext: str) -> None:
+    async def _handle_durable_storage(temp_path: str, uid: str, file_ext: str) -> None:
         """
         Handle saving to durable storage (S3 or local).
 
         Args:
             temp_path: Path to temporary file
-            job_id: Unique job identifier
+            uid: Unique identifier
             file_ext: File extension including dot
         """
         if settings.DURABLE_STORAGE == "s3":
-            await FileService._save_to_s3_async(temp_path, job_id, file_ext)
+            await FileService._save_to_s3_async(temp_path, uid, file_ext)
         elif settings.DURABLE_STORAGE == "local":
             Path(settings.UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
-            temp_filename = f"{job_id}{file_ext}"
+            temp_filename = f"{uid}{file_ext}"
             durable_path = os.path.join(settings.UPLOAD_DIR, temp_filename)
             # For async file copy
             async with aiofiles.open(temp_path, "rb") as src:
@@ -69,31 +71,29 @@ class FileService:
                     await dst.write(await src.read())
 
     @staticmethod
-    async def cleanup_temp_file(job_id: str) -> None:
+    async def cleanup_temp_file(uid: str) -> None:
         try:
-            if job_id in FileService._temp_files:
-                temp_path = FileService._temp_files[job_id]
+            if uid in FileService._temp_files:
+                temp_path = FileService._temp_files[uid]
                 if await aiofiles.os.path.exists(temp_path):
                     await aiofiles.os.remove(temp_path)
-                del FileService._temp_files[job_id]
+                del FileService._temp_files[uid]
         except Exception:
-            logger.warning("Error cleaning up temp file for job %s", job_id)
+            logger.warning("Error cleaning up temp file for uid %s", uid)
 
     @staticmethod
-    async def cleanup_all_job_files(job_id: str, file_ext: str | None = None) -> None:
-        await FileService.cleanup_temp_file(job_id)
+    async def cleanup_all_job_files(uid: str, file_ext: str | None = None) -> None:
+        await FileService.cleanup_temp_file(uid)
 
         if settings.DURABLE_STORAGE == "s3":
-            await FileService.delete_from_s3_async(job_id, file_ext)
+            await FileService.delete_from_s3_async(uid, file_ext)
         elif settings.DURABLE_STORAGE == "local":
-            await FileService.cleanup_local_file(job_id, file_ext)
+            await FileService.cleanup_local_file(uid, file_ext)
 
     @staticmethod
-    async def cleanup_local_file(job_id: str, file_ext: str | None = None) -> None:
+    async def cleanup_local_file(uid: str, file_ext: str | None = None) -> None:
         if not file_ext:
-            pattern = os.path.join(settings.UPLOAD_DIR, f"{job_id}.*")
-            import glob
-
+            pattern = os.path.join(settings.UPLOAD_DIR, f"{uid}.*")
             files = glob.glob(pattern)
             for file_path in files:
                 try:
@@ -101,7 +101,7 @@ class FileService:
                 except Exception:
                     logger.warning("Error removing local file %s", file_path)
         else:
-            file_path = os.path.join(settings.UPLOAD_DIR, f"{job_id}{file_ext}")
+            file_path = os.path.join(settings.UPLOAD_DIR, f"{uid}{file_ext}")
             if await aiofiles.os.path.exists(file_path):
                 try:
                     await aiofiles.os.remove(file_path)
@@ -109,9 +109,7 @@ class FileService:
                     logger.warning("Error removing local file %s", file_path)
 
     @staticmethod
-    async def delete_from_s3_async(job_id: str, file_ext: str | None = None) -> None:
-        import aioboto3
-
+    async def delete_from_s3_async(uid: str, file_ext: str | None = None) -> None:
         session = aioboto3.Session()
         async with session.client(
             "s3",
@@ -123,7 +121,7 @@ class FileService:
             bucket_name = settings.AWS_STORAGE_BUCKET_NAME
 
             if file_ext:
-                key = f"{job_id}{file_ext}"
+                key = f"{uid}{file_ext}"
                 try:
                     await s3.delete_object(Bucket=bucket_name, Key=key)
                     logger.info("Deleted S3 object %s from bucket %s", key, bucket_name)
@@ -132,21 +130,19 @@ class FileService:
                         logger.warning("Error deleting S3 object %s: %s", key, e)
             else:
                 try:
-                    response = await s3.list_objects_v2(Bucket=bucket_name, Prefix=job_id)
+                    response = await s3.list_objects_v2(Bucket=bucket_name, Prefix=uid)
                     if "Contents" in response:
                         objects = [{"Key": obj["Key"]} for obj in response["Contents"]]
                         if objects:
                             await s3.delete_objects(Bucket=bucket_name, Delete={"Objects": objects})
-                            logger.info("Deleted %d S3 objects with prefix %s", len(objects), job_id)
+                            logger.info("Deleted %d S3 objects with prefix %s", len(objects), uid)
                 except ClientError as e:
-                    logger.warning("Error deleting S3 objects with prefix %s: %s", job_id, e)
+                    logger.warning("Error deleting S3 objects with prefix %s: %s", uid, e)
 
     @staticmethod
     async def download_from_s3_async(s3_key: str) -> str:
         temp_path = os.path.join(settings.TEMP_DIR, f"s3_{uuid.uuid4()}_{os.path.basename(s3_key)}")
         Path(os.path.dirname(temp_path)).mkdir(parents=True, exist_ok=True)
-
-        import aioboto3
 
         session = aioboto3.Session()
         async with session.client(
@@ -160,11 +156,9 @@ class FileService:
         return temp_path
 
     @staticmethod
-    async def _save_to_s3_async(file_path: str, job_id: str, file_ext: str) -> str:
+    async def _save_to_s3_async(file_path: str, uid: str, file_ext: str) -> str:
         bucket_name = settings.AWS_STORAGE_BUCKET_NAME
-        key = f"{job_id}{file_ext}"
-
-        import aioboto3
+        key = f"{uid}{file_ext}"
 
         session = aioboto3.Session()
         async with session.client(

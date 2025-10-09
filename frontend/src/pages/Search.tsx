@@ -360,7 +360,7 @@ export default function Search() {
           ) : (
             <div className="stack">
               {res.results.map(r => (
-                <ResultCard key={r.resume_id} result={r} />
+                <ResultCard key={r.uid} result={r} />
               ))}
             </div>
           )}
