@@ -4,20 +4,6 @@ from rest_framework import serializers
 from core.domain import SearchFilters, SearchRequest, SearchType
 from core.domain.resume import EducationStatus
 
-"""
-Note on type ignores for 'source' and 'context' fields:
-
-Django REST Framework's Field base class defines 'source' and 'context' as internal
-attributes with specific types (source: Callable[..., Any] | str | None and
-context: dict[str, Any]). When we create serializer fields named 'source' or 'context',
-mypy incorrectly flags these as type conflicts even though DRF handles this correctly
-at runtime.
-
-These are legitimate field names representing data attributes, not the internal
-DRF field configuration. The type: ignore comments are necessary because mypy cannot
-distinguish between field names and internal attributes in this context.
-"""
-
 
 class SearchMatchSerializer(serializers.Serializer):
     text = serializers.CharField(help_text="Matching text")

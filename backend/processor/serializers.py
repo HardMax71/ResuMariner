@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
-from enum import StrEnum
 
+from django.db.models import TextChoices
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -13,25 +13,9 @@ from core.file_types import (
     validate_file_signature,
 )
 
-"""
-> python -c "from processor.serializers import JobStatus; print('JobStatus values:', list(JobStatus))"
-returns:  [<JobStatus.PENDING: 'pending'>, <JobStatus.PROCESSING: 'processing'>,
-     <JobStatus.COMPLETED: 'completed'>, <JobStatus.FAILED: 'failed'>]
 
-Weird things with <> (cause of __repr__) = bad!
-
-> python -c "from processor.serializers import JobStatus; print('JobStatus values:', [s.value for s in JobStatus])"
-returns: JobStatus values: ['pending', 'processing', 'completed', 'failed']
-
-`s.value for s in ..` in every place = code smell = bad!
-
-TODO: Maybe some 3rd better option available?
-
-* inheriting from StrEnum with `__repr__: self.value` is also code smell tbh
-"""
-
-
-class JobStatus(StrEnum):
+# https://docs.djangoproject.com/en/5.2/ref/models/fields/
+class JobStatus(TextChoices):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -82,7 +66,7 @@ class JobCreateSerializer(serializers.Serializer):
 
 
 class JobUpdateSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=[s.value for s in JobStatus], required=False)
+    status = serializers.ChoiceField(choices=JobStatus.choices, required=False)
     result = serializers.JSONField(required=False)
     result_url = serializers.URLField(required=False, allow_blank=True)
     error = serializers.CharField(required=False, allow_blank=True)
@@ -91,7 +75,7 @@ class JobUpdateSerializer(serializers.Serializer):
 
 class JobSerializer(serializers.Serializer):
     uid = serializers.CharField()
-    status = serializers.ChoiceField(choices=[s.value for s in JobStatus], default=JobStatus.PENDING)
+    status = serializers.ChoiceField(choices=JobStatus.choices, default=JobStatus.PENDING)
     file_path = serializers.CharField()
     created_at = serializers.DateTimeField(default=datetime.now)
     updated_at = serializers.DateTimeField(default=datetime.now)
@@ -104,7 +88,7 @@ class JobSerializer(serializers.Serializer):
 
 class ResumeResponseSerializer(serializers.Serializer):
     uid = serializers.CharField(help_text="Resume unique identifier")
-    status = serializers.ChoiceField(choices=[s.value for s in JobStatus], help_text="Processing status")
+    status = serializers.ChoiceField(choices=JobStatus.choices, help_text="Processing status")
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
     result_url = serializers.URLField(required=False, allow_null=True)

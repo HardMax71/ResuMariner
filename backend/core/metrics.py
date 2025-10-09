@@ -1,13 +1,5 @@
-"""
-Centralized Prometheus metrics definitions.
-
-All metrics are defined at module level to ensure they're singleton instances.
-This follows prometheus_client best practices for Django applications.
-"""
-
 from prometheus_client import Counter, Gauge, Histogram
 
-# HTTP Request metrics
 REQUEST_COUNT = Counter(
     "django_requests_total",
     "Total HTTP requests",
@@ -20,7 +12,6 @@ REQUEST_DURATION = Histogram(
     ["method", "endpoint"],
 )
 
-# Redis Queue metrics
 REDIS_QUEUE_LENGTH = Gauge("redis_queue_length", "Number of jobs in main queue")
 
 REDIS_CLEANUP_QUEUE_LENGTH = Gauge("redis_cleanup_queue_length", "Number of jobs in cleanup queue")
@@ -31,7 +22,6 @@ REDIS_ACTIVE_JOBS = Gauge("redis_active_jobs", "Number of currently active jobs"
 
 REDIS_MEMORY_USAGE = Gauge("redis_memory_usage_bytes", "Redis memory usage in bytes")
 
-# Embedding service metrics
 EMBEDDING_API_CALLS = Counter(
     "embedding_api_calls_total",
     "Total calls to embedding API",

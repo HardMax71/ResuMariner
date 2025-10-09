@@ -10,7 +10,6 @@ class SearchType(StrEnum):
     HYBRID = "hybrid"
 
 
-# CEFR level ordering for comparison
 CEFR_ORDER = {"A1": 1, "A2": 2, "B1": 3, "B2": 4, "C1": 5, "C2": 6}
 
 

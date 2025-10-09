@@ -139,6 +139,7 @@ export default function JobStatus() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["personal", "skills"]));
   const [copiedButtons, setCopiedButtons] = useState<Set<string>>(new Set());
   const [isSkillsOverflowing, setIsSkillsOverflowing] = useState(false);
+  const [isSkillsAtBottom, setIsSkillsAtBottom] = useState(false);
   const skillsContainerRef = useRef<HTMLDivElement>(null);
 
   const { data: job, error: jobError } = useResumeStatus(uid);
@@ -154,9 +155,30 @@ export default function JobStatus() {
       }
     };
 
+    const checkScrollPosition = () => {
+      if (skillsContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = skillsContainerRef.current;
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 5; // 5px threshold
+        setIsSkillsAtBottom(isAtBottom);
+      }
+    };
+
     checkOverflow();
+    checkScrollPosition();
+
+    const container = skillsContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScrollPosition);
+    }
+
     window.addEventListener('resize', checkOverflow);
-    return () => window.removeEventListener('resize', checkOverflow);
+
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', checkScrollPosition);
+      }
+      window.removeEventListener('resize', checkOverflow);
+    };
   }, [result]);
 
   const handleCopy = (text: string, buttonId: string) => {
@@ -1969,7 +1991,9 @@ export default function JobStatus() {
                             height: "40px",
                             background: "linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95))",
                             pointerEvents: "none",
-                            borderRadius: "0 0 var(--radius-sm) var(--radius-sm)"
+                            borderRadius: "0 0 var(--radius-sm) var(--radius-sm)",
+                            opacity: isSkillsAtBottom ? 0 : 1,
+                            transition: "opacity 0.3s ease"
                           }}></div>
                         )}
                       </div>

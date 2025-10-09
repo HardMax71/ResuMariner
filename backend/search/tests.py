@@ -1,5 +1,3 @@
-"""Smoke tests for search routes focusing on available HTTP methods."""
-
 from django.test import Client, TestCase
 
 

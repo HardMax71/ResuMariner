@@ -1,5 +1,3 @@
-"""Integration-style tests for core domain models and file utilities."""
-
 from __future__ import annotations
 
 from pathlib import Path

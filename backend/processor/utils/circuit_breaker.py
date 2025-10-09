@@ -6,7 +6,6 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 
 logger = logging.getLogger(__name__)
 
-# Default settings: 5 failures trigger open state, 60 seconds recovery timeout
 http_circuit_breaker = pybreaker.CircuitBreaker(
     fail_max=5,
     reset_timeout=60,
