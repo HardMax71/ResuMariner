@@ -61,9 +61,11 @@ class ResumeCollectionView(APIView):
 
             parser = ParsingService()
             parsed_doc = await parser.parse_file(temp_path)
-            text = " ".join(filter(None, [page.text for page in parsed_doc.pages]))
 
-            email_match = re.search(r"[\w._%+-]+@[\w.-]+\.[A-Z]{2,}", text, re.I)
+            link_urls = " ".join(link.url for page in parsed_doc.pages for link in page.links)
+            page_text = " ".join(filter(None, [page.text for page in parsed_doc.pages]))
+
+            email_match = re.search(r"[\w._%+-]+@[\w.-]+\.[A-Z]{2,}", link_urls + " " + page_text, re.I)
             if not email_match:
                 file_ext = os.path.splitext(file.name)[1].lower()
                 await FileService.cleanup_all_job_files(uid, file_ext)

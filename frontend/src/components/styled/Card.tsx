@@ -38,7 +38,6 @@ export const MetricValue = styled.div<{ color?: string }>`
   font-weight: 800;
   color: ${props => props.color || 'var(--neutral-900)'};
   line-height: 1;
-  font-family: var(--font-display);
 `;
 
 export const IconWrapper = styled.div<{ color?: string; bgColor?: string }>`

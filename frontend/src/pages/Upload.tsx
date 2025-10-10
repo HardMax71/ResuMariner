@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import FileDropzone from "../components/FileDropzone";
 import { useResumeUpload } from "../hooks/useResumeUpload";
-import { Zap } from "lucide-react";
 import { PageWrapper, PageContainer } from "../components/styled";
 
 export default function Upload() {
@@ -23,9 +22,6 @@ export default function Upload() {
 
   return (
     <PageWrapper>
-      <div className="decorative-blur decorative-blur-primary-top" />
-      <div className="decorative-blur decorative-blur-primary-bottom" />
-
       <PageContainer>
         <div style={{
           textAlign: "center",
@@ -33,48 +29,29 @@ export default function Upload() {
         }}>
           <h1 style={{
             fontFamily: "var(--font-display)",
-            fontSize: "clamp(2.5rem, 6vw, 3.75rem)",
+            fontSize: "clamp(2.5rem, 6vw, 3.5rem)",
             fontWeight: 800,
-            background: "linear-gradient(135deg, #0c0a09 0%, #292524 50%, #44403c 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            marginBottom: "var(--space-5)",
+            color: "var(--neutral-900)",
+            marginBottom: "var(--space-4)",
             lineHeight: 1.1,
-            letterSpacing: "-0.02em"
+            letterSpacing: "-0.03em"
           }}>
             Process Your Resume
           </h1>
 
           <p style={{
             fontSize: "var(--text-xl)",
-            color: "var(--neutral-700)",
+            color: "var(--neutral-600)",
             lineHeight: 1.6,
             maxWidth: "620px",
-            margin: "0 auto",
-            fontWeight: 500
+            margin: "0 auto"
           }}>
-            Upload your CV and extract structured data{" "}
-            <span style={{
-              background: "linear-gradient(120deg, #4338ca 0%, #6366f1 50%, #4338ca 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              fontWeight: 800,
-              fontSize: "var(--text-2xl)",
-              position: "relative",
-              display: "inline-block",
-              letterSpacing: "-0.01em"
-            }}>
-              instantly
-            </span>
-            {" "}with LLM-powered parsing
+            Upload your CV and extract structured data instantly with LLM-powered parsing
           </p>
         </div>
 
         <div className="glass-card" style={{
-          padding: "var(--space-8)",
-          boxShadow: "0 20px 60px rgba(67, 56, 202, 0.12), 0 8px 24px rgba(0, 0, 0, 0.08)"
+          padding: "var(--space-8)"
         }}>
           <form onSubmit={onSubmit}>
             <FileDropzone onFileSelected={setFile} selectedFile={file} />
@@ -105,42 +82,36 @@ export default function Upload() {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: "10px",
-                  padding: "16px 40px",
-                  fontSize: "var(--text-lg)",
+                  justifyContent: "center",
+                  padding: "16px 32px",
+                  fontSize: "var(--text-base)",
                   fontWeight: 700,
                   fontFamily: "var(--font-body)",
-                  color: "#ffffff",
+                  color: "white",
                   background: isPending || !file
-                    ? "#d4d4d8"
-                    : "linear-gradient(135deg, #4338ca 0%, #6366f1 50%, #4338ca 100%)",
-                  backgroundSize: isPending || !file ? "100% 100%" : "200% 100%",
+                    ? "var(--neutral-300)"
+                    : "linear-gradient(135deg, var(--primary-700) 0%, var(--primary-600) 100%)",
                   border: "none",
                   borderRadius: "var(--radius-sm)",
                   cursor: isPending || !file ? "not-allowed" : "pointer",
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  transition: "all 0.3s",
                   boxShadow: isPending || !file
                     ? "none"
-                    : "0 8px 24px rgba(67, 56, 202, 0.35), 0 2px 8px rgba(0, 0, 0, 0.1)",
-                  position: "relative",
-                  overflow: "hidden"
+                    : "0 8px 24px rgba(67, 56, 202, 0.4)"
                 }}
                 onMouseEnter={(e) => {
                   if (!isPending && file) {
-                    e.currentTarget.style.transform = "translateY(-3px) scale(1.02)";
-                    e.currentTarget.style.boxShadow = "0 12px 32px rgba(67, 56, 202, 0.45), 0 4px 12px rgba(0, 0, 0, 0.15)";
-                    e.currentTarget.style.backgroundPosition = "100% 0";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 12px 32px rgba(67, 56, 202, 0.5)";
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isPending && file) {
-                    e.currentTarget.style.transform = "translateY(0) scale(1)";
-                    e.currentTarget.style.boxShadow = "0 8px 24px rgba(67, 56, 202, 0.35), 0 2px 8px rgba(0, 0, 0, 0.1)";
-                    e.currentTarget.style.backgroundPosition = "0% 0";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 8px 24px rgba(67, 56, 202, 0.4)";
                   }
                 }}
               >
-                <Zap size={20} strokeWidth={2.5} />
                 {isPending ? "Processing…" : "Start Processing"}
               </button>
             </div>

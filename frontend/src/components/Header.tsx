@@ -50,7 +50,7 @@ export default function Header() {
           <Link
             to="/"
             style={{
-              fontFamily: "Manrope, sans-serif",
+              fontFamily: "var(--font-display)",
               fontSize: "20px",
               fontWeight: 800,
               textDecoration: "none",
@@ -100,7 +100,7 @@ export default function Header() {
                     alignItems: "center",
                     gap: "6px",
                     padding: "8px 14px",
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: "var(--font-body)",
                     fontSize: "14px",
                     fontWeight: 600,
                     color: "#ffffff",
@@ -142,7 +142,7 @@ export default function Header() {
                 justifyContent: "center",
                 padding: "8px",
                 marginLeft: "8px",
-                fontFamily: "Inter, sans-serif",
+                fontFamily: "var(--font-body)",
                 fontSize: "14px",
                 fontWeight: 600,
                 color: "#ffffff",
@@ -204,7 +204,7 @@ export default function Header() {
                   alignItems: "center",
                   gap: "4px",
                   padding: "8px",
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: "var(--font-body)",
                   fontSize: "12px",
                   fontWeight: 600,
                   color: isActive ? "#818cf8" : "#a8a29e",
