@@ -48,6 +48,8 @@ class DatabaseServicesMiddleware:
 
     def __init__(self, get_response: Callable[[HttpRequest], Awaitable[HttpResponse]]):
         self.get_response = get_response
+        self.graph_db = create_graph_service()
+        self.vector_db = create_vector_service()
         self.redis_pool = redis.ConnectionPool(
             host=settings.REDIS_HOST,
             port=settings.REDIS_PORT,
@@ -55,10 +57,11 @@ class DatabaseServicesMiddleware:
             decode_responses=True,
             max_connections=50,
         )
+        logger.info("Database services initialized (singleton instances)")
 
     async def __call__(self, request: HttpRequest) -> HttpResponse:
-        request.graph_db = create_graph_service()  # type: ignore[attr-defined]
-        request.vector_db = create_vector_service()  # type: ignore[attr-defined]
+        request.graph_db = self.graph_db  # type: ignore[attr-defined]
+        request.vector_db = self.vector_db  # type: ignore[attr-defined]
         request.redis = redis.Redis(connection_pool=self.redis_pool)  # type: ignore[attr-defined]
 
         response = await self.get_response(request)

@@ -8,6 +8,7 @@ from django.conf import settings
 from neomodel import adb
 
 from core.database import create_graph_service, create_vector_service
+from core.domain.extraction import ParsedDocument
 from processor.models import CleanupTask, QueuedTask
 from processor.services.processing_service import ProcessingService
 
@@ -76,7 +77,10 @@ class ProcessingWorker(BaseWorker):
 
             self.logger.info("Processing job %s", uid)
 
-            result = await self.processing_service.process_resume(file_path=file_path, uid=uid)  # type: ignore[union-attr]
+            # Extract parsed document from first-class field
+            parsed_doc = ParsedDocument.from_dict(job_data.parsed_doc)
+
+            result = await self.processing_service.process_resume(file_path=file_path, uid=uid, parsed_doc=parsed_doc)  # type: ignore[union-attr]
 
             result_dict = {
                 "resume": result.resume.model_dump(),

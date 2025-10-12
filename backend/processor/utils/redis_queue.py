@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import redis.asyncio as aioredis
-from asgiref.sync import async_to_sync
 from django.conf import settings
 
 from processor.models import CleanupTask, QueuedTask
@@ -28,7 +27,7 @@ class RedisJobQueue:
         self.retry_set = "cv:retry:scheduled"
         self.pubsub = None
 
-    async def enqueue_job(self, uid: str, file_path: str, task_data: dict | None = None, priority: int = 0) -> str:
+    async def enqueue_job(self, uid: str, file_path: str, parsed_doc: dict[str, Any], priority: int = 0) -> str:
         redis_client = await self.get_redis()
         task_id = str(uuid.uuid4())
 
@@ -36,11 +35,11 @@ class RedisJobQueue:
             task_id=task_id,
             uid=uid,
             file_path=file_path,
+            parsed_doc=parsed_doc,
             priority=priority,
             enqueued_at=datetime.now().isoformat(),
             retries=0,
             max_retries=settings.REDIS_MAX_RETRIES,
-            options=task_data.get("options") if task_data else None,
         )
 
         task_key = f"{self.task_key_prefix}{task_id}"
@@ -59,10 +58,6 @@ class RedisJobQueue:
 
         await pipeline.execute()
         return task_id
-
-    def enqueue_job_sync(self, uid: str, file_path: str, task_data: dict | None = None, priority: int = 0) -> str:
-        """Sync wrapper for enqueue_job for use in sync Django views"""
-        return async_to_sync(self.enqueue_job)(uid, file_path, task_data, priority)
 
     async def get_redis(self) -> aioredis.Redis:
         if not self.redis:
@@ -191,10 +186,6 @@ class RedisJobQueue:
         if not job_data:
             return None
         return QueuedTask.from_redis_dict(job_data)
-
-    def get_job_status_sync(self, task_id: str) -> QueuedTask | None:
-        """Sync wrapper for get_job_status"""
-        return async_to_sync(self.get_job_status)(task_id)
 
     async def listen_for_retries(self):
         redis_client = await self.get_redis()

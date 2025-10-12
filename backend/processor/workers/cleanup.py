@@ -152,11 +152,7 @@ class CleanupWorker(BaseWorker):
                 self.logger.info("Job %s still processing, skipping cleanup", uid)
                 return
 
-            file_ext = None
-            if job.file_path:
-                file_ext = Path(job.file_path).suffix
-
-            await FileService.cleanup_all_job_files(uid, file_ext)
+            await FileService.cleanup_all_job_files(uid)
             success = await self.cleanup_service.cleanup_job(uid, self.graph_db, self.vector_db)
             if success:
                 self.logger.info("Successfully cleaned up job %s", uid)

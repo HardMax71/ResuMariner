@@ -3,6 +3,7 @@ import sys
 import uuid
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 from neomodel import config as neomodel_config
 
@@ -26,7 +27,10 @@ else:
 # CORE DJANGO SETTINGS
 # =============================================================================
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-key-change-this-in-production")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured("SECRET_KEY must be set in environment")
+
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
@@ -104,8 +108,14 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # API Security
-API_KEY = os.getenv("API_KEY", "dev_api_key_16chars_minimum")
-JWT_SECRET = os.getenv("JWT_SECRET", "dev_jwt_secret_key_32_characters_minimum_required")
+API_KEY = os.getenv("API_KEY")
+if not API_KEY:
+    raise ImproperlyConfigured("API_KEY must be set in environment")
+
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    raise ImproperlyConfigured("JWT_SECRET must be set in environment")
+
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 

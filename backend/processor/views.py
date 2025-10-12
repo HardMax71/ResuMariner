@@ -1,7 +1,4 @@
 import logging
-import os
-import re
-import uuid
 
 from adrf.views import APIView
 from django.conf import settings
@@ -15,11 +12,9 @@ from rest_framework.response import Response
 
 from core.file_types import FILE_TYPE_REGISTRY
 
-from .serializers import FileUploadSerializer, JobStatus, ResumeResponseSerializer
+from .serializers import CleanupSerializer, FileUploadSerializer, JobStatus, ResumeResponseSerializer
 from .services.cleanup_service import CleanupService
-from .services.file_service import FileService
 from .services.job_service import JobService
-from .services.parsing.parsing_service import ParsingService
 from .utils.redis_queue import RedisJobQueue
 
 logger = logging.getLogger(__name__)
@@ -56,36 +51,16 @@ class ResumeCollectionView(APIView):
         file_content = file.read()
 
         try:
-            uid = str(uuid.uuid4())
-            temp_path = await FileService.save_validated_content(file_content, file.name, uid)
-
-            parser = ParsingService()
-            parsed_doc = await parser.parse_file(temp_path)
-
-            link_urls = " ".join(link.url for page in parsed_doc.pages for link in page.links)
-            page_text = " ".join(filter(None, [page.text for page in parsed_doc.pages]))
-
-            email_match = re.search(r"[\w._%+-]+@[\w.-]+\.[A-Z]{2,}", link_urls + " " + page_text, re.I)
-            if not email_match:
-                file_ext = os.path.splitext(file.name)[1].lower()
-                await FileService.cleanup_all_job_files(uid, file_ext)
-                return Response(
-                    {"detail": "Cannot process resume without email address"}, status=status.HTTP_400_BAD_REQUEST
-                )
-
-            email = email_match.group(0).lower()
-            existing = await request.graph_db.get_resume_by_email(email)
-
-            if existing:
-                file_ext = os.path.splitext(file.name)[1].lower()
-                await FileService.cleanup_all_job_files(uid, file_ext)
-                return Response({"uid": existing.uid, "message": "Resume already exists"}, status=status.HTTP_200_OK)
-
             service = JobService()
-            job = await service.create_job(file_path=temp_path, uid=uid)
-            _ = await service.process_job(job.uid)
+            result = await service.upload_resume(file_content, file.name, request.graph_db)
 
-            job_data = job.model_dump()
+            if "error" in result:
+                return Response({"detail": result["error"]}, status=status.HTTP_400_BAD_REQUEST)
+
+            if result.get("existing"):
+                return Response({"uid": result["uid"], "message": "Resume already exists"}, status=status.HTTP_200_OK)
+
+            job_data = result["job"].model_dump()
             response_data = ResumeResponseSerializer(job_data).data
             return Response(response_data, status=status.HTTP_202_ACCEPTED)
         except Exception as e:
@@ -160,18 +135,18 @@ class ResumeByEmailView(APIView):
 
 class CleanupResumesView(APIView):
     @extend_schema(
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {"days": {"type": "integer"}, "force": {"type": "boolean"}},
-            }
-        },
+        request=CleanupSerializer,
         responses={200: OpenApiResponse(description="Cleanup result with deleted count")},
         description="Cleanup old resumes. Deletes resumes older than specified days. Use force=true to delete all.",
     )
     async def post(self, request: Request) -> Response:
-        days = request.data.get("days", settings.JOB_RETENTION_DAYS)
-        force = request.data.get("force", False)
+        serializer = CleanupSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"detail": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+        days = validated_data.get("days", settings.JOB_RETENTION_DAYS)
+        force = validated_data.get("force", False)
 
         cleanup = CleanupService()
         deleted_count = await cleanup.cleanup_old_jobs(days, request.graph_db, request.vector_db, force=force)

@@ -19,7 +19,6 @@ from core.services.vector_db_service import VectorDBService
 
 from .content_structure_service import LLMContentStructureService
 from .file_service import FileService
-from .parsing import ParsingService
 from .review_service import ReviewService
 
 logger = logging.getLogger(__name__)
@@ -30,13 +29,13 @@ class ProcessingService:
         self.embedding_service = EmbeddingService(settings.EMBEDDING_MODEL)
         self.graph_db = graph_db
         self.vector_db = vector_db
-        self.parsing_service = ParsingService()
         logger.info("ProcessingService initialized")
 
     async def process_resume(
         self,
         file_path: str,
         uid: str,
+        parsed_doc: ParsedDocument,
     ) -> ProcessingResult:
         """
         Process a resume file through the complete pipeline.
@@ -44,14 +43,13 @@ class ProcessingService:
         Args:
             file_path: Path to resume file (local or s3:// prefix)
             uid: Unique identifier for both job and resume
+            parsed_doc: Pre-parsed document from upload flow
 
         Returns:
             ProcessingResult with resume data, review, and metadata
         """
         file_path, source = await self._prepare_file_path(file_path)
         file_info = self._validate_file(file_path)
-
-        parsed_doc = await self.parsing_service.parse_file(file_path)
         resume = await self._structure_content(parsed_doc)
 
         resume = resume.model_copy(update={"uid": uid})

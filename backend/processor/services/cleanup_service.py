@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from pathlib import Path
 
 from ..serializers import JobStatus
 from ..services.file_service import FileService
@@ -15,9 +14,7 @@ class CleanupService:
         if not job:
             return False
 
-        file_ext = Path(job.file_path).suffix if job.file_path else None
-
-        await FileService.cleanup_all_job_files(uid, file_ext)
+        await FileService.cleanup_all_job_files(uid)
         await graph_db.delete_resume(job.uid)
         await vector_db.delete_resume_vectors(job.uid)
         return await self.job_service.delete_job(uid)

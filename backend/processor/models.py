@@ -38,12 +38,12 @@ class QueuedTask:
     task_id: str
     uid: str
     file_path: str
+    parsed_doc: dict[str, Any]  # Required first-class field for parsed document
     priority: int = 0
     enqueued_at: str | None = None
     retries: int = 0
     max_retries: int = 3
     status: str | None = None
-    options: dict[str, Any] | None = None
     completed_at: str | None = None
     result: dict[str, Any] | None = None
     last_error: str | None = None
@@ -57,6 +57,7 @@ class QueuedTask:
             "task_id": self.task_id,
             "uid": self.uid,
             "file_path": self.file_path,
+            "parsed_doc": json.dumps(self.parsed_doc),
             "priority": self.priority,
             "retries": self.retries,
             "max_retries": self.max_retries,
@@ -66,8 +67,6 @@ class QueuedTask:
             data["enqueued_at"] = self.enqueued_at
         if self.status:
             data["status"] = self.status
-        if self.options:
-            data["options"] = json.dumps(self.options)
         if self.completed_at:
             data["completed_at"] = self.completed_at
         if self.result:
@@ -90,6 +89,7 @@ class QueuedTask:
             task_id=data["task_id"],
             uid=data["uid"],
             file_path=data["file_path"],
+            parsed_doc=json.loads(data["parsed_doc"]),
             priority=int(data.get("priority", 0)),
             enqueued_at=data.get("enqueued_at"),
             retries=int(data.get("retries", 0)),
@@ -102,8 +102,6 @@ class QueuedTask:
             error=data.get("error"),
         )
 
-        if "options" in data:
-            task.options = json.loads(data["options"])
         if "result" in data:
             task.result = json.loads(data["result"])
 

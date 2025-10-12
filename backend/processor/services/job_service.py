@@ -1,15 +1,18 @@
 import logging
-import os
+import uuid
 from datetime import datetime, timedelta
 from typing import Any
 
 import redis.asyncio as redis
 from django.conf import settings
 
+from core.domain.extraction import ParsedDocument
+
 from ..models import Job
 from ..serializers import JobStatus
 from ..utils.redis_queue import RedisJobQueue
 from .file_service import FileService
+from .parsing.parsing_service import ParsingService
 
 logger = logging.getLogger(__name__)
 
@@ -133,12 +136,6 @@ class JobService:
             result["errors"].append(f"Job {uid} not found")
             return result
 
-        file_ext = None
-        metadata = job.result.get("metadata", {}) if job.result else {}
-        filename = metadata.get("filename")
-        if filename:
-            file_ext = os.path.splitext(filename)[1].lower()
-
         deleted = await graph_db.delete_resume(job.uid)
         result["resume_deleted"] = deleted
         if deleted:
@@ -150,21 +147,49 @@ class JobService:
         result["vectors_deleted"] = count
         logger.info(f"Deleted {count} vectors for resume {job.uid}")
 
-        if file_ext:
-            await FileService.cleanup_all_job_files(uid, file_ext)
-            result["file_deleted"] = True
-            logger.info(f"Deleted file for job {uid}")
+        await FileService.cleanup_all_job_files(uid)
+        result["file_deleted"] = True
+        logger.info(f"Deleted file for job {uid}")
 
         result["job_deleted"] = await self.delete_job(uid)
         return result
 
-    async def process_job(self, uid: str) -> dict:
+    async def upload_resume(self, file_content: bytes, filename: str, graph_db) -> dict[str, Any]:
+        """Handle resume upload workflow."""
+        uid = str(uuid.uuid4())
+
+        try:
+            temp_path = await FileService.save_validated_content(file_content, filename, uid)
+
+            parser = ParsingService()
+            parsed_doc = await parser.parse_file(temp_path)
+
+            email = ParsingService.extract_email_from_document(parsed_doc)
+            if not email:
+                await FileService.cleanup_all_job_files(uid)
+                return {"error": "Cannot process resume without email address"}
+
+            existing = await graph_db.get_resume_by_email(email)
+            if existing:
+                await FileService.cleanup_all_job_files(uid)
+                return {"uid": existing.uid, "existing": True}
+
+            job = await self.create_job(file_path=temp_path, uid=uid)
+            await self.process_job(job.uid, parsed_doc)
+
+            return {"uid": uid, "job": job}
+
+        except Exception as e:
+            logger.error(f"Resume upload failed: {e}")
+            await FileService.cleanup_all_job_files(uid)
+            raise
+
+    async def process_job(self, uid: str, parsed_doc: ParsedDocument) -> dict:
         job = await self.get_job(uid)
         if not job:
             raise Exception(f"Job not found: {uid}")
 
-        task_data = {"uid": uid, "file_path": job.file_path}
-        task_id = await self.redis_queue.enqueue_job(uid, job.file_path, task_data)
+        task_id = await self.redis_queue.enqueue_job(uid, job.file_path, parsed_doc.to_dict())
 
         await self.update_job(uid, status=JobStatus.PENDING, updates={"result": {"task_id": task_id}})
         logger.info(f"Job {uid} queued for async processing with task_id {task_id}")
