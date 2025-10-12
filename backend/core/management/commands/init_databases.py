@@ -21,12 +21,9 @@ class Command(BaseCommand):
 
     async def _init_databases(self):
         # Initialize Neo4j
-        host = settings.NEO4J_URI.replace("bolt://", "")
-        connection_url = f"bolt://{settings.NEO4J_USERNAME}:{settings.NEO4J_PASSWORD}@{host}"
-
-        await adb.set_connection(url=connection_url)
+        await adb.set_connection(url=settings.NEO4J_URI)
         await adb.install_all_labels()
-        self.stdout.write(self.style.SUCCESS(f"Neo4j connected: {host}"))
+        self.stdout.write(self.style.SUCCESS(f"Neo4j connected: {settings.NEO4J_HOST}:{settings.NEO4J_PORT}"))
 
         # Initialize Qdrant collection
         collection_name = settings.QDRANT_COLLECTION

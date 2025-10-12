@@ -55,7 +55,7 @@ class VectorSearchService:
                 continue
 
             uid = point.payload.get("uid")
-            if not uid:  # Skip if no uid
+            if not uid:
                 continue
 
             results.append(
@@ -64,8 +64,6 @@ class VectorSearchService:
                     text=point.payload.get("text", ""),
                     score=point.score,
                     source=point.payload.get("source", "unknown"),
-                    name=point.payload.get("name", "Unknown"),
-                    email=point.payload.get("email", ""),
                     context=point.payload.get("context"),
                 )
             )

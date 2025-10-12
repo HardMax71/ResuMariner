@@ -1,6 +1,3 @@
-from datetime import datetime, timedelta
-
-from ..serializers import JobStatus
 from ..services.file_service import FileService
 from ..services.job_service import JobService
 
@@ -18,17 +15,3 @@ class CleanupService:
         await graph_db.delete_resume(job.uid)
         await vector_db.delete_resume_vectors(job.uid)
         return await self.job_service.delete_job(uid)
-
-    async def cleanup_old_jobs(self, days: int, graph_db, vector_db, force: bool = False) -> int:
-        deleted_count = 0
-        jobs = await self.job_service.list_jobs(limit=1000)
-        cutoff_date = datetime.now() - timedelta(days=days)
-
-        for job in jobs:
-            if job.created_at < cutoff_date:
-                if force or job.status in [JobStatus.COMPLETED, JobStatus.FAILED]:
-                    cleaned = await self.cleanup_job(job.uid, graph_db, vector_db)
-                    if cleaned:
-                        deleted_count += 1
-
-        return deleted_count

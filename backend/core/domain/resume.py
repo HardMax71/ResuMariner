@@ -8,15 +8,7 @@ class EmbeddingVector(BaseModel):
     vector: list[float]
     text: str
     source: str
-    name: str
-    email: str
     context: str | None = None
-    # Searchable metadata fields
-    skills: list[str] = Field(default_factory=list)
-    companies: list[str] = Field(default_factory=list)
-    role: str | None = None
-    location: str | None = None
-    years_experience: int = 0
 
 
 class WorkMode(StrEnum):

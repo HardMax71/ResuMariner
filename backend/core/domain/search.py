@@ -93,14 +93,10 @@ class FilterOptionsResult:
 
 @dataclass
 class VectorHit:
-    """Single vector match from Qdrant with full metadata"""
-
     uid: str
     text: str
     score: float
-    source: str  # 'skill', 'employment', 'project', etc
-    name: str
-    email: str
+    source: str
     context: str | None = None
 
 
@@ -132,13 +128,12 @@ class ResumeSearchResult:
     def from_matches(cls, uid: str, hits: list[VectorHit]) -> "ResumeSearchResult":
         """Create ResumeSearchResult from vector matches when not found in graph"""
         if not hits:
-            return cls(uid=uid, name="Unknown", email="", score=0.0, matches=[])
+            return cls(uid=uid, name="[Missing Data]", email="", score=0.0, matches=[])
 
-        first_hit = hits[0]
         return cls(
             uid=uid,
-            name=first_hit.name,
-            email=first_hit.email,
+            name="[Missing Data]",
+            email="",
             score=max(hit.score for hit in hits),
             matches=hits,
         )

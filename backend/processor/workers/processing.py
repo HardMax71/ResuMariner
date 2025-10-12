@@ -9,7 +9,7 @@ from neomodel import adb
 
 from core.database import create_graph_service, create_vector_service
 from core.domain.extraction import ParsedDocument
-from processor.models import CleanupTask, QueuedTask
+from processor.models import QueuedTask
 from processor.services.processing_service import ProcessingService
 
 from ..services.job_service import JobService
@@ -22,10 +22,10 @@ class ProcessingWorker(BaseWorker):
         super().__init__()
         self.name = "processing"
         self.logger = logging.getLogger(f"{__name__}.{self.name}")
+        self.concurrent_jobs = int(os.environ.get("WORKER_CONCURRENT_JOBS", settings.WORKER_CONCURRENT_JOBS))
+        self.semaphore = asyncio.Semaphore(self.concurrent_jobs)
         self.job_service = JobService()
         self.redis_queue = RedisJobQueue()
-        self.concurrent_jobs = int(os.environ.get("WORKER_CONCURRENT_JOBS", "3"))
-        self.semaphore = asyncio.Semaphore(self.concurrent_jobs)
         self.graph_db = None
         self.vector_db = None
         self.processing_service = None
@@ -94,33 +94,15 @@ class ProcessingWorker(BaseWorker):
             processing_time = time.time() - start_time
             self.logger.info("Job %s completed successfully in %.2fs", uid, processing_time)
 
-            await self._schedule_cleanup(uid)
-
         except Exception as e:
             self.logger.exception("Job %s failed: %s", uid, e)
             await self.redis_queue.mark_job_failed(task_id, uid, str(e), retry=True)
             await self.job_service.fail(uid, str(e))
 
-    async def _schedule_cleanup(self, uid: str):
-        try:
-            cleanup_delay = settings.JOB_CLEANUP_DELAY_HOURS
-            cleanup_task = CleanupTask(uid=uid, cleanup_time=time.time() + (cleanup_delay * 3600))
-            await self.redis_queue.schedule_cleanup(cleanup_task)
-            self.logger.info("Scheduled cleanup for job %s in %d hours", uid, cleanup_delay)
-        except Exception as e:
-            self.logger.warning("Failed to schedule cleanup for job %s: %s", uid, e)
-
     async def startup(self):
         """Initialize services"""
-        await self.redis_queue.get_redis()
-        self.logger.info("Redis connections initialized")
+        await adb.set_connection(url=settings.NEO4J_URI)
 
-        # Neo4j connection for this worker process
-        host = settings.NEO4J_URI.replace("bolt://", "")
-        connection_url = f"bolt://{settings.NEO4J_USERNAME}:{settings.NEO4J_PASSWORD}@{host}"
-        await adb.set_connection(url=connection_url)
-
-        # Create service instances
         self.graph_db = create_graph_service()
         self.vector_db = create_vector_service()
         self.processing_service = ProcessingService(self.graph_db, self.vector_db)
@@ -130,4 +112,6 @@ class ProcessingWorker(BaseWorker):
     async def shutdown(self):
         """Clean shutdown"""
         self.running = False
+        await self.job_service.close()
         await self.redis_queue.close()
+        self.logger.info("Processing worker shutdown complete")

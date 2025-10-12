@@ -1,4 +1,3 @@
-import re
 from pathlib import Path
 
 from core.domain.extraction import ParsedDocument
@@ -28,12 +27,3 @@ class ParsingService:
         file_ext = Path(file_path).suffix.lower()
         parser = self._get_parser(file_path, file_ext)
         return await parser.parse_to_json()
-
-    @staticmethod
-    def extract_email_from_document(parsed_doc: ParsedDocument) -> str | None:
-        link_urls = " ".join(link.url for page in parsed_doc.pages for link in page.links)
-        page_text = " ".join(filter(None, [page.text for page in parsed_doc.pages]))
-        combined_text = link_urls + " " + page_text
-
-        match = re.search(r"[\w._%+-]+@[\w.-]+\.[A-Z]{2,}", combined_text, re.I)
-        return match.group(0).lower() if match else None

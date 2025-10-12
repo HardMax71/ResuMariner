@@ -1,10 +1,13 @@
 import logging
 import os
+from collections.abc import Sequence
 from typing import Any, Literal
 
 from django.conf import settings
 from pydantic_ai import Agent
+from pydantic_ai.messages import BinaryContent, ImageUrl
 from pydantic_ai.settings import ModelSettings
+from pydantic_ai.usage import UsageLimits
 
 logger = logging.getLogger(__name__)
 
@@ -15,15 +18,14 @@ class LLMService:
     def __init__(
         self,
         system_prompt: str,
-        result_type: type,
+        output_type: type,
         mode: LLMMode = "text",
     ):
         self.mode = mode
         self.model = self._create_model(mode)
-        self.result_type: type = result_type
         self.agent = Agent(
-            model=self.model,  # type: ignore
-            result_type=self.result_type,
+            model=self.model,
+            output_type=output_type,
             system_prompt=system_prompt,
             retries=settings.MAX_RETRIES,
         )
@@ -50,12 +52,21 @@ class LLMService:
 
         return f"{provider}:{model_name}"  # pydantic-ai compliant
 
-    async def run(self, prompt: str | list, temperature: float = 0.1) -> Any:
+    async def run(self, prompt: str | Sequence[str | ImageUrl | BinaryContent], temperature: float = 0.1) -> Any:
         model_settings = ModelSettings(temperature=temperature, parallel_tool_calls=False)
 
+        usage_limits = UsageLimits(
+            request_limit=settings.LLM_REQUEST_LIMIT,
+            request_tokens_limit=settings.LLM_REQUEST_TOKENS_LIMIT,
+        )
+
         try:
-            result = await self.agent.run(prompt, model_settings=model_settings)
-            return result.data
+            # https://ai.pydantic.dev/api/run/
+            result = await self.agent.run(user_prompt=prompt, model_settings=model_settings, usage_limits=usage_limits)
+
+            logger.info(f"LLM usage ({self.mode}): {result.usage()}")
+
+            return result.output
         except Exception as e:
             logger.error(f"Unexpected error in LLM service ({self.mode} mode): {e}")
             raise

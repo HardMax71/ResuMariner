@@ -26,7 +26,7 @@ class ReviewService:
         self.file_type = parsed_document.file_type
         self.processed_at = parsed_document.processed_at
 
-        self.llm_service = LLMService(system_prompt=self._get_system_prompt(), result_type=ReviewResult, mode="text")
+        self.llm_service = LLMService(system_prompt=self._get_system_prompt(), output_type=ReviewResult, mode="text")
 
     def _get_system_prompt(self) -> str:
         return """

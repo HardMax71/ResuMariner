@@ -1,5 +1,4 @@
 import os
-import sys
 import uuid
 from pathlib import Path
 
@@ -171,15 +170,15 @@ SPECTACULAR_SETTINGS = {
 
 NEO4J_HOST = os.getenv("NEO4J_HOST", "neo4j")
 NEO4J_PORT = int(os.getenv("NEO4J_PORT", "7687"))
-NEO4J_URI = f"bolt://{NEO4J_HOST}:{NEO4J_PORT}"
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
+NEO4J_URI = f"bolt://{NEO4J_USERNAME}:{NEO4J_PASSWORD}@{NEO4J_HOST}:{NEO4J_PORT}"
 NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
 NEO4J_MAX_CONNECTION_LIFETIME = int(os.getenv("NEO4J_MAX_CONNECTION_LIFETIME", "3600"))
 NEO4J_MAX_CONNECTION_POOL_SIZE = int(os.getenv("NEO4J_MAX_CONNECTION_POOL_SIZE", "50"))
 NEO4J_CONNECTION_TIMEOUT = int(os.getenv("NEO4J_CONNECTION_TIMEOUT", "30"))
 
-neomodel_config.DATABASE_URL = f"bolt://{NEO4J_USERNAME}:{NEO4J_PASSWORD}@{NEO4J_HOST}:{NEO4J_PORT}"
+neomodel_config.DATABASE_URL = NEO4J_URI
 
 # =============================================================================
 # QDRANT VECTOR DATABASE
@@ -199,8 +198,9 @@ QDRANT_PREFER_GRPC = os.getenv("QDRANT_PREFER_GRPC", "False").lower() == "true"
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
+REDIS_MAX_CONNECTIONS = int(os.getenv("REDIS_MAX_CONNECTIONS", "50"))
+WORKER_CONCURRENT_JOBS = int(os.getenv("WORKER_CONCURRENT_JOBS", "10"))
 REDIS_JOB_PREFIX = os.getenv("REDIS_JOB_PREFIX", "cv:job:")
-REDIS_CLEANUP_QUEUE = os.getenv("REDIS_CLEANUP_QUEUE", "cv_cleanup_queue")
 REDIS_JOB_TIMEOUT = int(os.getenv("REDIS_JOB_TIMEOUT", "1800"))
 REDIS_MAX_RETRIES = int(os.getenv("REDIS_MAX_RETRIES", "3"))
 
@@ -226,35 +226,18 @@ REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "180"))
 MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
 MAX_TOKENS_IN_RESUME_TO_PROCESS = int(os.getenv("MAX_TOKENS_IN_RESUME_TO_PROCESS", "5000"))
 
+# LLM Usage Limits
+LLM_REQUEST_LIMIT = int(os.getenv("LLM_REQUEST_LIMIT", "10"))
+LLM_REQUEST_TOKENS_LIMIT = int(os.getenv("LLM_REQUEST_TOKENS_LIMIT", "100000"))
+
 # Embedding
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+EMBEDDING_TIMEOUT = float(os.getenv("EMBEDDING_TIMEOUT", "60.0"))
+EMBEDDING_BATCH_TIMEOUT = float(os.getenv("EMBEDDING_BATCH_TIMEOUT", "120.0"))
+EMBEDDING_MAX_BATCH_SIZE = int(os.getenv("EMBEDDING_MAX_BATCH_SIZE", "64"))
+EMBEDDING_CIRCUIT_BREAKER_FAIL_MAX = int(os.getenv("EMBEDDING_CIRCUIT_BREAKER_FAIL_MAX", "3"))
+EMBEDDING_CIRCUIT_BREAKER_RESET_TIMEOUT = int(os.getenv("EMBEDDING_CIRCUIT_BREAKER_RESET_TIMEOUT", "30"))
 
-# =============================================================================
-# REQUIRED API KEYS CHECK
-# =============================================================================
-
-# Skip check if in migration or collectstatic mode
-if "migrate" not in sys.argv and "collectstatic" not in sys.argv:
-    missing_keys = []
-
-    if not TEXT_LLM_API_KEY:
-        missing_keys.append("TEXT_LLM_API_KEY")
-
-    if not OCR_LLM_API_KEY:
-        missing_keys.append("OCR_LLM_API_KEY")
-
-    if missing_keys:
-        print("\n" + "=" * 60)
-        print("ERROR: Required API keys are missing!")
-        print("=" * 60)
-        for key in missing_keys:
-            print(f"  ❌ {key}")
-        print("\nFor local development:")
-        print("  - Add these keys to your .env file")
-        print("\nFor GitHub Actions:")
-        print("  - Add these as repository secrets")
-        print("=" * 60 + "\n")
-        sys.exit(1)
 
 # =============================================================================
 # SEARCH
@@ -273,8 +256,10 @@ WORKER_ID = os.getenv("WORKER_ID", f"worker-{uuid.uuid4().hex[:8]}")
 WORKER_STORE_IN_DB = os.getenv("WORKER_STORE_IN_DB", "true").lower() == "true"
 WORKER_GENERATE_REVIEW = os.getenv("WORKER_GENERATE_REVIEW", "true").lower() == "true"
 WORKER_CONCURRENT_JOBS = int(os.getenv("WORKER_CONCURRENT_JOBS", "3"))
-JOB_CLEANUP_DELAY_HOURS = int(os.getenv("JOB_CLEANUP_DELAY_HOURS", "24"))
-JOB_RETENTION_DAYS = int(os.getenv("JOB_RETENTION_DAYS", "30"))
+
+REDIS_COMPLETED_JOB_TTL = int(os.getenv("REDIS_COMPLETED_JOB_TTL", "3600"))  # 1 hour
+REDIS_FAILED_JOB_TTL = int(os.getenv("REDIS_FAILED_JOB_TTL", "21600"))  # 6 hours
+REDIS_PROCESSING_JOB_TTL = int(os.getenv("REDIS_PROCESSING_JOB_TTL", "86400"))  # 24 hours
 
 # =============================================================================
 # STORAGE

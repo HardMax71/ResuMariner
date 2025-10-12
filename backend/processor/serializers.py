@@ -93,8 +93,3 @@ class ResumeResponseSerializer(serializers.Serializer):
     updated_at = serializers.DateTimeField()
     result_url = serializers.URLField(required=False, allow_null=True)
     error = serializers.CharField(required=False, allow_null=True)
-
-
-class CleanupSerializer(serializers.Serializer):
-    days = serializers.IntegerField(min_value=1, max_value=365, required=False)
-    force = serializers.BooleanField(default=False, required=False)

@@ -53,19 +53,8 @@ class VectorDBService:
                 )
                 continue
             pid = str(uuid.uuid4())
-            payload = {
-                "uid": uid,
-                "text": v.text,
-                "source": v.source,
-                "context": v.context,
-                "name": v.name,
-                "email": v.email,
-                "skills": v.skills,
-                "companies": v.companies,
-                "role": v.role,
-                "location": v.location,
-                "years_experience": v.years_experience,
-            }
+            payload = v.model_dump(exclude={"vector"})
+            payload["uid"] = uid
             points.append(qdrant_models.PointStruct(id=pid, vector=vec, payload=payload))
 
         if not points:

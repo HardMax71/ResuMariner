@@ -11,35 +11,20 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingService:
-    """
-    Unified embedding service for all embedding operations.
-    Optimized for batch operations to minimize API calls.
-    """
-
-    def __init__(self, model_name: str | None = None):
-        """
-        Initialize the embedding service.
-
-        Args:
-            model_name: Optional model name override. Defaults to settings.EMBEDDING_MODEL
-        """
-        self.model = model_name or settings.EMBEDDING_MODEL
+    def __init__(self):
+        self.model = settings.EMBEDDING_MODEL
         self.endpoint = self._build_endpoint()
         self.headers = self._build_headers()
-        self.timeout = 60.0
-        self.batch_timeout = 120.0
-        self.max_batch_size = 64  # OpenAI recommends chunking for reliability
-        self._validate_config()
+        self.timeout = settings.EMBEDDING_TIMEOUT
+        self.batch_timeout = settings.EMBEDDING_BATCH_TIMEOUT
+        self.max_batch_size = settings.EMBEDDING_MAX_BATCH_SIZE
 
         self.circuit_breaker = create_custom_circuit_breaker(
-            name="embedding_api", fail_max=3, reset_timeout=30, exclude=[httpx.InvalidURL]
+            name="embedding_api",
+            fail_max=settings.EMBEDDING_CIRCUIT_BREAKER_FAIL_MAX,
+            reset_timeout=settings.EMBEDDING_CIRCUIT_BREAKER_RESET_TIMEOUT,
+            exclude=[httpx.InvalidURL],
         )
-
-    def _validate_config(self):
-        if not settings.TEXT_LLM_API_KEY:
-            raise ValueError("LLM_API_KEY is required for embeddings")
-        if not self.model:
-            raise ValueError("EMBEDDING_MODEL is required")
 
     def _build_endpoint(self) -> str:
         base = settings.TEXT_LLM_BASE_URL or "https://api.openai.com/v1"

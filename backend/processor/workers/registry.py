@@ -1,12 +1,10 @@
 from collections.abc import Callable
 
 from .base import BaseWorker
-from .cleanup import CleanupWorker
 from .processing import ProcessingWorker
 
 WORKER_REGISTRY: dict[str, Callable[[], BaseWorker]] = {
     "processing": ProcessingWorker,
-    "cleanup": CleanupWorker,
 }
 
 

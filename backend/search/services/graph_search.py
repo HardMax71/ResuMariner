@@ -22,14 +22,15 @@ Maybe:
 
 class GraphSearchService:
     def __init__(self):
+        uri = f"bolt://{settings.NEO4J_HOST}:{settings.NEO4J_PORT}"
         self.driver = AsyncGraphDatabase.driver(
-            settings.NEO4J_URI,
+            uri,
             auth=(settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD),
             max_connection_lifetime=3600,
             max_connection_pool_size=50,
             connection_acquisition_timeout=60,
         )
-        logger.info("Connected to Neo4j at %s", settings.NEO4J_URI)
+        logger.info("Connected to Neo4j at %s:%s", settings.NEO4J_HOST, settings.NEO4J_PORT)
 
     async def search(
         self,

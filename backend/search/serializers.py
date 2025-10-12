@@ -257,5 +257,3 @@ class VectorHitSerializer(serializers.Serializer):
     score = serializers.FloatField(default=0.0, help_text="Match score")
     source = serializers.CharField(default="unknown", help_text="Source of the fragment")  # type: ignore[assignment]
     context = serializers.CharField(required=False, allow_null=True, default="", help_text="Context of the fragment")  # type: ignore[assignment]
-    name = serializers.CharField(required=False, allow_null=True, default="Unknown", help_text="Person name")
-    email = serializers.EmailField(required=False, allow_null=True, default="", help_text="Email")

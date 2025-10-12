@@ -74,12 +74,9 @@ class HybridSearchService:
             }
         )
 
-        # Collect vector matches and scores
         for vr in vector_results:
             agg = aggregated[vr.uid]
             agg["uid"] = vr.uid
-            agg["name"] = vr.name
-            agg["email"] = vr.email
             agg["matches"].append(
                 {"text": vr.text, "score": vr.score, "source": vr.source, "context": vr.context or ""}
             )
@@ -107,18 +104,16 @@ class HybridSearchService:
             agg["graph_score"] += gr.score
             agg["has_graph"] = True
 
-        # Phase 2: Score and sort with single pass
         scored = []
         for agg in aggregated.values():
-            # Calculate combined score
+            if not agg["has_graph"]:
+                logger.warning("Resume %s found in vector search but missing in Neo4j", agg["uid"])
+                agg["name"] = "[Missing Data]"
+                agg["email"] = ""
+
             final_score = min(vector_weight * agg["vector_score"] + graph_weight * agg["graph_score"], 1.0)
-
-            # Sort and limit matches
             matches = sorted(agg["matches"], key=lambda m: m["score"], reverse=True)[:max_matches_per_result]
-
-            # Priority: both sources (0) > vector-only (1) > graph-only (2)
             priority = 0 if (agg["has_vector"] and agg["has_graph"]) else (1 if agg["has_vector"] else 2)
-
             scored.append((priority, -final_score, agg["uid"], agg, matches))  # Add uid as tiebreaker
 
         # Sort by priority first, then by score, then by uid (for stable sort)
@@ -127,15 +122,12 @@ class HybridSearchService:
         # Phase 3: Convert to ResumeSearchResult objects
         results = []
         for _priority, neg_score, _uid, agg, matches in scored[:limit]:
-            # Convert match dicts to VectorHit objects
             vector_hits = [
                 VectorHit(
                     uid=agg["uid"],
                     text=m["text"],
                     score=m["score"],
                     source=m["source"],
-                    name=agg["name"],
-                    email=agg["email"],
                     context=m.get("context"),
                 )
                 for m in matches
@@ -146,7 +138,7 @@ class HybridSearchService:
                     uid=agg["uid"],
                     name=agg["name"],
                     email=agg["email"],
-                    score=-neg_score,  # Convert back to positive
+                    score=-neg_score,
                     matches=vector_hits,
                     summary=agg.get("summary"),
                     skills=agg.get("skills"),

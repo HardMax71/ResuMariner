@@ -1,8 +1,6 @@
 import logging
 from collections import defaultdict
 
-from django.conf import settings
-
 from core.domain import (
     ResumeSearchResult,
     SearchRequest,
@@ -24,7 +22,7 @@ class SearchCoordinator:
         self.vector_search = VectorSearchService()
         self.graph_search = GraphSearchService()
         self.hybrid_search = HybridSearchService()
-        self.embedding_service = EmbeddingService(settings.EMBEDDING_MODEL)
+        self.embedding_service = EmbeddingService()
 
     async def search(self, request: SearchRequest) -> SearchResponse:
         """Main entry point for all search types"""
@@ -62,17 +60,14 @@ class SearchCoordinator:
         # Create a map for quick lookup
         resume_map = {r.uid: r for r in complete_resumes}
 
-        # Combine vector hits with complete resume data
         results = []
         for uid, hits in grouped.items():
             if uid in resume_map:
-                # Use complete data from graph
                 result = resume_map[uid]
-                # Keep the VectorHit objects for matches, just limit them
                 result.matches = hits[: request.max_matches_per_result]
                 result.score = max(hit.score for hit in hits)
             else:
-                # Fallback if not found in graph (shouldn't happen normally)
+                logger.error("Resume %s found in Qdrant but missing in Neo4j", uid)
                 limited_hits = hits[: request.max_matches_per_result]
                 result = ResumeSearchResult.from_matches(uid, limited_hits)
 

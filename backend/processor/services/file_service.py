@@ -2,6 +2,7 @@ import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,46 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class FileInfo:
+    path: str
+    name: str
+    ext: str
+    source: str  # "s3" or "local"
+
+
 class FileService:
+    @staticmethod
+    async def prepare_for_processing(file_path: str) -> FileInfo:
+        """
+        Prepare file for processing - handle S3 download, validation, and info extraction.
+
+        Args:
+            file_path: Local path or s3://key format
+
+        Returns:
+            FileInfo with actual path, name, extension, and source
+        """
+        if file_path.startswith("s3://"):
+            s3_key = file_path[5:]  # Remove s3:// prefix
+            actual_path = await FileService.download_from_s3_async(s3_key)
+            source = "s3"
+        else:
+            actual_path = file_path
+            source = "local"
+
+        if not os.path.isfile(actual_path):
+            raise FileNotFoundError(f"File not found: {actual_path}")
+
+        path_obj = Path(actual_path)
+        if not path_obj.name:
+            raise ValueError("File name is missing")
+
+        if not path_obj.suffix:
+            raise ValueError(f"Invalid file name or missing extension: {path_obj.name}")
+
+        return FileInfo(path=actual_path, name=path_obj.name, ext=path_obj.suffix.lower(), source=source)
+
     @staticmethod
     @asynccontextmanager
     async def _s3_client() -> AsyncIterator[Any]:
