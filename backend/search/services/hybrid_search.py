@@ -1,155 +1,86 @@
 import logging
-from collections import defaultdict
-from typing import Any
 
-from django.conf import settings
-
-from core.domain import ResumeSearchResult, SearchFilters, VectorHit
+from core.domain import ResumeSearchResult, SearchFilters
 from core.services import EmbeddingService
 
 from .graph_search import GraphSearchService
+from .result_enrichment import enrich_vector_hits_with_resume_data
 from .vector_search import VectorSearchService
 
 logger = logging.getLogger(__name__)
 
 
 class HybridSearchService:
-    """Service that combines vector and graph search approaches."""
+    """
+    Service that performs hybrid search: semantic relevance within structurally filtered candidates.
 
-    def __init__(self):
-        self.vector_search = VectorSearchService()
-        self.graph_search = GraphSearchService()
-        self.embedding_service = EmbeddingService()
+    Flow:
+    1. Graph search with filters → candidate UIDs
+    2. Vector search within those candidates → semantically ranked results
+    3. Enrich with complete resume data from Neo4j
+    """
+
+    def __init__(
+        self,
+        vector_search: VectorSearchService,
+        graph_search: GraphSearchService,
+        embedding_service: EmbeddingService,
+    ):
+        self.vector_search = vector_search
+        self.graph_search = graph_search
+        self.embedding_service = embedding_service
 
     async def search(
         self,
         query: str,
         filters: SearchFilters,
-        vector_weight: float = settings.DEFAULT_VECTOR_WEIGHT,
-        graph_weight: float = settings.DEFAULT_GRAPH_WEIGHT,
         limit: int = 10,
         max_matches_per_result: int = 10,
     ) -> list[ResumeSearchResult]:
         """
-        Perform hybrid search combining vector and graph approaches.
+        Perform hybrid search: semantic relevance within filtered candidates.
 
-        Returns list of ResumeSearchResult objects.
+        Args:
+            query: Natural language search query
+            filters: Structured filters (skills, location, etc.) - these are REQUIREMENTS
+            limit: Maximum number of results to return
+            max_matches_per_result: Maximum vector matches to include per resume
+
+        Returns:
+            List of resumes matching filters, ranked by semantic relevance to query
         """
-        query_vector = self.embedding_service.encode(query)
-
-        vector_results = await self.vector_search.search(
-            query_vector=query_vector,
-            limit=limit * 2,
-            filters=None,  # Semantic search only - no filters
-        )
-
+        # Step 1: Get candidate UIDs from graph search with filters
         graph_results = await self.graph_search.search(
             filters=filters,
-            limit=limit * 2,
+            limit=limit * 3,  # Get more candidates for better semantic selection
         )
 
-        return self._combine_results(
-            vector_results, graph_results, vector_weight, graph_weight, limit, max_matches_per_result
+        if not graph_results:
+            logger.info("No candidates found matching filters")
+            return []
+
+        candidate_uids = [r.uid for r in graph_results]
+        logger.info("Found %d candidates matching filters", len(candidate_uids))
+
+        # Step 2: Semantic search within candidates only
+        query_vector = self.embedding_service.encode(query)
+        vector_hits = await self.vector_search.search(
+            query_vector=query_vector,
+            limit=limit * 5,  # Over-fetch for grouping
+            candidate_uids=candidate_uids,
         )
 
-    def _combine_results(
-        self,
-        vector_results: list[VectorHit],
-        graph_results: list[ResumeSearchResult],
-        vector_weight: float,
-        graph_weight: float,
-        limit: int,
-        max_matches_per_result: int,
-    ) -> list[ResumeSearchResult]:
-        """Combine and score results from both search methods using weighted scoring."""
+        if not vector_hits:
+            logger.info("No semantic matches found within filtered candidates")
+            return []
 
-        # Phase 1: Aggregate data by uid
-        aggregated: dict[str, dict[str, Any]] = defaultdict(
-            lambda: {
-                "matches": [],
-                "vector_score": 0.0,
-                "graph_score": 0.0,
-                "has_vector": False,
-                "has_graph": False,
-            }
+        # Step 3-6: Enrich vector hits with complete resume data
+        results = await enrich_vector_hits_with_resume_data(
+            vector_hits,
+            self.graph_search,
+            max_matches_per_result,
+            limit,
         )
 
-        for vr in vector_results:
-            agg = aggregated[vr.uid]
-            agg["uid"] = vr.uid
-            agg["matches"].append(
-                {"text": vr.text, "score": vr.score, "source": vr.source, "context": vr.context or ""}
-            )
-            agg["vector_score"] = max(agg["vector_score"], vr.score)
-            agg["has_vector"] = True
-
-        # Collect graph data and scores
-        for gr in graph_results:
-            agg = aggregated[gr.uid]
-            agg.update(
-                {
-                    "uid": gr.uid,
-                    "name": gr.name,
-                    "email": gr.email,
-                    "summary": gr.summary,
-                    "skills": gr.skills,
-                    "experiences": gr.experiences,
-                    "education": gr.education,
-                    "years_experience": gr.years_experience,
-                    "location": gr.location,
-                    "desired_role": gr.desired_role,
-                    "languages": gr.languages,
-                }
-            )
-            agg["graph_score"] += gr.score
-            agg["has_graph"] = True
-
-        scored = []
-        for agg in aggregated.values():
-            if not agg["has_graph"]:
-                logger.warning("Resume %s found in vector search but missing in Neo4j", agg["uid"])
-                agg["name"] = "[Missing Data]"
-                agg["email"] = ""
-
-            final_score = min(vector_weight * agg["vector_score"] + graph_weight * agg["graph_score"], 1.0)
-            matches = sorted(agg["matches"], key=lambda m: m["score"], reverse=True)[:max_matches_per_result]
-            priority = 0 if (agg["has_vector"] and agg["has_graph"]) else (1 if agg["has_vector"] else 2)
-            scored.append((priority, -final_score, agg["uid"], agg, matches))  # Add uid as tiebreaker
-
-        # Sort by priority first, then by score, then by uid (for stable sort)
-        scored.sort(key=lambda x: (x[0], x[1], x[2]))
-
-        # Phase 3: Convert to ResumeSearchResult objects
-        results = []
-        for _priority, neg_score, _uid, agg, matches in scored[:limit]:
-            vector_hits = [
-                VectorHit(
-                    uid=agg["uid"],
-                    text=m["text"],
-                    score=m["score"],
-                    source=m["source"],
-                    context=m.get("context"),
-                )
-                for m in matches
-            ]
-
-            results.append(
-                ResumeSearchResult(
-                    uid=agg["uid"],
-                    name=agg["name"],
-                    email=agg["email"],
-                    score=-neg_score,
-                    matches=vector_hits,
-                    summary=agg.get("summary"),
-                    skills=agg.get("skills"),
-                    experiences=agg.get("experiences"),
-                    education=agg.get("education"),
-                    years_experience=agg.get("years_experience"),
-                    location=agg.get("location"),
-                    desired_role=agg.get("desired_role"),
-                    languages=agg.get("languages"),
-                )
-            )
-
-        logger.info("Combined search returned %s results", len(results))
+        logger.info("Hybrid search returned %d results", len(results))
         return results

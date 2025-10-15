@@ -50,7 +50,7 @@ class ParseImageService(BaseExtractionService):
             )
             result.pages.append(ocr_page.page)
         except Exception as e:
-            logger.error(f"Vision extraction failed for {self.image_path}: {e}")
+            logger.error("Vision extraction failed for %s: %s", self.image_path, e)
 
         return result
 

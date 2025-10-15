@@ -10,7 +10,8 @@ export interface ResumeStatusResult {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   created_at: string;
   updated_at: string;
-  data?: any;
+  completed_at?: string;
+  result?: any;
   error?: string;
 }
 
@@ -52,8 +53,6 @@ export interface StructuredSearchParams {
 export interface HybridSearchParams {
   query: string;
   filters?: SearchFilters;
-  vector_weight?: number;
-  graph_weight?: number;
   limit?: number;
   max_matches_per_result?: number;
 }

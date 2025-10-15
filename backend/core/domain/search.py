@@ -150,10 +150,6 @@ class SearchRequest:
     min_score: float = 0.0
     max_matches_per_result: int = 10  # Maximum matches to return per resume
 
-    # For hybrid search
-    vector_weight: float = 0.7
-    graph_weight: float = 0.3
-
 
 @dataclass
 class SearchResponse:

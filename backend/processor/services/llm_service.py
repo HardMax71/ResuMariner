@@ -1,5 +1,5 @@
 import logging
-import os
+import time
 from collections.abc import Sequence
 from typing import Any, Literal
 
@@ -8,6 +8,8 @@ from pydantic_ai import Agent
 from pydantic_ai.messages import BinaryContent, ImageUrl
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.usage import UsageLimits
+
+from core.metrics import LLM_API_CALLS, LLM_API_DURATION
 
 logger = logging.getLogger(__name__)
 
@@ -34,39 +36,34 @@ class LLMService:
         if mode == "text":
             provider = settings.TEXT_LLM_PROVIDER
             model_name = settings.TEXT_LLM_MODEL
-            api_key = settings.TEXT_LLM_API_KEY
-            base_url = settings.TEXT_LLM_BASE_URL
-        else:  # "ocr"
+        else:
             provider = settings.OCR_LLM_PROVIDER
             model_name = settings.OCR_LLM_MODEL
-            api_key = settings.OCR_LLM_API_KEY
-            base_url = settings.OCR_LLM_BASE_URL
 
-        env_key_name = f"{provider.upper()}_API_KEY"
-        os.environ[env_key_name] = api_key
-
-        # Handle custom base URL if provided
-        if base_url:
-            env_base_url_name = f"{provider.upper()}_BASE_URL"
-            os.environ[env_base_url_name] = base_url
-
-        return f"{provider}:{model_name}"  # pydantic-ai compliant
+        return f"{provider}:{model_name}"
 
     async def run(self, prompt: str | Sequence[str | ImageUrl | BinaryContent], temperature: float = 0.1) -> Any:
-        model_settings = ModelSettings(temperature=temperature, parallel_tool_calls=False)
-
+        model_settings = ModelSettings(
+            temperature=temperature,
+            parallel_tool_calls=False,
+            timeout=settings.REQUEST_TIMEOUT,
+        )
         usage_limits = UsageLimits(
             request_limit=settings.LLM_REQUEST_LIMIT,
             request_tokens_limit=settings.LLM_REQUEST_TOKENS_LIMIT,
         )
 
+        start_time = time.time()
         try:
-            # https://ai.pydantic.dev/api/run/
             result = await self.agent.run(user_prompt=prompt, model_settings=model_settings, usage_limits=usage_limits)
+            logger.info("LLM usage (%s): %s", self.mode, result.usage())
 
-            logger.info(f"LLM usage ({self.mode}): {result.usage()}")
+            LLM_API_CALLS.labels(mode=self.mode, status="success").inc()
+            LLM_API_DURATION.labels(mode=self.mode).observe(time.time() - start_time)
 
             return result.output
         except Exception as e:
-            logger.error(f"Unexpected error in LLM service ({self.mode} mode): {e}")
+            logger.error("LLM API call failed (%s mode): %s", self.mode, e)
+            LLM_API_CALLS.labels(mode=self.mode, status="error").inc()
+            LLM_API_DURATION.labels(mode=self.mode).observe(time.time() - start_time)
             raise

@@ -1,222 +1,336 @@
+import asyncio
+import json
 import logging
-import re
+import os
+import time
 import uuid
+from collections.abc import AsyncIterator
 from datetime import datetime
 from typing import Any
 
 import redis.asyncio as aioredis
 from django.conf import settings
+from rest_framework.exceptions import NotFound
 
-from core.domain.extraction import ParsedDocument
+from backend.settings import (
+    REDIS_MAX_RETRIES,
+    REDIS_RETRY_BASE_DELAY,
+    REDIS_RETRY_MAX_DELAY,
+    REDIS_SCAN_BATCH_SIZE,
+    REDIS_STREAM_READ_COUNT,
+)
 
-from ..models import Job
+from ..models import Job, JobExecution
 from ..serializers import JobStatus
-from ..utils.redis_queue import RedisJobQueue
-from .file_service import FileService
-from .parsing.parsing_service import ParsingService
 
 logger = logging.getLogger(__name__)
 
 
 class JobService:
-    def __init__(self):
-        self.redis_pool = aioredis.ConnectionPool(
-            host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
-            password=settings.REDIS_PASSWORD,
-            max_connections=20,
-            decode_responses=True,
-        )
+    """Manages resume processing jobs using Redis for queue and state tracking."""
+
+    _redis_pool: aioredis.ConnectionPool | None = None
+    _pool_lock = asyncio.Lock()
+    _initialized: bool = False
+
+    def __init__(self) -> None:
         self.prefix = settings.REDIS_JOB_PREFIX
-        self.redis_queue = RedisJobQueue()
+        self.job_stream = "resume:jobs:stream"
+        self.consumer_group = "workers"
+        self.consumer_name = f"worker-{os.getenv('WORKER_ID', '1')}"
+        self.execution_key_prefix = "resume:execution:"
+        self.active_jobs_counter = "resume:stats:active_jobs"
+        self._redis_client: aioredis.Redis | None = None
+
+    @classmethod
+    async def initialize(cls) -> None:
+        async with cls._pool_lock:
+            if cls._initialized:
+                return
+
+            cls._redis_pool = aioredis.ConnectionPool(
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                password=settings.REDIS_PASSWORD,
+                max_connections=settings.REDIS_MAX_CONNECTIONS,
+                socket_timeout=settings.REDIS_SOCKET_TIMEOUT,
+                socket_connect_timeout=settings.REDIS_SOCKET_CONNECT_TIMEOUT,
+                decode_responses=True,
+            )
+
+            temp_client = aioredis.Redis(connection_pool=cls._redis_pool)
+
+            await temp_client.config_set("notify-keyspace-events", "Ex")
+            logger.info("Configured Redis keyspace notifications")
+            try:
+                await temp_client.xgroup_create("resume:jobs:stream", "workers", id="0", mkstream=True)
+                logger.info("Created Redis stream consumer group")
+            except aioredis.ResponseError as e:
+                if "BUSYGROUP" not in str(e):
+                    raise
+                logger.debug("Redis stream consumer group already exists")
+
+            await temp_client.close()
+            cls._initialized = True
+            logger.info("JobService initialized")
 
     async def _get_redis(self) -> aioredis.Redis:
-        return aioredis.Redis(connection_pool=self.redis_pool)
+        if self._redis_client is None:
+            if not JobService._initialized:
+                await JobService.initialize()
+            self._redis_client = aioredis.Redis(connection_pool=JobService._redis_pool)
+        return self._redis_client
 
     def _get_key(self, uid: str) -> str:
         return f"{self.prefix}{uid}"
 
-    @staticmethod
-    def _extract_email(parsed_doc: ParsedDocument) -> str | None:
-        """Extract first valid email from parsed document."""
-        EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Z|a-z]{2,}\b")
-
-        link_urls = " ".join(link.url for page in parsed_doc.pages for link in page.links)
-        page_text = " ".join(filter(None, [page.text for page in parsed_doc.pages]))
-        combined_text = link_urls + " " + page_text
-
-        match = EMAIL_PATTERN.search(combined_text)
-        return match.group(0).lower() if match else None
-
     async def create_job(self, file_path: str, uid: str) -> Job:
-        """Create a new job entry."""
+        """Create a new job for resume processing."""
         job = Job(uid=uid, file_path=file_path)
         redis = await self._get_redis()
-        await redis.set(self._get_key(uid), job.model_dump_json(), ex=settings.REDIS_PROCESSING_JOB_TTL)
-        logger.info(f"Created job {uid}")
+        await redis.set(self._get_key(uid), job.model_dump_json(), ex=settings.REDIS_JOB_TTL)
+        logger.info("Created job %s", uid)
         return job
 
-    async def get_job(self, uid: str) -> Job | None:
+    async def get_job(self, uid: str) -> Job:
+        """Get job status by uid."""
         redis = await self._get_redis()
         job_json = await redis.get(self._get_key(uid))
         if not job_json:
-            logger.warning(f"Job {uid} not found")
-            return None
+            logger.warning("Job not found: %s", uid)
+            raise NotFound("Job not found")
         return Job.model_validate_json(job_json)
 
-    async def list_jobs(self, limit: int = 100) -> list[Job]:
-        """List all jobs in Redis."""
-        jobs: list[Job] = []
-        pattern = f"{self.prefix}*"
-        cursor = 0
+    async def count_jobs(self) -> int:
+        """Count total jobs in Redis."""
         redis = await self._get_redis()
+        cursor = 0
+        count = 0
 
-        while len(jobs) < limit:
-            cursor, keys = await redis.scan(cursor=cursor, match=pattern, count=min(100, limit - len(jobs)))
-
-            for key in keys:
-                job_json = await redis.get(key)
-                if job_json:
-                    job = Job.model_validate_json(job_json)
-                    jobs.append(job)
-
-                    if len(jobs) >= limit:
-                        break
-
+        while True:
+            cursor, keys = await redis.scan(cursor=cursor, match=f"{self.prefix}*", count=REDIS_SCAN_BATCH_SIZE)
+            count += len(keys)
             if cursor == 0:
                 break
 
-        return jobs
+        return count
 
-    async def update_job(
-        self,
-        uid: str,
-        status: JobStatus,
-        updates: dict | None = None,
-        result: dict | None = None,
-        error: str | None = None,
-    ) -> Job | None:
-        job = await self.get_job(uid)
-        if not job:
-            logger.warning(f"Failed to update job {uid} - not found")
-            return None
-
-        changes: dict = {"updated_at": datetime.now()}
-        if updates:
-            changes.update(updates)
-        if status is not None:
-            changes["status"] = status
-        if result is not None:
-            changes["result"] = result
-        if error is not None:
-            changes["error"] = error
-        if status in (JobStatus.COMPLETED, JobStatus.FAILED):
-            changes["completed_at"] = datetime.now()
-
-        job.update(**changes)
+    async def list_jobs(self, limit: int = 100, offset: int = 0) -> list[Job]:
+        """List jobs with pagination."""
         redis = await self._get_redis()
-        await redis.set(self._get_key(uid), job.model_dump_json(), ex=settings.REDIS_PROCESSING_JOB_TTL)
+        all_keys: list[str] = []
+        cursor = 0
+
+        target_count = offset + limit
+        while len(all_keys) < target_count:
+            cursor, keys = await redis.scan(cursor=cursor, match=f"{self.prefix}*", count=REDIS_SCAN_BATCH_SIZE)
+            all_keys.extend(keys)
+            if cursor == 0:
+                break
+
+        paginated_keys = all_keys[offset : offset + limit]
+        if not paginated_keys:
+            return []
+
+        values = await redis.mget(paginated_keys)
+        return [Job.model_validate_json(v) for v in values if v]
+
+    async def update_job(self, uid: str, **updates) -> Job:
+        job = await self.get_job(uid)
+
+        if updates.get("status") in (JobStatus.COMPLETED, JobStatus.FAILED):
+            updates["completed_at"] = datetime.now()
+
+        updates["updated_at"] = datetime.now()
+        job = job.model_copy(update=updates)
+
+        redis = await self._get_redis()
+        await redis.set(self._get_key(uid), job.model_dump_json(), ex=settings.REDIS_JOB_TTL)
         return job
 
-    async def mark_processing(self, uid: str) -> Job | None:
-        return await self.update_job(uid, status=JobStatus.PROCESSING)
-
-    async def complete(self, uid: str, result: dict) -> Job | None:
-        return await self.update_job(uid, status=JobStatus.COMPLETED, result=result)
-
-    async def fail(self, uid: str, error: str) -> Job | None:
-        return await self.update_job(uid, status=JobStatus.FAILED, error=error)
-
-    async def save_job(self, job: Job) -> None:
+    async def delete_job(self, uid: str) -> None:
+        """Delete job from Redis."""
         redis = await self._get_redis()
-        await redis.set(self._get_key(job.uid), job.model_dump_json(), ex=settings.REDIS_PROCESSING_JOB_TTL)
+        await redis.delete(self._get_key(uid))
+        logger.info("Deleted job %s from Redis", uid)
 
-    async def delete_job(self, uid: str) -> bool:
-        redis = await self._get_redis()
-        result = await redis.delete(self._get_key(uid))
-        success = result > 0
+    async def enqueue_job(self, uid: str, file_path: str, parsed_doc: dict[str, Any]) -> str:
+        """Create and enqueue a new execution for a job.
 
-        if success:
-            logger.info(f"Deleted job {uid}")
-        else:
-            logger.warning(f"Failed to delete job {uid}")
+        Returns:
+            execution_id: Unique identifier for this execution attempt
+        """
+        redis_client = await self._get_redis()
+        execution_id = str(uuid.uuid4())
 
-        return success
+        execution = JobExecution(
+            execution_id=execution_id,
+            job_uid=uid,
+            file_path=file_path,
+            parsed_doc=parsed_doc,
+            attempt_number=1,
+        )
 
-    async def delete_job_complete(self, uid: str, graph_db, vector_db) -> dict[str, Any]:
-        result: dict[str, Any] = {
-            "job_deleted": False,
-            "resume_deleted": False,
-            "vectors_deleted": 0,
-            "file_deleted": False,
-            "errors": [],
+        execution_key = f"{self.execution_key_prefix}{execution_id}"
+        redis_dict = execution.model_dump()
+        redis_dict["parsed_doc"] = json.dumps(redis_dict["parsed_doc"])
+
+        pipeline = redis_client.pipeline()
+        pipeline.hset(execution_key, mapping=redis_dict)  # type: ignore[arg-type]
+        pipeline.expire(execution_key, settings.REDIS_JOB_TTL)
+        stream_data = {"execution_id": execution_id, "uid": uid, "timestamp": str(time.time())}
+        pipeline.xadd(self.job_stream, stream_data)
+        pipeline.incr(self.active_jobs_counter)
+        await pipeline.execute()
+        return execution_id
+
+    async def consume_jobs(self) -> AsyncIterator[JobExecution]:
+        """Consume job executions from Redis stream for worker processing."""
+        redis_client = await self._get_redis()
+
+        while True:
+            try:
+                result = await redis_client.xreadgroup(
+                    self.consumer_group,
+                    self.consumer_name,
+                    {self.job_stream: ">"},
+                    count=REDIS_STREAM_READ_COUNT,
+                    block=1000,
+                )
+
+                if not result:
+                    continue
+
+                _, messages = result[0]
+
+                for msg_id, data in messages:
+                    execution = await self._process_stream_message(redis_client, msg_id, data)
+                    if execution:
+                        yield execution
+
+            except aioredis.ConnectionError:
+                logger.error("Redis connection lost, reconnecting...")
+                await asyncio.sleep(1)
+                redis_client = await self._get_redis()
+
+    async def _process_stream_message(
+        self, redis_client: aioredis.Redis, msg_id: str, data: dict
+    ) -> JobExecution | None:
+        execution_id = data.get("execution_id")
+        if not execution_id:
+            logger.warning("Stream message %s missing execution_id, acking and skipping", msg_id)
+            await redis_client.xack(self.job_stream, self.consumer_group, msg_id)
+            return None
+
+        execution_key = f"{self.execution_key_prefix}{execution_id}"
+        execution_data = await redis_client.hgetall(execution_key)
+
+        if not execution_data:
+            logger.warning(
+                "Execution data not found for execution_id %s, msg %s, acking and skipping", execution_id, msg_id
+            )
+            await redis_client.xack(self.job_stream, self.consumer_group, msg_id)
+            return None
+
+        await redis_client.xack(self.job_stream, self.consumer_group, msg_id)
+
+        execution_data["parsed_doc"] = json.loads(execution_data["parsed_doc"])
+        execution_data["attempt_number"] = int(execution_data.get("attempt_number", 1))
+        return JobExecution.model_validate(execution_data)
+
+    async def mark_execution_processing(self, execution_id: str, job_uid: str) -> bool:
+        """Mark an execution as currently processing and update the Job status."""
+        await self.update_job(job_uid, status=JobStatus.PROCESSING)
+        return True
+
+    async def mark_execution_completed(self, execution_id: str, job_uid: str, result: dict[str, Any]) -> bool:
+        """Mark an execution as completed and update the Job status."""
+        await self.update_job(job_uid, status=JobStatus.COMPLETED, result=result)
+        redis_client = await self._get_redis()
+        execution_key = f"{self.execution_key_prefix}{execution_id}"
+
+        pipeline = redis_client.pipeline()
+        pipeline.expire(execution_key, settings.REDIS_JOB_TTL)
+        pipeline.decr(self.active_jobs_counter)
+        await pipeline.execute()
+        return True
+
+    async def mark_execution_failed(self, execution_id: str, job_uid: str, error: str, retry: bool = True) -> bool:
+        """Mark an execution as failed and optionally schedule a retry."""
+        redis_client = await self._get_redis()
+        execution_key = f"{self.execution_key_prefix}{execution_id}"
+        execution_data = await redis_client.hgetall(execution_key)
+        if not execution_data:
+            return False
+
+        attempt_number = int(execution_data.get("attempt_number", 1))
+        if retry and attempt_number < REDIS_MAX_RETRIES:
+            next_attempt = attempt_number + 1
+            delay = min(REDIS_RETRY_BASE_DELAY * (2**attempt_number), REDIS_RETRY_MAX_DELAY)
+
+            await self.update_job(
+                job_uid, error=f"Attempt {attempt_number}/{REDIS_MAX_RETRIES} failed: {error}. Retrying in {delay}s..."
+            )
+
+            pipeline = redis_client.pipeline()
+            pipeline.hset(execution_key, "attempt_number", next_attempt)
+            pipeline.expire(execution_key, settings.REDIS_JOB_TTL)
+            pipeline.setex(f"resume:retry:{execution_id}", delay, job_uid)
+            await pipeline.execute()
+            return True
+
+        await self.update_job(job_uid, status=JobStatus.FAILED, error=error)
+        pipeline = redis_client.pipeline()
+        pipeline.expire(execution_key, settings.REDIS_JOB_TTL)
+        pipeline.decr(self.active_jobs_counter)
+        await pipeline.execute()
+        return False
+
+    async def listen_for_retries(self) -> None:
+        """Listen for expired retry keys and re-enqueue failed executions."""
+        redis_client = await self._get_redis()
+        pubsub = redis_client.pubsub()
+        await pubsub.subscribe("__keyevent@0__:expired")
+
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                key = message["data"]
+                if key.startswith("resume:retry:"):
+                    execution_id = key.replace("resume:retry:", "")
+                    execution_key = f"{self.execution_key_prefix}{execution_id}"
+                    execution_data = await redis_client.hgetall(execution_key)
+                    if execution_data:
+                        await redis_client.xadd(
+                            self.job_stream,
+                            {
+                                "execution_id": execution_id,
+                                "uid": execution_data.get("job_uid", ""),
+                                "timestamp": str(time.time()),
+                            },
+                        )
+
+    async def get_queue_stats(self) -> dict[str, Any]:
+        """Get queue statistics including stream length and active jobs."""
+        redis_client = await self._get_redis()
+        stream_info = await redis_client.xinfo_stream(self.job_stream)
+        active_jobs = await redis_client.get(self.active_jobs_counter) or "0"
+        memory_info = await redis_client.info("memory")
+
+        # Count scheduled retry jobs
+        retry_keys = []
+        cursor = 0
+        while True:
+            cursor, keys = await redis_client.scan(cursor=cursor, match="resume:retry:*", count=REDIS_SCAN_BATCH_SIZE)
+            retry_keys.extend(keys)
+            if cursor == 0:
+                break
+
+        queue_length = stream_info.get("length", 0)
+        stats = {
+            "stream_length": queue_length,
+            "queue_length": queue_length,
+            "scheduled_retries": len(retry_keys),
+            "active_jobs": int(active_jobs),
+            "redis_memory_usage": int(memory_info.get("used_memory", 0)),
         }
-
-        job = await self.get_job(uid)
-        if not job:
-            result["errors"].append(f"Job {uid} not found")
-            return result
-
-        deleted = await graph_db.delete_resume(job.uid)
-        result["resume_deleted"] = deleted
-        if deleted:
-            logger.info(f"Deleted resume {job.uid} from graph DB")
-        else:
-            result["errors"].append(f"Resume {job.uid} not found in graph DB")
-
-        count = await vector_db.delete_resume_vectors(job.uid)
-        result["vectors_deleted"] = count
-        logger.info(f"Deleted {count} vectors for resume {job.uid}")
-
-        await FileService.cleanup_all_job_files(uid)
-        result["file_deleted"] = True
-        logger.info(f"Deleted file for job {uid}")
-
-        result["job_deleted"] = await self.delete_job(uid)
-        return result
-
-    async def upload_resume(self, file_content: bytes, filename: str, graph_db) -> dict[str, Any]:
-        """Handle resume upload workflow."""
-        uid = str(uuid.uuid4())
-
-        try:
-            temp_path = await FileService.save_validated_content(file_content, filename, uid)
-
-            parser = ParsingService()
-            parsed_doc = await parser.parse_file(temp_path)
-
-            email = self._extract_email(parsed_doc)
-            if not email:
-                await FileService.cleanup_all_job_files(uid)
-                return {"error": "Cannot process resume without email address"}
-
-            existing = await graph_db.get_resume_by_email(email)
-            if existing:
-                await FileService.cleanup_all_job_files(uid)
-                return {"uid": existing.uid, "existing": True}
-
-            job = await self.create_job(file_path=temp_path, uid=uid)
-            await self.process_job(job.uid, parsed_doc)
-
-            return {"uid": uid, "job": job}
-
-        except Exception as e:
-            logger.error(f"Resume upload failed: {e}")
-            await FileService.cleanup_all_job_files(uid)
-            raise
-
-    async def process_job(self, uid: str, parsed_doc: ParsedDocument) -> dict:
-        job = await self.get_job(uid)
-        if not job:
-            raise Exception(f"Job not found: {uid}")
-
-        task_id = await self.redis_queue.enqueue_job(uid, job.file_path, parsed_doc.to_dict())
-
-        await self.update_job(uid, status=JobStatus.PENDING, updates={"result": {"task_id": task_id}})
-        logger.info(f"Job {uid} queued for async processing with task_id {task_id}")
-
-        return {"uid": uid, "status": "queued for async processing", "task_id": task_id}
-
-    async def close(self):
-        """Close Redis connection pool"""
-        await self.redis_pool.disconnect()
+        return stats

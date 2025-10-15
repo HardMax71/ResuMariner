@@ -3,14 +3,16 @@ import time
 
 import httpx
 from django.conf import settings
+from rest_framework.exceptions import ValidationError
 
 from core.metrics import EMBEDDING_API_CALLS, EMBEDDING_API_DURATION
-from processor.utils.circuit_breaker import create_custom_circuit_breaker
 
 logger = logging.getLogger(__name__)
 
 
 class EmbeddingService:
+    """OpenAI-compatible API client for text embeddings with circuit breaker protection."""
+
     def __init__(self):
         self.model = settings.EMBEDDING_MODEL
         self.endpoint = self._build_endpoint()
@@ -18,13 +20,6 @@ class EmbeddingService:
         self.timeout = settings.EMBEDDING_TIMEOUT
         self.batch_timeout = settings.EMBEDDING_BATCH_TIMEOUT
         self.max_batch_size = settings.EMBEDDING_MAX_BATCH_SIZE
-
-        self.circuit_breaker = create_custom_circuit_breaker(
-            name="embedding_api",
-            fail_max=settings.EMBEDDING_CIRCUIT_BREAKER_FAIL_MAX,
-            reset_timeout=settings.EMBEDDING_CIRCUIT_BREAKER_RESET_TIMEOUT,
-            exclude=[httpx.InvalidURL],
-        )
 
     def _build_endpoint(self) -> str:
         base = settings.TEXT_LLM_BASE_URL or "https://api.openai.com/v1"
@@ -49,11 +44,12 @@ class EmbeddingService:
             Embedding vector as list of floats
 
         Raises:
-            ValueError: If text is empty
+            ValidationError: If text is empty
             httpx.HTTPError: If API call fails
         """
         if not text or not text.strip():
-            raise ValueError("Cannot encode empty text")
+            logger.error("Embedding encode attempted with empty text")
+            raise ValidationError("Cannot encode empty text")
 
         # For single text, just call batch with one item
         embeddings = self.encode_batch([text])
@@ -99,7 +95,7 @@ class EmbeddingService:
 
             payload = {"model": self.model, "input": chunk}
 
-            chunk_embeddings = self.circuit_breaker(self._call_embedding_api)(payload, len(chunk))
+            chunk_embeddings = self._call_embedding_api(payload, len(chunk))
             embeddings.extend(chunk_embeddings)
             logger.debug("Encoded batch of %d texts", len(chunk))
 

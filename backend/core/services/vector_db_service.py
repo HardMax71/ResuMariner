@@ -11,12 +11,15 @@ logger = logging.getLogger(__name__)
 
 
 class VectorDBService:
+    """Qdrant vector database operations for semantic search."""
+
     def __init__(self, client: AsyncQdrantClient) -> None:
         self.client = client
         self.collection_name = settings.QDRANT_COLLECTION
         self.vector_size = settings.VECTOR_SIZE
 
     async def delete_resume_vectors(self, uid: str) -> int:
+        """Delete all vectors for a resume and return count deleted."""
         f = qdrant_models.Filter(
             must=[qdrant_models.FieldCondition(key="uid", match=qdrant_models.MatchValue(value=uid))]
         )
@@ -35,6 +38,7 @@ class VectorDBService:
         return count
 
     async def store_vectors(self, uid: str, vectors: list[EmbeddingVector]) -> list[str]:
+        """Store embedding vectors in Qdrant and return point IDs."""
         if not vectors:
             logger.warning("No vectors to store for resume %s", uid)
             return []

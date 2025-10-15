@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import include, path
@@ -5,18 +7,15 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from core.metrics import update_queue_metrics
-from processor.utils.redis_queue import RedisJobQueue
+from processor.services.job_service import JobService
 
 
-async def metrics_view(_request):
-    """Collect current metrics and return Prometheus format."""
-    # Update queue metrics before generating output
+async def metrics_view(_request: Any) -> HttpResponse:
     try:
-        redis_queue = RedisJobQueue()
-        stats = await redis_queue.get_queue_stats()
+        job_service = JobService()
+        stats = await job_service.get_queue_stats()
         update_queue_metrics(stats)
     except Exception:
-        # If Redis is down, metrics endpoint should still work
         pass
 
     return HttpResponse(generate_latest(), content_type=CONTENT_TYPE_LATEST)
@@ -24,7 +23,6 @@ async def metrics_view(_request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("silk/", include("silk.urls", namespace="silk")),
     path("metrics", metrics_view),
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),

@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessingService:
+    """Orchestrates complete resume processing pipeline: parsing, structuring, storage, and review."""
+
     def __init__(self, graph_db: GraphDBService, vector_db: VectorDBService) -> None:
         self.embedding_service = EmbeddingService()
         self.embedding_extractor = ResumeEmbeddingExtractor()

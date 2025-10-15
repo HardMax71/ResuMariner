@@ -22,5 +22,5 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["./.venv/bin/python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["./.venv/bin/uvicorn", "backend.asgi:application", "--host", "0.0.0.0", "--port", "8000"]
 

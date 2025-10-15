@@ -88,10 +88,6 @@ export const Grid = styled.div<{ columns?: number; gap?: string }>`
   grid-template-columns: repeat(${props => props.columns || 6}, 1fr);
   gap: ${props => props.gap || 'var(--space-2)'};
 
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }

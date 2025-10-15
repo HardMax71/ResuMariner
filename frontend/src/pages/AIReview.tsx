@@ -29,7 +29,7 @@ export default function AIReview() {
   const { uid = "" } = useParams();
   const { data: job, isLoading: loading, error: queryError } = useResumeStatus(uid);
   const error = queryError ? (queryError as Error).message : null;
-  const result = job?.status === "completed" ? job.data : null;
+  const result = job?.status === "completed" ? job.result : null;
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (section: string) => {

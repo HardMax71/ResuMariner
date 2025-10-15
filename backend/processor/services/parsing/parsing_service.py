@@ -1,4 +1,7 @@
+import logging
 from pathlib import Path
+
+from rest_framework.exceptions import ValidationError
 
 from core.domain.extraction import ParsedDocument
 from core.file_types import ParserType, get_parser_type
@@ -7,6 +10,8 @@ from .base_extraction_service import BaseExtractionService
 from .parse_image_service import ParseImageService
 from .parse_pdf_service import ParsePdfService
 from .parse_word_service import ParseWordService
+
+logger = logging.getLogger(__name__)
 
 
 class ParsingService:
@@ -21,7 +26,8 @@ class ParsingService:
             case ParserType.WORD:
                 return ParseWordService(file_path)
             case _:
-                raise ValueError(f"Unsupported file type: {file_ext}")
+                logger.error("Unsupported file type: %s", file_ext)
+                raise ValidationError("Unsupported file type")
 
     async def parse_file(self, file_path: str) -> ParsedDocument:
         file_ext = Path(file_path).suffix.lower()

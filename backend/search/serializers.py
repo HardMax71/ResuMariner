@@ -86,7 +86,7 @@ class EducationRequirementSerializer(serializers.Serializer):
     )
 
 
-class SearchFiltersSerializer(serializers.Serializer):
+class SearchFiltersSchema(serializers.Serializer):
     """Serializer for search filter parameters."""
 
     skills = serializers.ListField(
@@ -122,7 +122,7 @@ class SearchFiltersSerializer(serializers.Serializer):
         help_text="Language requirements with minimum CEFR levels",
     )
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data) -> SearchFilters:
         validated = super().to_internal_value(data)
         # Convert education statuses to EducationStatus enums if provided
         if validated.get("education"):
@@ -132,7 +132,7 @@ class SearchFiltersSerializer(serializers.Serializer):
         return SearchFilters(**validated)
 
 
-class VectorSearchQuerySerializer(serializers.Serializer):
+class VectorSearchQuerySchema(serializers.Serializer):
     query = serializers.CharField(min_length=1, help_text="Search query text")
     limit = serializers.IntegerField(default=10, help_text="Maximum number of results to return")
     min_score = serializers.FloatField(
@@ -146,9 +146,9 @@ class VectorSearchQuerySerializer(serializers.Serializer):
         validators=[MinValueValidator(1), MaxValueValidator(100)],
         help_text="Maximum number of matches to return per result",
     )
-    filters = SearchFiltersSerializer(required=False, help_text="Optional filters for search")
+    filters = SearchFiltersSchema(required=False, help_text="Optional filters for search")
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data) -> SearchRequest:
         validated = super().to_internal_value(data)
         return SearchRequest(
             search_type=SearchType.SEMANTIC,
@@ -160,14 +160,14 @@ class VectorSearchQuerySerializer(serializers.Serializer):
         )
 
 
-class GraphSearchQuerySerializer(serializers.Serializer):
+class GraphSearchQuerySchema(serializers.Serializer):
     query = serializers.CharField(
         required=False, allow_blank=True, default="", help_text="Optional query (not used for structured search)"
     )
-    filters = SearchFiltersSerializer(required=False, help_text="Search filters")
+    filters = SearchFiltersSchema(required=False, help_text="Search filters")
     limit = serializers.IntegerField(default=10, help_text="Maximum number of results to return")
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data) -> SearchRequest:
         validated = super().to_internal_value(data)
         return SearchRequest(
             search_type=SearchType.STRUCTURED,
@@ -177,18 +177,11 @@ class GraphSearchQuerySerializer(serializers.Serializer):
         )
 
 
-class HybridSearchQuerySerializer(serializers.Serializer):
-    query = serializers.CharField(help_text="Semantic search query")
-    filters = SearchFiltersSerializer(required=False, help_text="Search filters")
-    vector_weight = serializers.FloatField(
-        default=0.7,
-        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
-        help_text="Weight for vector search (0-1)",
-    )
-    graph_weight = serializers.FloatField(
-        default=0.3,
-        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
-        help_text="Weight for graph search (0-1)",
+class HybridSearchQuerySchema(serializers.Serializer):
+    query = serializers.CharField(help_text="Natural language search query")
+    filters = SearchFiltersSchema(
+        required=False,
+        help_text="Structured filters (skills, location, etc.) - results MUST match these requirements",
     )
     limit = serializers.IntegerField(default=10, help_text="Maximum number of results to return")
     max_matches_per_result = serializers.IntegerField(
@@ -198,7 +191,7 @@ class HybridSearchQuerySerializer(serializers.Serializer):
         help_text="Maximum number of matches to return per result",
     )
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data) -> SearchRequest:
         validated = super().to_internal_value(data)
         return SearchRequest(
             search_type=SearchType.HYBRID,
@@ -206,8 +199,6 @@ class HybridSearchQuerySerializer(serializers.Serializer):
             filters=validated.get("filters", SearchFilters()),
             limit=validated["limit"],
             max_matches_per_result=validated["max_matches_per_result"],
-            vector_weight=validated["vector_weight"],
-            graph_weight=validated["graph_weight"],
         )
 
 

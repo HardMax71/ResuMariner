@@ -2,7 +2,7 @@ import { apiGet } from '../lib/api';
 
 export interface QueueMetrics {
   stream_length: number;
-  cleanup_queue_length: number;
+  queue_length: number;
   scheduled_retries: number;
   active_jobs: number;
   redis_memory_usage: number;

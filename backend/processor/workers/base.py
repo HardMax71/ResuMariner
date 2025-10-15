@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 
 
 class BaseWorker(ABC):
+    """Abstract base class for background workers with graceful shutdown."""
+
     def __init__(self):
         self.name = "worker"
         self.running = True
@@ -22,15 +24,14 @@ class BaseWorker(ABC):
         for task in self.tasks:
             task.cancel()
 
-    async def run(self):
+    async def run(self) -> None:
+        """Main entry point that starts worker lifecycle: startup, tasks, shutdown."""
         await self.startup()
         self.logger.info("Starting %s worker", self.name)
 
-        # Start all concurrent tasks
         self.tasks = await self.create_tasks()
 
         try:
-            # Wait for all tasks to complete
             await asyncio.gather(*self.tasks, return_exceptions=True)
         except asyncio.CancelledError:
             self.logger.info("%s worker cancelled", self.name)
@@ -39,19 +40,16 @@ class BaseWorker(ABC):
         self.logger.info("%s worker stopped", self.name)
 
     @abstractmethod
-    async def startup(self):
-        """Override for async initialization"""
+    async def startup(self) -> None:
         pass
 
     @abstractmethod
     async def create_tasks(self) -> list[asyncio.Task]:
-        """Create and return all worker tasks to run concurrently"""
         pass
 
     @abstractmethod
-    async def shutdown(self):
-        """Override for cleanup"""
+    async def shutdown(self) -> None:
         pass
 
-    async def handle_error(self, error: Exception):
+    async def handle_error(self, error: Exception) -> None:
         self.logger.exception("Worker error: %s", error)

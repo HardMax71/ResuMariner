@@ -1,26 +1,18 @@
 import logging
 from dataclasses import asdict
+from typing import Any
 
 from django.conf import settings
-from neo4j import AsyncGraphDatabase
+from neo4j import AsyncGraphDatabase, AsyncManagedTransaction
 
 from core.domain import FilterOptionsResult, ResumeSearchResult, SearchFilters
 
 logger = logging.getLogger(__name__)
 
-"""
-TODO: naming?
-
-For XXQuerySerializer, we have to_internal_value() overridden: it return instance of well-typed obj instead of dict[whatever].
-Problem is, it is not always clear, when which serializer returns well-typed instance of obj instead of dict (and vice versa).
-
-Maybe:
-- naming?
-- some other hints without trashing actual serializers' names?
-"""
-
 
 class GraphSearchService:
+    """Neo4j-based structured search using graph filters."""
+
     def __init__(self):
         uri = f"bolt://{settings.NEO4J_HOST}:{settings.NEO4J_PORT}"
         self.driver = AsyncGraphDatabase.driver(
@@ -32,34 +24,97 @@ class GraphSearchService:
         )
         logger.info("Connected to Neo4j at %s:%s", settings.NEO4J_HOST, settings.NEO4J_PORT)
 
+    def _build_resume_projection_query(self) -> str:
+        """
+        Build the shared Cypher query fragment that projects all resume fields.
+        This is used by both search() and get_resumes_by_ids().
+
+        Prerequisites: Must be called after WITH resume
+        Returns: Query string from personal info fetch through languages collection
+        """
+        return """
+        MATCH (resume)-[:HAS_PERSONAL_INFO]->(p:PersonalInfoNode)-[:HAS_CONTACT]->(contact:ContactNode)
+        OPTIONAL MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(prof:ProfessionalProfileNode)
+        WITH resume, p.name AS name, contact.email AS email, prof.summary AS summary
+
+        // Get skills for this specific resume
+        OPTIONAL MATCH (resume)-[:HAS_SKILL]->(s:SkillNode)
+        WITH resume, name, email, summary, collect(DISTINCT s.name) AS skills
+
+        // Get employment history for this specific resume (sorted newest first)
+        OPTIONAL MATCH (resume)-[:HAS_EMPLOYMENT_HISTORY]->(job:EmploymentHistoryItemNode)
+        OPTIONAL MATCH (job)-[:WORKED_AT]->(c:CompanyInfoNode)
+        OPTIONAL MATCH (job)-[:HAS_DURATION]->(d:EmploymentDurationNode)
+        OPTIONAL MATCH (job)-[:HAS_KEY_POINT]->(kp:KeyPointInfoNode)
+        WITH resume, name, email, summary, skills, job, c.name AS company_name, d,
+             collect(DISTINCT kp.text) AS job_key_points
+        ORDER BY d.start DESC
+        WITH resume, name, email, summary, skills,
+             collect(job {
+                .*,
+                company: company_name,
+                duration_months: d.duration_months,
+                start: d.start,
+                end: d.end,
+                key_points: CASE WHEN size(job_key_points) > 0 THEN job_key_points ELSE [] END
+             }) AS experiences
+
+        // Get education for this specific resume (sorted newest first)
+        OPTIONAL MATCH (resume)-[:HAS_EDUCATION]->(edu:EducationItemNode)
+        OPTIONAL MATCH (edu)-[:ATTENDED]->(inst:InstitutionInfoNode)
+        ORDER BY edu.start DESC
+        WITH resume, name, email, summary, skills, experiences,
+             collect(edu {.*, institution: inst.name}) AS education
+
+        // Calculate years of experience
+        WITH resume, name, email, summary, skills, experiences, education,
+             toInteger(ROUND(REDUCE(total = 0, exp IN experiences | total + COALESCE(exp.duration_months, 0)) / 12.0)) AS years_experience
+
+        // Get location and preferences
+        OPTIONAL MATCH (resume)-[:HAS_PERSONAL_INFO]->(:PersonalInfoNode)
+                      -[:HAS_DEMOGRAPHICS]->(:DemographicsNode)
+                      -[:HAS_LOCATION]->(loc:LocationNode)
+        OPTIONAL MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(:ProfessionalProfileNode)
+                      -[:HAS_PREFERENCES]->(pref:PreferencesNode)
+
+        // Get languages
+        OPTIONAL MATCH (resume)-[:HAS_LANGUAGE_PROFICIENCY]->(lp:LanguageProficiencyNode)
+                      -[:OF_LANGUAGE]->(lang:LanguageNode)
+        WITH resume, name, email, summary, skills, experiences, education, years_experience,
+             loc, pref, collect({language: lang.name, cefr: lp.cefr, self_assessed: lp.self_assessed}) AS languages
+        """
+
     async def search(
         self,
         filters: SearchFilters,
         limit: int = 10,
     ) -> list[ResumeSearchResult]:
-        query = """
+        """Search resumes using graph filters for skills, location, experience, etc."""
+        projection = self._build_resume_projection_query()
+
+        query = f"""
         MATCH (resume:ResumeNode)
         WHERE
             ($skills IS NULL OR $skills = [] OR ALL(skill IN $skills WHERE
-                EXISTS {
+                EXISTS {{
                     MATCH (resume)-[:HAS_SKILL]->(s:SkillNode)
                     WHERE s.name = skill
-                } OR EXISTS {
+                }} OR EXISTS {{
                     MATCH (resume)-[:HAS_EMPLOYMENT_HISTORY|HAS_PROJECT]->(entity)-[:HAS_SKILL]->(s:SkillNode)
                     WHERE s.name = skill
-                }
+                }}
             ))
-            AND ($role IS NULL OR EXISTS {
+            AND ($role IS NULL OR EXISTS {{
                 MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(pp:ProfessionalProfileNode)
                       -[:HAS_PREFERENCES]->(pref:PreferencesNode)
                 WHERE pref.role CONTAINS $role
-            })
-            AND ($company IS NULL OR EXISTS {
+            }})
+            AND ($company IS NULL OR EXISTS {{
                 MATCH (resume)-[:HAS_EMPLOYMENT_HISTORY]->(job:EmploymentHistoryItemNode)
                       -[:WORKED_AT]->(c:CompanyInfoNode)
                 WHERE c.name CONTAINS $company
-            })
-            AND ($locations IS NULL OR $locations = [] OR EXISTS {
+            }})
+            AND ($locations IS NULL OR $locations = [] OR EXISTS {{
                 MATCH (resume)-[:HAS_PERSONAL_INFO]->(:PersonalInfoNode)
                       -[:HAS_DEMOGRAPHICS]->(:DemographicsNode)
                       -[:HAS_LOCATION]->(loc:LocationNode)
@@ -67,15 +122,15 @@ class GraphSearchService:
                     loc.country = req.country AND
                     (req.cities IS NULL OR req.cities = [] OR loc.city IN req.cities)
                 )
-            })
-            AND ($education IS NULL OR $education = [] OR EXISTS {
+            }})
+            AND ($education IS NULL OR $education = [] OR EXISTS {{
                 MATCH (resume)-[:HAS_EDUCATION]->(edu:EducationItemNode)
                 WHERE ANY(req IN $education WHERE
                     edu.qualification CONTAINS req.level AND
                     (req.statuses IS NULL OR req.statuses = [] OR edu.status IN req.statuses)
                 )
-            })
-            AND ($languages IS NULL OR $languages = [] OR EXISTS {
+            }})
+            AND ($languages IS NULL OR $languages = [] OR EXISTS {{
                 MATCH (resume)-[:HAS_LANGUAGE_PROFICIENCY]->(lp:LanguageProficiencyNode)
                       -[:OF_LANGUAGE]->(lang:LanguageNode)
                 WHERE ANY(req IN $languages WHERE
@@ -98,61 +153,13 @@ class GraphSearchService:
                         ELSE 0
                     END
                 )
-            })
+            }})
 
         WITH resume
-        MATCH (resume)-[:HAS_PERSONAL_INFO]->(p:PersonalInfoNode)-[:HAS_CONTACT]->(contact:ContactNode)
-        OPTIONAL MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(prof:ProfessionalProfileNode)
-        WITH resume, p.name AS name, contact.email AS email, prof.summary AS summary
-
-        // Get skills for this specific resume
-        OPTIONAL MATCH (resume)-[:HAS_SKILL]->(s:SkillNode)
-        WITH resume, name, email, summary, collect(DISTINCT s.name) AS skills
-
-        // Get employment history for this specific resume (sorted newest first)
-        OPTIONAL MATCH (resume)-[:HAS_EMPLOYMENT_HISTORY]->(job:EmploymentHistoryItemNode)
-        OPTIONAL MATCH (job)-[:WORKED_AT]->(c:CompanyInfoNode)
-        OPTIONAL MATCH (job)-[:HAS_DURATION]->(d:EmploymentDurationNode)
-        OPTIONAL MATCH (job)-[:HAS_KEY_POINT]->(kp:KeyPointInfoNode)
-        WITH resume, name, email, summary, skills, job, c.name AS company_name, d,
-             collect(DISTINCT kp.text) AS job_key_points
-        ORDER BY d.start DESC
-        WITH resume, name, email, summary, skills,
-             collect(job {
-                .*,
-                company: company_name,
-                duration_months: d.duration_months,
-                start: d.start,
-                end: d.end,
-                key_points: CASE WHEN size(job_key_points) > 0 THEN job_key_points ELSE [] END
-             }) AS experiences
-
-        // Get education for this specific resume (sorted newest first)
-        OPTIONAL MATCH (resume)-[:HAS_EDUCATION]->(edu:EducationItemNode)
-        OPTIONAL MATCH (edu)-[:ATTENDED]->(inst:InstitutionInfoNode)
-        ORDER BY edu.start DESC
-        WITH resume, name, email, summary, skills, experiences,
-             collect(edu {.*, institution: inst.name}) AS education
-
-        // Calculate years of experience
-        WITH resume, name, email, summary, skills, experiences, education,
-             toInteger(ROUND(REDUCE(total = 0, exp IN experiences | total + COALESCE(exp.duration_months, 0)) / 12.0)) AS years_experience
-
-        // Get location and preferences
-        OPTIONAL MATCH (resume)-[:HAS_PERSONAL_INFO]->(:PersonalInfoNode)
-                      -[:HAS_DEMOGRAPHICS]->(:DemographicsNode)
-                      -[:HAS_LOCATION]->(loc:LocationNode)
-        OPTIONAL MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(:ProfessionalProfileNode)
-                      -[:HAS_PREFERENCES]->(pref:PreferencesNode)
-
-        // Get languages
-        OPTIONAL MATCH (resume)-[:HAS_LANGUAGE_PROFICIENCY]->(lp:LanguageProficiencyNode)
-                      -[:OF_LANGUAGE]->(lang:LanguageNode)
-        WITH resume, name, email, summary, skills, experiences, education, years_experience,
-             loc, pref, collect({language: lang.name, cefr: lp.cefr, self_assessed: lp.self_assessed}) AS languages
+        {projection}
 
         WITH resume, name, email, summary, skills, experiences, education, years_experience,
-             loc {.*} AS location, pref.role AS desired_role, languages,
+             loc {{.*}} AS location, pref.role AS desired_role, languages,
              CASE WHEN $years_experience IS NULL THEN 1 ELSE CASE WHEN years_experience >= $years_experience THEN 1 ELSE 0 END END AS experience_match
         WHERE experience_match = 1
 
@@ -163,7 +170,7 @@ class GraphSearchService:
         LIMIT $limit
         """
 
-        async def run_query(tx):
+        async def run_query(tx: AsyncManagedTransaction) -> list[dict[str, Any]]:
             result = await tx.run(query, {**asdict(filters), "limit": limit})
             return await result.data()
 
@@ -183,65 +190,19 @@ class GraphSearchService:
         if not uids:
             return []
 
-        query = """
+        projection = self._build_resume_projection_query()
+
+        query = f"""
         MATCH (resume:ResumeNode)
         WHERE resume.uid IN $uids
         WITH resume
-        MATCH (resume)-[:HAS_PERSONAL_INFO]->(p:PersonalInfoNode)-[:HAS_CONTACT]->(contact:ContactNode)
-        OPTIONAL MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(prof:ProfessionalProfileNode)
-        WITH resume, p.name AS name, contact.email AS email, prof.summary AS summary
-
-        // Get skills for this specific resume
-        OPTIONAL MATCH (resume)-[:HAS_SKILL]->(s:SkillNode)
-        WITH resume, name, email, summary, collect(DISTINCT s.name) AS skills
-
-        // Get employment history for this specific resume (sorted newest first)
-        OPTIONAL MATCH (resume)-[:HAS_EMPLOYMENT_HISTORY]->(job:EmploymentHistoryItemNode)
-        OPTIONAL MATCH (job)-[:WORKED_AT]->(c:CompanyInfoNode)
-        OPTIONAL MATCH (job)-[:HAS_DURATION]->(d:EmploymentDurationNode)
-        OPTIONAL MATCH (job)-[:HAS_KEY_POINT]->(kp:KeyPointInfoNode)
-        WITH resume, name, email, summary, skills, job, c.name AS company_name, d,
-             collect(DISTINCT kp.text) AS job_key_points
-        ORDER BY d.start DESC
-        WITH resume, name, email, summary, skills,
-             collect(job {
-                .*,
-                company: company_name,
-                duration_months: d.duration_months,
-                start: d.start,
-                end: d.end,
-                key_points: CASE WHEN size(job_key_points) > 0 THEN job_key_points ELSE [] END
-             }) AS experiences
-
-        // Get education for this specific resume (sorted newest first)
-        OPTIONAL MATCH (resume)-[:HAS_EDUCATION]->(edu:EducationItemNode)
-        OPTIONAL MATCH (edu)-[:ATTENDED]->(inst:InstitutionInfoNode)
-        ORDER BY edu.start DESC
-        WITH resume, name, email, summary, skills, experiences,
-             collect(edu {.*, institution: inst.name}) AS education
-
-        // Calculate years of experience
-        WITH resume, name, email, summary, skills, experiences, education,
-             toInteger(ROUND(REDUCE(total = 0, exp IN experiences | total + COALESCE(exp.duration_months, 0)) / 12.0)) AS years_experience
-
-        // Get location and preferences
-        OPTIONAL MATCH (resume)-[:HAS_PERSONAL_INFO]->(:PersonalInfoNode)
-                      -[:HAS_DEMOGRAPHICS]->(:DemographicsNode)
-                      -[:HAS_LOCATION]->(loc:LocationNode)
-        OPTIONAL MATCH (resume)-[:HAS_PROFESSIONAL_PROFILE]->(:ProfessionalProfileNode)
-                      -[:HAS_PREFERENCES]->(pref:PreferencesNode)
-
-        // Get languages
-        OPTIONAL MATCH (resume)-[:HAS_LANGUAGE_PROFICIENCY]->(lp:LanguageProficiencyNode)
-                      -[:OF_LANGUAGE]->(lang:LanguageNode)
-        WITH resume, name, email, summary, skills, experiences, education, years_experience,
-             loc, pref, collect({language: lang.name, cefr: lp.cefr, self_assessed: lp.self_assessed}) AS languages
+        {projection}
 
         RETURN resume.uid AS uid, name, email, summary, skills, experiences, education, years_experience,
-               loc {.*} AS location, pref.role AS desired_role, languages, 1.0 AS score
+               loc {{.*}} AS location, pref.role AS desired_role, languages, 1.0 AS score
         """
 
-        async def run_query(tx):
+        async def run_query(tx: AsyncManagedTransaction) -> list[dict[str, Any]]:
             result = await tx.run(query, {"uids": uids})
             return await result.data()
 
@@ -254,6 +215,7 @@ class GraphSearchService:
             return results
 
     async def get_filter_options(self) -> FilterOptionsResult:
+        """Get available filter values with counts for search UI."""
         query = """
         CALL {
             MATCH path = (s:SkillNode)<-[:HAS_SKILL]-(entity)
@@ -338,22 +300,19 @@ class GraphSearchService:
         RETURN category, items
         """
 
-        async def run_query(tx):
+        async def run_query(tx: AsyncManagedTransaction) -> list[dict[str, Any]]:
             result = await tx.run(query)
             return await result.data()
 
         async with self.driver.session() as session:
             records = await session.execute_read(run_query)
 
-            logger.info(f"Filter query returned {len(records)} categories")
-            for record in records:
-                logger.info(f"Category: {record['category']}, Items: {len(record['items'])}")
+            logger.info("Filter query returned %s categories", len(records))
 
-            # Build kwargs dict from records
             kwargs = {record["category"]: record["items"] for record in records}
 
             return FilterOptionsResult(**kwargs)
 
-    async def close(self):
-        """Close the driver connection"""
+    async def close(self) -> None:
+        """Close Neo4j driver connection."""
         await self.driver.close()

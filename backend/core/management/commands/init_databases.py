@@ -19,8 +19,7 @@ class Command(BaseCommand):
         asyncio.run(self._init_databases())
         self.stdout.write(self.style.SUCCESS("Database initialization complete"))
 
-    async def _init_databases(self):
-        # Initialize Neo4j
+    async def _init_databases(self) -> None:
         await adb.set_connection(url=settings.NEO4J_URI)
         await adb.install_all_labels()
         self.stdout.write(self.style.SUCCESS(f"Neo4j connected: {settings.NEO4J_HOST}:{settings.NEO4J_PORT}"))

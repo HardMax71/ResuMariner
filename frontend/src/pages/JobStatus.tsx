@@ -144,7 +144,7 @@ export default function JobStatus() {
 
   const { data: job, error: jobError } = useResumeStatus(uid);
 
-  const result = job?.status === "completed" ? job.data : null;
+  const result = job?.status === "completed" ? job.result : null;
   const error = jobError;
 
   useEffect(() => {

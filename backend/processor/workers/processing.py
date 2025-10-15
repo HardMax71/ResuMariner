@@ -9,15 +9,16 @@ from neomodel import adb
 
 from core.database import create_graph_service, create_vector_service
 from core.domain.extraction import ParsedDocument
-from processor.models import QueuedTask
 from processor.services.processing_service import ProcessingService
 
+from ..models import JobExecution
 from ..services.job_service import JobService
-from ..utils.redis_queue import RedisJobQueue
 from .base import BaseWorker
 
 
 class ProcessingWorker(BaseWorker):
+    """Worker that consumes and processes resume jobs from Redis stream."""
+
     def __init__(self):
         super().__init__()
         self.name = "processing"
@@ -25,11 +26,11 @@ class ProcessingWorker(BaseWorker):
         self.concurrent_jobs = int(os.environ.get("WORKER_CONCURRENT_JOBS", settings.WORKER_CONCURRENT_JOBS))
         self.semaphore = asyncio.Semaphore(self.concurrent_jobs)
         self.job_service = JobService()
-        self.redis_queue = RedisJobQueue()
         self.graph_db = None
         self.vector_db = None
         self.processing_service = None
-        self.logger.info(f"Initialized processing worker with {self.concurrent_jobs} concurrent job slots")
+        self.active_tasks: set[asyncio.Task] = set()
+        self.logger.info("Initialized processing worker with %s concurrent job slots", self.concurrent_jobs)
 
     async def create_tasks(self) -> list[asyncio.Task]:
         """Create all worker tasks that run concurrently"""
@@ -38,49 +39,64 @@ class ProcessingWorker(BaseWorker):
             asyncio.create_task(self.retry_listener()),
         ]
 
-    async def job_consumer(self):
-        """Consume jobs from Redis stream with zero delay"""
+    def _task_done_callback(self, task: asyncio.Task) -> None:
+        self.active_tasks.discard(task)
+
+        if task.cancelled():
+            return
+
+        try:
+            task.result()
+        except Exception as e:
+            self.logger.exception("Unhandled exception in processing task: %s", e)
+
+    async def job_consumer(self) -> None:
         self.logger.info("Starting job consumer")
 
-        async for job_data in self.redis_queue.consume_jobs():
+        async for execution in self.job_service.consume_jobs():
             if not self.running:
                 break
 
-            # Use semaphore to limit concurrent jobs
-            asyncio.create_task(self._process_job_with_semaphore(job_data))
+            async_task = asyncio.create_task(self._process_job_with_semaphore(execution))
+            self.active_tasks.add(async_task)
+            async_task.add_done_callback(self._task_done_callback)
 
-    async def _process_job_with_semaphore(self, job_data: QueuedTask):
-        """Process job with concurrency limit"""
+    async def _process_job_with_semaphore(self, execution: JobExecution) -> None:
         async with self.semaphore:
-            await self._process_job(job_data)
+            await self._process_job(execution)
 
-    async def retry_listener(self):
-        """Listen for retry events"""
+    async def retry_listener(self) -> None:
         self.logger.info("Starting retry listener")
         try:
-            await self.redis_queue.listen_for_retries()
+            await self.job_service.listen_for_retries()
         except Exception as e:
-            self.logger.error(f"Retry listener error: {e}")
+            self.logger.error("Retry listener error: %s", e)
 
-    async def _process_job(self, job_data: QueuedTask) -> None:
-        task_id: str = job_data.task_id
-        uid: str = job_data.uid
-        file_path: str = job_data.file_path
+    async def _process_job(self, execution: JobExecution) -> None:
+        """Process a single execution attempt.
+
+        Args:
+            execution: The execution attempt to process
+        """
+        execution_id: str = execution.execution_id
+        job_uid: str = execution.job_uid
+        file_path: str = execution.file_path
 
         start_time = time.time()
 
         try:
-            self.logger.info("Processing job %s (task %s) - started instantly", uid, task_id)
+            self.logger.info("Processing job %s (execution %s) - started instantly", job_uid, execution_id)
 
-            await self.redis_queue.mark_job_processing(task_id, uid)
-            await self.job_service.mark_processing(uid)
+            await self.job_service.mark_execution_processing(execution_id, job_uid)
 
-            self.logger.info("Processing job %s", uid)
+            self.logger.info("Processing job %s", job_uid)
 
-            # Extract parsed document from first-class field
-            parsed_doc = ParsedDocument.from_dict(job_data.parsed_doc)
+            parsed_doc = ParsedDocument.from_dict(execution.parsed_doc)
 
-            result = await self.processing_service.process_resume(file_path=file_path, uid=uid, parsed_doc=parsed_doc)  # type: ignore[union-attr]
+            assert self.processing_service is not None, "ProcessingService not initialized"
+            result = await self.processing_service.process_resume(
+                file_path=file_path, uid=job_uid, parsed_doc=parsed_doc
+            )
 
             result_dict = {
                 "resume": result.resume.model_dump(),
@@ -88,19 +104,17 @@ class ProcessingWorker(BaseWorker):
                 "metadata": asdict(result.metadata),
             }
 
-            await self.redis_queue.mark_job_completed(task_id, uid, result_dict)
-            await self.job_service.complete(uid, result_dict)
+            await self.job_service.mark_execution_completed(execution_id, job_uid, result_dict)
 
             processing_time = time.time() - start_time
-            self.logger.info("Job %s completed successfully in %.2fs", uid, processing_time)
+            self.logger.info("Job %s completed successfully in %.2fs", job_uid, processing_time)
 
         except Exception as e:
-            self.logger.exception("Job %s failed: %s", uid, e)
-            await self.redis_queue.mark_job_failed(task_id, uid, str(e), retry=True)
-            await self.job_service.fail(uid, str(e))
+            self.logger.exception("Job %s failed: %s", job_uid, e)
+            await self.job_service.mark_execution_failed(execution_id, job_uid, str(e), retry=True)
 
-    async def startup(self):
-        """Initialize services"""
+    async def startup(self) -> None:
+        await JobService.initialize()
         await adb.set_connection(url=settings.NEO4J_URI)
 
         self.graph_db = create_graph_service()
@@ -109,9 +123,12 @@ class ProcessingWorker(BaseWorker):
 
         self.logger.info("Processing worker ready")
 
-    async def shutdown(self):
-        """Clean shutdown"""
+    async def shutdown(self) -> None:
         self.running = False
-        await self.job_service.close()
-        await self.redis_queue.close()
+
+        if self.active_tasks:
+            self.logger.info("Waiting for %d active tasks to complete", len(self.active_tasks))
+            await asyncio.gather(*self.active_tasks, return_exceptions=True)
+            self.logger.info("All active tasks completed")
+
         self.logger.info("Processing worker shutdown complete")

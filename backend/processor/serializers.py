@@ -68,7 +68,6 @@ class JobCreateSerializer(serializers.Serializer):
 class JobUpdateSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=JobStatus.choices, required=False)
     result = serializers.JSONField(required=False)
-    result_url = serializers.URLField(required=False, allow_blank=True)
     error = serializers.CharField(required=False, allow_blank=True)
     completed_at = serializers.DateTimeField(required=False)
 
@@ -80,7 +79,6 @@ class JobSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(default=datetime.now)
     updated_at = serializers.DateTimeField(default=datetime.now)
     result = serializers.JSONField(required=False, allow_null=True)
-    result_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
     error = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     completed_at = serializers.DateTimeField(required=False, allow_null=True)
     error_message = serializers.CharField(required=False, allow_null=True)
@@ -91,5 +89,13 @@ class ResumeResponseSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=JobStatus.choices, help_text="Processing status")
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
-    result_url = serializers.URLField(required=False, allow_null=True)
-    error = serializers.CharField(required=False, allow_null=True)
+    completed_at = serializers.DateTimeField(required=False, allow_null=True)
+    result = serializers.JSONField(required=False, allow_null=True)
+    error = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+
+class ResumeListResponseSerializer(serializers.Serializer):
+    count = serializers.IntegerField(help_text="Total number of resumes")
+    next = serializers.URLField(required=False, allow_null=True, help_text="Next page URL")
+    previous = serializers.URLField(required=False, allow_null=True, help_text="Previous page URL")
+    results = ResumeResponseSerializer(many=True, help_text="Resumes for current page")

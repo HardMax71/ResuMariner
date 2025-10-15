@@ -11,6 +11,7 @@ import aiofiles
 import aiofiles.os
 from botocore.exceptions import ClientError
 from django.conf import settings
+from rest_framework.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,8 @@ class FileInfo:
 
 
 class FileService:
+    """File operations for resume processing including S3 integration and validation."""
+
     @staticmethod
     async def prepare_for_processing(file_path: str) -> FileInfo:
         """
@@ -48,10 +51,12 @@ class FileService:
 
         path_obj = Path(actual_path)
         if not path_obj.name:
-            raise ValueError("File name is missing")
+            logger.error("File preparation failed: file name is missing for path %s", actual_path)
+            raise ValidationError("File name is missing")
 
         if not path_obj.suffix:
-            raise ValueError(f"Invalid file name or missing extension: {path_obj.name}")
+            logger.error("File preparation failed: missing extension for file %s", path_obj.name)
+            raise ValidationError("Invalid file name or missing extension")
 
         return FileInfo(path=actual_path, name=path_obj.name, ext=path_obj.suffix.lower(), source=source)
 
@@ -123,7 +128,7 @@ class FileService:
             try:
                 await aiofiles.os.remove(temp_file)
             except OSError as e:
-                logger.warning(f"Failed to cleanup temp file {temp_file}: {e}")
+                logger.warning("Failed to cleanup temp file %s: %s", temp_file, e)
 
         # Cleanup durable storage
         if settings.DURABLE_STORAGE == "s3":
@@ -138,7 +143,7 @@ class FileService:
             try:
                 await aiofiles.os.remove(file_path)
             except OSError as e:
-                logger.warning(f"Failed to cleanup local file {file_path}: {e}")
+                logger.warning("Failed to cleanup local file %s: %s", file_path, e)
 
     @staticmethod
     async def delete_from_s3_async(uid: str) -> None:

@@ -11,7 +11,7 @@ from tqdm import tqdm
 from core.domain import ProcessingMetadata, Resume, ReviewResult
 
 
-class CVProcessingTest:
+class ResumeProcessingTest:
     def __init__(self, backend_url: str = "http://localhost:8000"):
         """Initialize with backend URL"""
         self.backend_url = backend_url.rstrip("/")
@@ -69,7 +69,7 @@ class CVProcessingTest:
                 status = response.json()
                 if status.get("status") == "completed":
                     print("\nProcessing completed!")
-                    result_data = status.get("data")
+                    result_data = status.get("result")
 
                     # Parse metadata
                     metadata_dict = result_data.get("metadata", {})
@@ -332,23 +332,23 @@ class CVProcessingTest:
         }
         return mime_types.get(extension, "application/octet-stream")
 
-    def print_cv_summary(self):
-        """Print a summary of the CV using the typed Resume object"""
+    def print_resume_summary(self):
+        """Print a summary of the resume using the typed Resume object"""
         if not self.resume:
-            print("No CV data available")
+            print("No resume data available")
             return
-        print("\n2. CV Summary:")
+        print("\n2. Resume Summary:")
         print("=" * 80)
         # Use Pydantic's model_dump for clean JSON output
         print(json.dumps(self.resume.model_dump(exclude_none=True), indent=2, default=str, ensure_ascii=False))
         print("=" * 80)
 
     def print_review(self):
-        """Print the review of the CV using the typed ReviewResult object"""
+        """Print the review of the resume using the typed ReviewResult object"""
         if not self.review:
             print("No review data available")
             return
-        print("\nCV Review:")
+        print("\nResume Review:")
         print("=" * 80)
         # Use Pydantic's model_dump for clean JSON output
         print(json.dumps(self.review.model_dump(exclude_none=True), indent=2, default=str, ensure_ascii=False))
@@ -375,9 +375,9 @@ class CVProcessingTest:
         print("=" * 80)
 
     def run_comprehensive_search(self, include_matches: bool = False) -> dict:
-        """Run a comprehensive set of searches using all available parameters from the CV"""
+        """Run a comprehensive set of searches using all available parameters from the resume"""
         if not self.resume:
-            print("No CV data available for searching")
+            print("No resume data available for searching")
             return {}
         print("\n3. Running comprehensive search testing")
         params = self.extract_search_parameters()
@@ -496,24 +496,24 @@ class CVProcessingTest:
             return
         print("\n4. Search Results Comparison")
         print("=" * 80)
-        cv_counts = {}
+        resume_counts = {}
         method_counts = {}
         for method, results in self.search_results.items():
             method_counts[method] = len(results)
             for result in results:
                 uid = result.get("uid")
                 if uid:
-                    if uid not in cv_counts:
-                        cv_counts[uid] = {"total": 0, "methods": []}
-                    cv_counts[uid]["total"] += 1
-                    cv_counts[uid]["methods"].append(method)
-        print(f"Total unique resumes found: {len(cv_counts)}")
+                    if uid not in resume_counts:
+                        resume_counts[uid] = {"total": 0, "methods": []}
+                    resume_counts[uid]["total"] += 1
+                    resume_counts[uid]["methods"].append(method)
+        print(f"Total unique resumes found: {len(resume_counts)}")
         print(f"Search methods: {len(self.search_results)}")
         print("\nResults by search method:")
         for method, count in method_counts.items():
             print(f"  {method}: {count} results")
         print("\nResumes found by multiple methods:")
-        for uid, data in sorted(cv_counts.items(), key=lambda x: x[1]["total"], reverse=True):
+        for uid, data in sorted(resume_counts.items(), key=lambda x: x[1]["total"], reverse=True):
             if data["total"] > 1:
                 print(f"  UID: {uid}")
                 print(f"    Found by {data['total']} methods: {', '.join(data['methods'])}")
@@ -521,7 +521,7 @@ class CVProcessingTest:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Fully automated CV processing and search testing")
+    parser = argparse.ArgumentParser(description="Fully automated resume processing and search testing")
     parser.add_argument(
         "--filename",
         default="./test_inputs/Max_Azatian_CV.pdf",
@@ -542,9 +542,9 @@ def main():
     print(f"Show review?: {args.review}")
     print(f"Full JSON?: {args.full_json}")
 
-    client = CVProcessingTest(backend_url=args.backend_url)
+    client = ResumeProcessingTest(backend_url=args.backend_url)
     client.process_file(args.filename)
-    client.print_cv_summary()
+    client.print_resume_summary()
 
     if args.review:
         client.print_review()

@@ -102,14 +102,13 @@ export default function Health() {
               </FlexRow>
             </GlassCard>
 
-            <Grid columns={6} style={{ marginBottom: "var(--space-4)" }}>
+            <Grid columns={5} style={{ marginBottom: "var(--space-4)" }}>
               {[
-                { label: "Pending", value: data.queue.stream_length },
+                { label: "Pending", value: data.queue.queue_length },
                 { label: "Active", value: data.queue.active_jobs },
                 { label: "Retries", value: data.queue.scheduled_retries },
-                { label: "Cleanup", value: data.queue.cleanup_queue_length },
                 { label: "Memory", value: formatBytes(data.queue.redis_memory_usage) },
-                { label: "Total", value: data.queue.stream_length + data.queue.active_jobs + data.queue.cleanup_queue_length + data.queue.scheduled_retries }
+                { label: "Total", value: data.queue.queue_length + data.queue.active_jobs + data.queue.scheduled_retries }
               ].map((metric) => (
                 <MetricCard key={metric.label}>
                   <MetricLabel>{metric.label}</MetricLabel>

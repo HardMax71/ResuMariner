@@ -10,22 +10,28 @@ logger = logging.getLogger(__name__)
 
 
 class GraphDBService:
+    """Neo4j graph database operations for resume storage and retrieval."""
+
     def __init__(self, converter: AsyncConverter) -> None:
         self.converter = converter
 
     async def upsert_resume(self, resume: Resume) -> bool:
+        """Create or update resume in Neo4j graph."""
         try:
+            # Check if resume exists
             existing_node = await ResumeNode.nodes.get_or_none(uid=resume.uid)
             if existing_node:
                 logger.info("Updating existing resume %s", resume.uid)
-                await self.delete_resume_cascade(existing_node)
+                # Delete in its own transaction
+                async with adb.write_transaction:
+                    await self.delete_resume_cascade(existing_node)
 
+            # Create new resume - converter handles its own transaction
             resume_node = await self.converter.to_ogm(resume)
             if resume_node is None:
-                logger.error("Error creating resume node for %s", resume.uid)
-                return False
+                raise RuntimeError(f"Failed to create resume node for {resume.uid}")
 
-            logger.info("Successfully stored resume %s in Neo4j", resume_node.uid)
+            logger.info("Successfully stored resume %s in Neo4j", resume.uid)
             return True
 
         except Exception as e:
@@ -33,52 +39,62 @@ class GraphDBService:
             return False
 
     async def get_resume(self, uid: str) -> Resume | None:
-        resume_node = await ResumeNode.nodes.get_or_none(uid=uid)
-        if not resume_node:
-            return None
-        return await self.converter.to_pydantic(resume_node)  # type: ignore[return-value]
+        """Get resume by uid from Neo4j."""
+        async with adb.read_transaction:
+            resume_node = await ResumeNode.nodes.get_or_none(uid=uid)
+            if not resume_node:
+                return None
+            return await self.converter.to_pydantic(resume_node)  # type: ignore[return-value]
 
     async def get_resumes(self, uids: list[str]) -> dict[str, Resume]:
+        """Batch fetch resumes by uids from Neo4j."""
         if not uids:
             return {}
 
-        resume_nodes = [node async for node in ResumeNode.nodes.filter(uid__in=uids)]
+        async with adb.read_transaction:
+            resume_nodes = [node async for node in ResumeNode.nodes.filter(uid__in=uids)]
 
-        result: dict[str, Resume] = {}
-        for node in resume_nodes:
-            resume = await self.converter.to_pydantic(node)
-            if resume is not None and resume.uid:  # type: ignore[attr-defined]
-                result[resume.uid] = resume  # type: ignore[attr-defined,assignment]
+            result: dict[str, Resume] = {}
+            for node in resume_nodes:
+                resume = await self.converter.to_pydantic(node)
+                if resume is not None and resume.uid:  # type: ignore[attr-defined]
+                    result[resume.uid] = resume  # type: ignore[attr-defined,assignment]
 
-        return result
+            return result
 
     async def delete_resume(self, uid: str) -> bool:
-        resume_node = await ResumeNode.nodes.get_or_none(uid=uid)
-        if not resume_node:
-            logger.debug("Resume not found for deletion")
+        """Delete resume and all related nodes from Neo4j."""
+        try:
+            async with adb.write_transaction:
+                resume_node = await ResumeNode.nodes.get_or_none(uid=uid)
+                if not resume_node:
+                    logger.debug("Resume not found for deletion: %s", uid)
+                    return False
+
+                await self.delete_resume_cascade(resume_node)
+                logger.info("Deleted resume: %s", resume_node.uid)
+            return True
+
+        except Exception as e:
+            logger.error("Failed to delete resume %s: %s", uid, e)
             return False
 
-        await self.delete_resume_cascade(resume_node)
-        logger.info("Deleted resume: %s", resume_node.uid)
-        return True
-
     async def get_resume_by_email(self, email: str) -> Resume | None:
-        from neomodel import adb
+        """Find resume by email address."""
+        async with adb.read_transaction:
+            query = """
+            MATCH (r:ResumeNode)-[:HAS_PERSONAL_INFO]->(pi:PersonalInfoNode)-[:HAS_CONTACT]->(c:ContactNode)
+            WHERE c.email = $email
+            RETURN r
+            LIMIT 1
+            """
+            results, _ = await adb.cypher_query(query, {"email": email.lower()})
 
-        query = """
-        MATCH (r:ResumeNode)-[:HAS_PERSONAL_INFO]->(pi:PersonalInfoNode)-[:HAS_CONTACT]->(c:ContactNode)
-        WHERE c.email = $email
-        RETURN r
-        LIMIT 1
-        """
-        results, _ = await adb.cypher_query(query, {"email": email.lower()})
+            if not results:
+                return None
 
-        if not results:
-            return None
-
-        # Get the node instance from the result
-        resume_node = results[0][0]
-        return await self.converter.to_pydantic(resume_node)  # type: ignore[return-value]
+            resume_node = results[0][0]
+            return await self.converter.to_pydantic(resume_node)  # type: ignore[return-value]
 
     async def delete_resume_cascade(self, resume_node: ResumeNode) -> None:
         query = """
