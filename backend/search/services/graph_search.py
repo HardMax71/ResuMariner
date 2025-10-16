@@ -179,7 +179,7 @@ class GraphSearchService:
 
             results = [ResumeSearchResult(**record) for record in records_data]
 
-            logger.info("Graph search returned %s results", len(results))
+            logger.debug("Graph search returned %s results", len(results))
             return results
 
     async def get_resumes_by_ids(self, uids: list[str]) -> list[ResumeSearchResult]:
@@ -211,7 +211,7 @@ class GraphSearchService:
 
             results = [ResumeSearchResult(**record) for record in records_data]
 
-            logger.info("Fetched %s resumes by IDs", len(results))
+            logger.debug("Fetched %s resumes by IDs", len(results))
             return results
 
     async def get_filter_options(self) -> FilterOptionsResult:
@@ -307,7 +307,7 @@ class GraphSearchService:
         async with self.driver.session() as session:
             records = await session.execute_read(run_query)
 
-            logger.info("Filter query returned %s categories", len(records))
+            logger.debug("Filter query returned %s categories", len(records))
 
             kwargs = {record["category"]: record["items"] for record in records}
 

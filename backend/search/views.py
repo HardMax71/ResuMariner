@@ -37,7 +37,7 @@ class SemanticSearchView(APIView):
         serializer = VectorSearchQuerySchema(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        logger.info("Performing semantic search for query: %s", serializer.validated_data.query)
+        logger.debug("Performing semantic search for query: %s", serializer.validated_data.query)
 
         result = await request.search_coordinator.search(serializer.validated_data)
         return Response(asdict(result))

@@ -40,6 +40,7 @@ class ProcessingWorker(BaseWorker):
         ]
 
     def _task_done_callback(self, task: asyncio.Task) -> None:
+        self.semaphore.release()
         self.active_tasks.discard(task)
 
         if task.cancelled():
@@ -57,13 +58,10 @@ class ProcessingWorker(BaseWorker):
             if not self.running:
                 break
 
-            async_task = asyncio.create_task(self._process_job_with_semaphore(execution))
+            await self.semaphore.acquire()
+            async_task = asyncio.create_task(self._process_job(execution))
             self.active_tasks.add(async_task)
             async_task.add_done_callback(self._task_done_callback)
-
-    async def _process_job_with_semaphore(self, execution: JobExecution) -> None:
-        async with self.semaphore:
-            await self._process_job(execution)
 
     async def retry_listener(self) -> None:
         self.logger.info("Starting retry listener")
@@ -85,11 +83,9 @@ class ProcessingWorker(BaseWorker):
         start_time = time.time()
 
         try:
-            self.logger.info("Processing job %s (execution %s) - started instantly", job_uid, execution_id)
+            self.logger.debug("Processing job %s (execution %s)", job_uid, execution_id)
 
             await self.job_service.mark_execution_processing(execution_id, job_uid)
-
-            self.logger.info("Processing job %s", job_uid)
 
             parsed_doc = ParsedDocument.from_dict(execution.parsed_doc)
 

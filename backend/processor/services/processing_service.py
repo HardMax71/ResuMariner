@@ -85,7 +85,7 @@ class ProcessingService:
             success = await self.graph_db.upsert_resume(resume)
             if success:
                 metadata.graph_stored = True
-                logger.info("Stored resume %s in Neo4j", uid)
+                logger.debug("Graph storage completed for resume %s", uid)
             else:
                 metadata.graph_error = "Graph storage returned failure"
                 logger.error("Failed to store resume %s in Neo4j", uid)
@@ -95,7 +95,7 @@ class ProcessingService:
 
     async def _store_embeddings(self, resume: Resume, uid: str, metadata: ProcessingMetadata) -> None:
         try:
-            logger.info("Starting embedding storage for uid %s", uid)
+            logger.debug("Starting embedding storage for resume %s", uid)
 
             extracted_data = self.embedding_extractor.extract_for_embedding(resume)
             if not extracted_data.texts:
@@ -104,15 +104,15 @@ class ProcessingService:
                 metadata.vector_count = 0
                 return
 
-            logger.info("Encoding %d texts for uid %s", len(extracted_data.texts), uid)
-            embeddings = self.embedding_service.encode_batch(extracted_data.texts)
+            logger.debug("Encoding %d texts for resume %s", len(extracted_data.texts), uid)
+            embeddings = await self.embedding_service.encode_batch(extracted_data.texts)
 
             vectors = self.embedding_extractor.create_vectors(embeddings, extracted_data)
 
-            logger.info("Storing %d vectors for uid %s", len(vectors), uid)
+            logger.debug("Storing %d vectors for resume %s", len(vectors), uid)
             stored_ids = await self.vector_db.store_vectors(uid, vectors)
 
-            logger.info("Successfully stored %d vectors for uid %s", len(stored_ids), uid)
+            logger.debug("Vector storage completed: %d vectors for resume %s", len(stored_ids), uid)
             metadata.vector_stored = True
             metadata.vector_count = len(stored_ids)
         except Exception as e:

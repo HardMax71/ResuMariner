@@ -56,14 +56,14 @@ class HybridSearchService:
         )
 
         if not graph_results:
-            logger.info("No candidates found matching filters")
+            logger.debug("No candidates found matching filters")
             return []
 
         candidate_uids = [r.uid for r in graph_results]
-        logger.info("Found %d candidates matching filters", len(candidate_uids))
+        logger.debug("Found %d candidates matching filters", len(candidate_uids))
 
         # Step 2: Semantic search within candidates only
-        query_vector = self.embedding_service.encode(query)
+        query_vector = await self.embedding_service.encode(query)
         vector_hits = await self.vector_search.search(
             query_vector=query_vector,
             limit=limit * 5,  # Over-fetch for grouping
@@ -71,7 +71,7 @@ class HybridSearchService:
         )
 
         if not vector_hits:
-            logger.info("No semantic matches found within filtered candidates")
+            logger.debug("No semantic matches found within filtered candidates")
             return []
 
         # Step 3-6: Enrich vector hits with complete resume data
@@ -82,5 +82,5 @@ class HybridSearchService:
             limit,
         )
 
-        logger.info("Hybrid search returned %d results", len(results))
+        logger.debug("Hybrid search returned %d results", len(results))
         return results

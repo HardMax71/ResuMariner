@@ -26,7 +26,7 @@ class FileUploadSerializer(serializers.Serializer):
     file = serializers.FileField()  # The actual file field from request.FILES
 
     def validate_file(self, file):
-        # Validate filename
+        # 1. Validate filename (cheap checks first)
         filename = file.name
         if any(char in filename for char in DANGEROUS_CHARS):
             raise ValidationError("Filename contains dangerous characters")
@@ -34,11 +34,21 @@ class FileUploadSerializer(serializers.Serializer):
         if any(pattern in filename for pattern in SUSPICIOUS_PATH_PATTERNS):
             raise ValidationError("Filename contains suspicious patterns")
 
+        # 2. Validate extension BEFORE reading file
         file_ext = os.path.splitext(filename)[1].lower()
         if file_ext not in ALLOWED_EXTENSIONS:
-            raise ValidationError(f"File extension not allowed: {file_ext}")
+            allowed = ", ".join(sorted(ALLOWED_EXTENSIONS))
+            raise ValidationError(f"File extension not allowed: {file_ext}. Allowed: {allowed}")
 
-        # Read and validate content
+        # 3. Validate file size BEFORE reading content (prevents DoS)
+        from core.file_types import FILE_TYPE_REGISTRY
+
+        max_size_bytes = FILE_TYPE_REGISTRY[file_ext]["max_size_mb"] * 1024 * 1024
+        if file.size > max_size_bytes:
+            max_mb = FILE_TYPE_REGISTRY[file_ext]["max_size_mb"]
+            raise ValidationError(f"File too large. Max size for {file_ext}: {max_mb}MB")
+
+        # 4. Validate content (only after extension/size checks pass)
         file.seek(0)
         content = file.read()
 

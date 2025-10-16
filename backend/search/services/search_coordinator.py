@@ -47,7 +47,7 @@ class SearchCoordinator:
             logger.error("Semantic search attempted without query")
             raise ValidationError("Query is required for semantic search")
 
-        query_vector = self.embedding_service.encode(request.query)
+        query_vector = await self.embedding_service.encode(request.query)
 
         vector_hits = await self.vector_search.search(
             query_vector=query_vector,

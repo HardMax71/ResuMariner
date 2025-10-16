@@ -17,6 +17,7 @@ from backend.settings import (
     REDIS_RETRY_BASE_DELAY,
     REDIS_RETRY_MAX_DELAY,
     REDIS_SCAN_BATCH_SIZE,
+    REDIS_STREAM_BLOCK_MS,
     REDIS_STREAM_READ_COUNT,
 )
 
@@ -97,22 +98,30 @@ class JobService:
         redis = await self._get_redis()
         job_json = await redis.get(self._get_key(uid))
         if not job_json:
-            logger.warning("Job not found: %s", uid)
             raise NotFound("Job not found")
         return Job.model_validate_json(job_json)
 
     async def count_jobs(self) -> int:
-        """Count total jobs in Redis."""
+        """Count total jobs in Redis with caching to avoid expensive SCAN on every request."""
         redis = await self._get_redis()
+
+        # Try to get cached count (60-second cache)
+        cache_key = "resume:stats:job_count_cache"
+        cached = await redis.get(cache_key)
+        if cached:
+            return int(cached)
+
+        # Perform SCAN to count (expensive operation)
         cursor = 0
         count = 0
-
         while True:
             cursor, keys = await redis.scan(cursor=cursor, match=f"{self.prefix}*", count=REDIS_SCAN_BATCH_SIZE)
             count += len(keys)
             if cursor == 0:
                 break
 
+        # Cache the result for 60 seconds
+        await redis.setex(cache_key, 60, count)
         return count
 
     async def list_jobs(self, limit: int = 100, offset: int = 0) -> list[Job]:
@@ -184,6 +193,22 @@ class JobService:
         await pipeline.execute()
         return execution_id
 
+    async def _reclaim_pending(self, redis_client: aioredis.Redis) -> AsyncIterator[JobExecution]:
+        """Reclaim and yield pending messages for this consumer after reconnection."""
+        result = await redis_client.xreadgroup(
+            self.consumer_group, self.consumer_name, {self.job_stream: "0"}, count=100
+        )
+        if not result:
+            return
+
+        _, messages = result[0]
+        if messages:
+            logger.warning("Reclaiming %d pending messages after reconnection", len(messages))
+            for msg_id, data in messages:
+                execution = await self._process_stream_message(redis_client, msg_id, data)
+                if execution:
+                    yield execution
+
     async def consume_jobs(self) -> AsyncIterator[JobExecution]:
         """Consume job executions from Redis stream for worker processing."""
         redis_client = await self._get_redis()
@@ -195,7 +220,7 @@ class JobService:
                     self.consumer_name,
                     {self.job_stream: ">"},
                     count=REDIS_STREAM_READ_COUNT,
-                    block=1000,
+                    block=REDIS_STREAM_BLOCK_MS,
                 )
 
                 if not result:
@@ -212,6 +237,8 @@ class JobService:
                 logger.error("Redis connection lost, reconnecting...")
                 await asyncio.sleep(1)
                 redis_client = await self._get_redis()
+                async for execution in self._reclaim_pending(redis_client):
+                    yield execution
 
     async def _process_stream_message(
         self, redis_client: aioredis.Redis, msg_id: str, data: dict
@@ -287,7 +314,15 @@ class JobService:
         return False
 
     async def listen_for_retries(self) -> None:
-        """Listen for expired retry keys and re-enqueue failed executions."""
+        """Listen for expired retry keys and re-enqueue failed executions.
+
+        Flow:
+        1. Subscribe to Redis keyspace notifications for expired keys
+        2. When resume:retry:{execution_id} expires (after backoff delay), event fires
+        3. Re-enqueue execution to stream for another attempt
+
+        Requires: Redis config notify-keyspace-events = Ex
+        """
         redis_client = await self._get_redis()
         pubsub = redis_client.pubsub()
         await pubsub.subscribe("__keyevent@0__:expired")

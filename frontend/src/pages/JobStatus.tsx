@@ -1971,7 +1971,7 @@ export default function JobStatus() {
                     <div className="glass-card">
                       <h3 className="title" style={{ marginBottom: "var(--space-2)" }}>Skills</h3>
                       <div style={{ position: "relative" }}>
-                        <div ref={skillsContainerRef} className="chips" style={{ maxHeight: "150px", overflowY: "auto", paddingBottom: "var(--space-2)" }}>
+                        <div ref={skillsContainerRef} className="chips" style={{ maxHeight: "min(400px, 50vh)", overflowY: "auto", paddingBottom: "var(--space-2)" }}>
                           {result.resume.skills && Array.isArray(result.resume.skills) ? (
                             result.resume.skills.map((skill: any, idx: number) => (
                               <span key={idx} className="chip" style={{ fontSize: "var(--text-xs)" }}>

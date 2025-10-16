@@ -144,12 +144,12 @@ export const FeedbackSection = styled.div<{ isExpanded?: boolean; priorityColor?
 export const SectionHeader = styled.div<{ isExpanded?: boolean; priorityColor?: string; priorityBg?: string }>`
   padding: var(--space-3) var(--space-4);
   background: ${props => props.priorityBg || 'var(--primary-50)'};
-  border-bottom: ${props => props.isExpanded ? `1px solid ${props.priorityColor}20` : 'none'};
+  border-bottom: ${props => props.isExpanded ? `1px solid ${props.priorityColor}20` : '1px solid transparent'};
   display: flex;
   align-items: center;
   justify-content: space-between;
   user-select: none;
-  transition: background var(--transition-fast);
+  transition: all var(--transition-base);
 
   &:hover {
     background: ${props => !props.isExpanded ? `${props.priorityColor}15` : props.priorityBg};
@@ -214,6 +214,7 @@ export const FeedbackItem = styled.div<{
   border: none;
   display: flex;
   gap: 8px;
+  align-items: flex-start;
 
   &::before {
     content: '';
@@ -222,7 +223,6 @@ export const FeedbackItem = styled.div<{
     border-radius: 50%;
     background: ${props => props.dotColor || 'var(--neutral-400)'};
     margin-top: 6px;
-    margin-left: 6px;
     flex-shrink: 0;
   }
 `;

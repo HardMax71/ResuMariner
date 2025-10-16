@@ -21,7 +21,7 @@ class GraphDBService:
             # Check if resume exists
             existing_node = await ResumeNode.nodes.get_or_none(uid=resume.uid)
             if existing_node:
-                logger.info("Updating existing resume %s", resume.uid)
+                logger.debug("Updating existing resume %s", resume.uid)
                 # Delete in its own transaction
                 async with adb.write_transaction:
                     await self.delete_resume_cascade(existing_node)
@@ -31,7 +31,7 @@ class GraphDBService:
             if resume_node is None:
                 raise RuntimeError(f"Failed to create resume node for {resume.uid}")
 
-            logger.info("Successfully stored resume %s in Neo4j", resume.uid)
+            logger.info("Stored resume in Neo4j: %s", resume.uid)
             return True
 
         except Exception as e:
@@ -72,7 +72,7 @@ class GraphDBService:
                     return False
 
                 await self.delete_resume_cascade(resume_node)
-                logger.info("Deleted resume: %s", resume_node.uid)
+                logger.info("Deleted resume from Neo4j: %s", resume_node.uid)
             return True
 
         except Exception as e:

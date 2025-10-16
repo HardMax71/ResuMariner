@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingService:
-    """OpenAI-compatible API client for text embeddings with circuit breaker protection."""
+    """Async OpenAI-compatible API client for text embeddings."""
 
     def __init__(self):
         self.model = settings.EMBEDDING_MODEL
@@ -31,7 +31,7 @@ class EmbeddingService:
             "Content-Type": "application/json",
         }
 
-    def encode(self, text: str) -> list[float]:
+    async def encode(self, text: str) -> list[float]:
         """
         Generate embedding for a single text.
         Use this only for single texts (e.g., search queries).
@@ -52,10 +52,10 @@ class EmbeddingService:
             raise ValidationError("Cannot encode empty text")
 
         # For single text, just call batch with one item
-        embeddings = self.encode_batch([text])
+        embeddings = await self.encode_batch([text])
         return embeddings[0]
 
-    def encode_batch(self, texts: list[str], skip_empty: bool = True) -> list[list[float]]:
+    async def encode_batch(self, texts: list[str], skip_empty: bool = True) -> list[list[float]]:
         """
         Batch encode multiple texts efficiently.
         This should be the primary method for encoding multiple texts.
@@ -95,7 +95,7 @@ class EmbeddingService:
 
             payload = {"model": self.model, "input": chunk}
 
-            chunk_embeddings = self._call_embedding_api(payload, len(chunk))
+            chunk_embeddings = await self._call_embedding_api(payload, len(chunk))
             embeddings.extend(chunk_embeddings)
             logger.debug("Encoded batch of %d texts", len(chunk))
 
@@ -103,9 +103,9 @@ class EmbeddingService:
         EMBEDDING_API_DURATION.labels(batch_size=batch_size_label).observe(time.time() - start_time)
         return embeddings
 
-    def _call_embedding_api(self, payload: dict, batch_size: int) -> list[list[float]]:
+    async def _call_embedding_api(self, payload: dict, batch_size: int) -> list[list[float]]:
         """
-        Make API call to embedding service with circuit breaker protection.
+        Make async API call to embedding service.
 
         Args:
             payload: Request payload with model and input
@@ -115,12 +115,11 @@ class EmbeddingService:
             List of embedding vectors
 
         Raises:
-            pybreaker.CircuitBreakerError: When circuit is open
             httpx.HTTPError: On API errors
         """
         try:
-            with httpx.Client(timeout=self.batch_timeout) as client:
-                resp = client.post(self.endpoint, headers=self.headers, json=payload)
+            async with httpx.AsyncClient(timeout=self.batch_timeout) as client:
+                resp = await client.post(self.endpoint, headers=self.headers, json=payload)
                 resp.raise_for_status()
                 data = resp.json()
 

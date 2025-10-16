@@ -1,7 +1,7 @@
 import asyncio
-import atexit
 import logging
 import time
+from collections.abc import Awaitable, Callable
 
 from django.http import HttpRequest, HttpResponse
 
@@ -20,12 +20,12 @@ class PrometheusMiddleware:
     sync_capable = False
     async_capable = True
 
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[HttpRequest], Awaitable[HttpResponse]]):
         self.get_response = get_response
 
     async def __call__(self, request: HttpRequest) -> HttpResponse:
         if request.path == "/metrics":
-            return await self.get_response(request)  # type: ignore[no-any-return]
+            return await self.get_response(request)
 
         start_time = time.time()
         response = await self.get_response(request)
@@ -37,7 +37,7 @@ class PrometheusMiddleware:
         REQUEST_DURATION.labels(method=method, endpoint=endpoint).observe(duration)
         REQUEST_COUNT.labels(method=method, endpoint=endpoint, status=response.status_code).inc()
 
-        return response  # type: ignore[no-any-return]
+        return response
 
     def _normalize_path(self, path: str) -> str:
         path = path.rstrip("/") or "/"
@@ -53,33 +53,39 @@ class DatabaseServicesMiddleware:
     async_capable = True
 
     _initialization_lock = asyncio.Lock()
+    _graph_db = None
+    _vector_db = None
     _job_service = None
     _resume_service = None
 
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[HttpRequest], Awaitable[HttpResponse]]):
         self.get_response = get_response
-        self.graph_db = create_graph_service()
-        self.vector_db = create_vector_service()
-        logger.info("Database services initialized")
 
     async def __call__(self, request: HttpRequest) -> HttpResponse:
         if DatabaseServicesMiddleware._job_service is None:
             async with DatabaseServicesMiddleware._initialization_lock:
                 if DatabaseServicesMiddleware._job_service is None:
+                    # Create all services
+                    graph_db = create_graph_service()
+                    vector_db = create_vector_service()
                     await JobService.initialize()
-                    DatabaseServicesMiddleware._job_service = JobService()
-                    DatabaseServicesMiddleware._resume_service = ResumeService(
-                        DatabaseServicesMiddleware._job_service, self.graph_db, self.vector_db
-                    )
-                    logger.info("JobService and ResumeService singletons initialized")
+                    job_service = JobService()
+                    resume_service = ResumeService(job_service, graph_db, vector_db)
 
-        request.graph_db = self.graph_db  # type: ignore[attr-defined]
-        request.vector_db = self.vector_db  # type: ignore[attr-defined]
+                    # Atomic assignment - all or nothing
+                    DatabaseServicesMiddleware._graph_db = graph_db
+                    DatabaseServicesMiddleware._vector_db = vector_db
+                    DatabaseServicesMiddleware._job_service = job_service
+                    DatabaseServicesMiddleware._resume_service = resume_service
+                    logger.info("Database services initialized")
+
+        request.graph_db = DatabaseServicesMiddleware._graph_db  # type: ignore[attr-defined]
+        request.vector_db = DatabaseServicesMiddleware._vector_db  # type: ignore[attr-defined]
         request.job_service = DatabaseServicesMiddleware._job_service  # type: ignore[attr-defined]
         request.resume_service = DatabaseServicesMiddleware._resume_service  # type: ignore[attr-defined]
 
         response = await self.get_response(request)
-        return response  # type: ignore[no-any-return]
+        return response
 
 
 class SearchServicesMiddleware:
@@ -90,9 +96,8 @@ class SearchServicesMiddleware:
 
     _initialization_lock = asyncio.Lock()
     _search_coordinator = None
-    _cleanup_registered = False
 
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[HttpRequest], Awaitable[HttpResponse]]):
         self.get_response = get_response
 
     async def __call__(self, request: HttpRequest) -> HttpResponse:
@@ -102,25 +107,7 @@ class SearchServicesMiddleware:
                     SearchServicesMiddleware._search_coordinator = SearchCoordinator()
                     logger.info("SearchCoordinator singleton initialized")
 
-                    if not SearchServicesMiddleware._cleanup_registered:
-                        atexit.register(SearchServicesMiddleware._cleanup)
-                        SearchServicesMiddleware._cleanup_registered = True
-                        logger.info("SearchCoordinator cleanup registered")
-
         request.search_coordinator = SearchServicesMiddleware._search_coordinator  # type: ignore[attr-defined]
 
         response = await self.get_response(request)
-        return response  # type: ignore[no-any-return]
-
-    @staticmethod
-    def _cleanup() -> None:
-        """Cleanup function called on process shutdown."""
-        if SearchServicesMiddleware._search_coordinator is not None:
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    loop.create_task(SearchServicesMiddleware._search_coordinator.close())
-                else:
-                    loop.run_until_complete(SearchServicesMiddleware._search_coordinator.close())
-            except Exception as e:
-                logger.error("Error closing SearchCoordinator: %s", e)
+        return response
