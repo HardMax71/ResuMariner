@@ -7,10 +7,10 @@ from neomodel import (
     DateTimeProperty,
     IntegerProperty,
     JSONProperty,
-    RelationshipTo,
     StringProperty,
-    StructuredNode,
 )
+from neomodel.async_.core import AsyncStructuredNode
+from neomodel.async_.relationship_manager import AsyncRelationshipTo
 
 
 class WorkMode(Enum):
@@ -55,125 +55,125 @@ AWARD_TYPE_CHOICES = {e.value: e.value for e in AwardType}
 PUBLICATION_TYPE_CHOICES = {e.value: e.value for e in PublicationType}
 
 
-class LanguageNode(StructuredNode):
+class LanguageNode(AsyncStructuredNode):
     name = StringProperty(required=True, unique_index=True)
 
 
-class LanguageProficiencyNode(StructuredNode):
+class LanguageProficiencyNode(AsyncStructuredNode):
     self_assessed = StringProperty(required=True)
     cefr = StringProperty(required=True)
-    language = RelationshipTo("LanguageNode", "OF_LANGUAGE")
+    language = AsyncRelationshipTo("LanguageNode", "OF_LANGUAGE")
 
 
-class LocationNode(StructuredNode):
+class LocationNode(AsyncStructuredNode):
     city = StringProperty()
     state = StringProperty()
     country = StringProperty()
 
 
-class ContactLinksNode(StructuredNode):
+class ContactLinksNode(AsyncStructuredNode):
     telegram = StringProperty()
     linkedin = StringProperty()
     github = StringProperty()
     other_links = JSONProperty()
 
 
-class ContactNode(StructuredNode):
+class ContactNode(AsyncStructuredNode):
     email = StringProperty(required=True, unique_index=True)
     phone = StringProperty()
-    links = RelationshipTo("ContactLinksNode", "HAS_LINKS")
+    links = AsyncRelationshipTo("ContactLinksNode", "HAS_LINKS")
 
 
-class WorkAuthorizationNode(StructuredNode):
+class WorkAuthorizationNode(AsyncStructuredNode):
     citizenship = StringProperty()
     work_permit = BooleanProperty()
     visa_sponsorship_required = BooleanProperty()
 
 
-class DemographicsNode(StructuredNode):
-    current_location = RelationshipTo("LocationNode", "HAS_LOCATION")
-    work_authorization = RelationshipTo("WorkAuthorizationNode", "HAS_WORK_AUTHORIZATION")
+class DemographicsNode(AsyncStructuredNode):
+    current_location = AsyncRelationshipTo("LocationNode", "HAS_LOCATION")
+    work_authorization = AsyncRelationshipTo("WorkAuthorizationNode", "HAS_WORK_AUTHORIZATION")
 
 
-class PersonalInfoNode(StructuredNode):
+class PersonalInfoNode(AsyncStructuredNode):
     name = StringProperty(required=True)
     resume_lang = StringProperty(required=True)
-    contact = RelationshipTo("ContactNode", "HAS_CONTACT")
-    demographics = RelationshipTo("DemographicsNode", "HAS_DEMOGRAPHICS")
+    contact = AsyncRelationshipTo("ContactNode", "HAS_CONTACT")
+    demographics = AsyncRelationshipTo("DemographicsNode", "HAS_DEMOGRAPHICS")
 
 
-class PreferencesNode(StructuredNode):
+class PreferencesNode(AsyncStructuredNode):
     role = StringProperty(required=True)
     employment_types = ArrayProperty(base_property=StringProperty(choices=EMPLOYMENT_TYPE_CHOICES))
     work_modes = ArrayProperty(base_property=StringProperty(choices=WORK_MODE_CHOICES))
     salary = StringProperty()
 
 
-class ProfessionalProfileNode(StructuredNode):
+class ProfessionalProfileNode(AsyncStructuredNode):
     summary = StringProperty()
-    preferences = RelationshipTo("PreferencesNode", "HAS_PREFERENCES")
+    preferences = AsyncRelationshipTo("PreferencesNode", "HAS_PREFERENCES")
 
 
-class EmploymentDurationNode(StructuredNode):
+class EmploymentDurationNode(AsyncStructuredNode):
     start = StringProperty(required=True)  # Format: YYYY.MM
     end = StringProperty()  # Format: YYYY.MM or None for ongoing
     duration_months = IntegerProperty(required=True)
 
 
-class CompanyInfoNode(StructuredNode):
+class CompanyInfoNode(AsyncStructuredNode):
     name = StringProperty(required=True, unique_index=True)
     url = StringProperty()
 
 
-class KeyPointInfoNode(StructuredNode):
+class KeyPointInfoNode(AsyncStructuredNode):
     text = StringProperty(required=True)
 
 
-class EmploymentHistoryItemNode(StructuredNode):
+class EmploymentHistoryItemNode(AsyncStructuredNode):
     position = StringProperty(required=True)
     employment_type = StringProperty(required=True, choices=EMPLOYMENT_TYPE_CHOICES)
     work_mode = StringProperty(required=True, choices=WORK_MODE_CHOICES)
-    skills = RelationshipTo("SkillNode", "HAS_SKILL")
+    skills = AsyncRelationshipTo("SkillNode", "HAS_SKILL")
 
-    company = RelationshipTo("CompanyInfoNode", "WORKED_AT")
-    duration = RelationshipTo("EmploymentDurationNode", "HAS_DURATION")
-    location = RelationshipTo("LocationNode", "LOCATED_AT")
-    key_points = RelationshipTo("KeyPointInfoNode", "HAS_KEY_POINT")
+    company = AsyncRelationshipTo("CompanyInfoNode", "WORKED_AT")
+    duration = AsyncRelationshipTo("EmploymentDurationNode", "HAS_DURATION")
+    location = AsyncRelationshipTo("LocationNode", "LOCATED_AT")
+    key_points = AsyncRelationshipTo("KeyPointInfoNode", "HAS_KEY_POINT")
 
 
-class ProjectNode(StructuredNode):
+class ProjectNode(AsyncStructuredNode):
     title = StringProperty(required=True)
     url = StringProperty()
-    skills = RelationshipTo("SkillNode", "HAS_SKILL")
-    key_points = RelationshipTo("KeyPointInfoNode", "HAS_KEY_POINT")
+    skills = AsyncRelationshipTo("SkillNode", "HAS_SKILL")
+    key_points = AsyncRelationshipTo("KeyPointInfoNode", "HAS_KEY_POINT")
 
 
-class InstitutionInfoNode(StructuredNode):
+class InstitutionInfoNode(AsyncStructuredNode):
     name = StringProperty(required=True, unique_index=True)
 
 
-class CourseworkNode(StructuredNode):
+class CourseworkNode(AsyncStructuredNode):
     text = StringProperty(required=True)
 
 
-class EducationExtraNode(StructuredNode):
+class EducationExtraNode(AsyncStructuredNode):
     text = StringProperty(required=True)
 
 
-class EducationItemNode(StructuredNode):
+class EducationItemNode(AsyncStructuredNode):
     qualification = StringProperty()
     field = StringProperty(required=True)
     start = StringProperty()  # Format: YYYY.MM
     end = StringProperty()  # Format: YYYY.MM or None for in-progress
     status = StringProperty(required=True, choices=EDUCATION_STATUS_CHOICES)
-    coursework = RelationshipTo("CourseworkNode", "INCLUDES_COURSEWORK")
-    extras = RelationshipTo("EducationExtraNode", "HAS_EXTRA")
+    coursework = AsyncRelationshipTo("CourseworkNode", "INCLUDES_COURSEWORK")
+    extras = AsyncRelationshipTo("EducationExtraNode", "HAS_EXTRA")
 
-    institution = RelationshipTo("InstitutionInfoNode", "ATTENDED")
-    location = RelationshipTo("LocationNode", "LOCATED_AT")
+    institution = AsyncRelationshipTo("InstitutionInfoNode", "ATTENDED")
+    location = AsyncRelationshipTo("LocationNode", "LOCATED_AT")
 
 
-class CourseNode(StructuredNode):
+class CourseNode(AsyncStructuredNode):
     name = StringProperty(required=True)
     organization = StringProperty(required=True)
     year = IntegerProperty()
@@ -181,14 +181,14 @@ class CourseNode(StructuredNode):
     certificate_url = StringProperty()
 
 
-class CertificationNode(StructuredNode):
+class CertificationNode(AsyncStructuredNode):
     name = StringProperty(required=True)
     issue_org = StringProperty()
     issue_year = IntegerProperty()
     certificate_link = StringProperty()
 
 
-class AwardNode(StructuredNode):
+class AwardNode(AsyncStructuredNode):
     name = StringProperty(required=True)
     award_type = StringProperty(required=True, choices=AWARD_TYPE_CHOICES)
     organization = StringProperty(required=True)
@@ -198,7 +198,7 @@ class AwardNode(StructuredNode):
     url = StringProperty()
 
 
-class ScientificContributionNode(StructuredNode):
+class ScientificContributionNode(AsyncStructuredNode):
     title = StringProperty(required=True)
     publication_type = StringProperty(required=True, choices=PUBLICATION_TYPE_CHOICES)
     year = IntegerProperty()
@@ -208,23 +208,23 @@ class ScientificContributionNode(StructuredNode):
     description = StringProperty()
 
 
-class SkillNode(StructuredNode):
+class SkillNode(AsyncStructuredNode):
     name = StringProperty(required=True, unique_index=True)
 
 
-class ResumeNode(StructuredNode):
+class ResumeNode(AsyncStructuredNode):
     uid = StringProperty(required=True, unique_index=True)
     created_at = DateTimeProperty(default=datetime.now)
     updated_at = DateTimeProperty(default=datetime.now)
 
-    personal_info = RelationshipTo("PersonalInfoNode", "HAS_PERSONAL_INFO")
-    professional_profile = RelationshipTo("ProfessionalProfileNode", "HAS_PROFESSIONAL_PROFILE")
-    skills = RelationshipTo("SkillNode", "HAS_SKILL")
-    employment_history = RelationshipTo("EmploymentHistoryItemNode", "HAS_EMPLOYMENT_HISTORY")
-    projects = RelationshipTo("ProjectNode", "HAS_PROJECT")
-    education = RelationshipTo("EducationItemNode", "HAS_EDUCATION")
-    courses = RelationshipTo("CourseNode", "HAS_COURSE")
-    certifications = RelationshipTo("CertificationNode", "HAS_CERTIFICATION")
-    awards = RelationshipTo("AwardNode", "HAS_AWARD")
-    scientific_contributions = RelationshipTo("ScientificContributionNode", "HAS_SCIENTIFIC_CONTRIBUTION")
-    language_proficiency = RelationshipTo("LanguageProficiencyNode", "HAS_LANGUAGE_PROFICIENCY")
+    personal_info = AsyncRelationshipTo("PersonalInfoNode", "HAS_PERSONAL_INFO")
+    professional_profile = AsyncRelationshipTo("ProfessionalProfileNode", "HAS_PROFESSIONAL_PROFILE")
+    skills = AsyncRelationshipTo("SkillNode", "HAS_SKILL")
+    employment_history = AsyncRelationshipTo("EmploymentHistoryItemNode", "HAS_EMPLOYMENT_HISTORY")
+    projects = AsyncRelationshipTo("ProjectNode", "HAS_PROJECT")
+    education = AsyncRelationshipTo("EducationItemNode", "HAS_EDUCATION")
+    courses = AsyncRelationshipTo("CourseNode", "HAS_COURSE")
+    certifications = AsyncRelationshipTo("CertificationNode", "HAS_CERTIFICATION")
+    awards = AsyncRelationshipTo("AwardNode", "HAS_AWARD")
+    scientific_contributions = AsyncRelationshipTo("ScientificContributionNode", "HAS_SCIENTIFIC_CONTRIBUTION")
+    language_proficiency = AsyncRelationshipTo("LanguageProficiencyNode", "HAS_LANGUAGE_PROFICIENCY")

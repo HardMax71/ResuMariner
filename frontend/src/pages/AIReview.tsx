@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle, ChevronDown, ChevronUp, ArrowLeft, FileText, Sparkles, AlertTriangle, Info, Lightbulb } from "lucide-react";
-import { useJobResult } from "../hooks/useJobStatus";
+import { useResumeStatus } from "../hooks/useJobStatus";
 import {
   PageWrapper,
   PageContainer,
@@ -26,9 +26,10 @@ import {
 import PageHeader from "../components/PageHeader";
 
 export default function AIReview() {
-  const { jobId = "" } = useParams();
-  const { data: result, isLoading: loading, error: queryError } = useJobResult(jobId);
+  const { uid = "" } = useParams();
+  const { data: job, isLoading: loading, error: queryError } = useResumeStatus(uid);
   const error = queryError ? (queryError as Error).message : null;
+  const result = job?.status === "completed" ? job.result : null;
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (section: string) => {
@@ -81,9 +82,9 @@ export default function AIReview() {
             </FlexRow>
             <p className="small" style={{ color: "var(--accent2-700)", marginBottom: 0 }}>{error}</p>
           </ErrorCard>
-          <Link to={`/jobs/${jobId}`} className="btn ghost">
+          <Link to={`/resumes/${uid}`} className="btn ghost">
             <ArrowLeft size={16} />
-            Back to Job
+            Back to Resume
           </Link>
         </PageContainer>
       </PageWrapper>
@@ -104,7 +105,7 @@ export default function AIReview() {
             <p className="small muted" style={{ marginBottom: "var(--space-4)", maxWidth: "400px", margin: "0 auto var(--space-4)" }}>
               AI analysis has not been generated for this resume yet. Reviews are typically available a few minutes after upload.
             </p>
-            <Link to={`/jobs/${jobId}`} className="btn">View Job Status</Link>
+            <Link to={`/resumes/${uid}`} className="btn">View Resume Status</Link>
           </EmptyStateCard>
         </PageContainer>
       </PageWrapper>
@@ -122,8 +123,8 @@ export default function AIReview() {
           title="AI Resume Analysis"
           subtitle="Comprehensive feedback powered by AI"
           actions={
-            <Link to={`/jobs/${jobId}`} className="btn ghost">
-              Back to Job Details
+            <Link to={`/resumes/${uid}`} className="btn ghost">
+              Back to Resume Details
               <ArrowLeft size={16} style={{ transform: "rotate(180deg)" }} />
             </Link>
           }
@@ -229,6 +230,8 @@ export default function AIReview() {
                                   priorityLevel === "important" ? orangePalette.dark.bgLight :
                                   bluePalette.bgLight;
 
+                const ALIGN_CENTER = 14;
+
                 return (
                   <FeedbackSection key={section}>
                     <SectionHeader
@@ -236,9 +239,12 @@ export default function AIReview() {
                       isExpanded={isExpanded}
                       priorityColor={priorityColor}
                       priorityBg={priorityBg}
+                      style={{ padding: "var(--space-3) var(--space-2)" }}
                     >
-                      <FlexRow gap="var(--space-3)" style={{ flex: 1 }}>
-                        <PriorityIndicator color={priorityColor} />
+                      <div style={{ display: "grid", gridTemplateColumns: `${ALIGN_CENTER * 2}px 1fr auto`, alignItems: "center", width: "100%" }}>
+                        <div style={{ display: "flex", justifyContent: "center" }}>
+                          <PriorityIndicator color={priorityColor} />
+                        </div>
                         <div>
                           <h3 style={{ margin: "0 0 4px 0", textTransform: "capitalize" }}>
                             {section.replace(/_/g, " ")}
@@ -309,27 +315,32 @@ export default function AIReview() {
                             )}
                           </FlexRow>
                         </div>
-                      </FlexRow>
-                      <div style={{
-                        width: "32px",
-                        height: "32px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: "50%",
-                        background: "rgba(255, 255, 255, 0.8)",
-                        transition: "transform var(--transition-base)"
-                      }}>
-                        {isExpanded ? (
-                          <ChevronUp size={18} style={{ color: priorityColor }} />
-                        ) : (
+                        <div style={{
+                          width: "32px",
+                          height: "32px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderRadius: "50%",
+                          background: "rgba(255, 255, 255, 0.8)",
+                          transition: "transform var(--transition-base)",
+                          transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)"
+                        }}>
                           <ChevronDown size={18} style={{ color: priorityColor }} />
-                        )}
+                        </div>
                       </div>
                     </SectionHeader>
 
-                    {isExpanded && (
-                      <div style={{ padding: "var(--space-2)", animation: "fade-in 0.3s ease-out" }}>
+                    <div style={{
+                      maxHeight: isExpanded ? "800px" : "0",
+                      opacity: isExpanded ? 1 : 0,
+                      overflow: "hidden",
+                      transition: "all var(--transition-base)",
+                      paddingTop: isExpanded ? "var(--space-2)" : "0",
+                      paddingBottom: isExpanded ? "var(--space-2)" : "0",
+                      paddingLeft: "var(--space-2)",
+                      paddingRight: "var(--space-2)"
+                    }}>
                         {[
                           { items: feedback.must, color: colors.must, Icon: AlertTriangle, label: "Critical - Must Fix", key: "must" },
                           { items: feedback.should, color: colors.should, Icon: Info, label: "Important - Should Improve", key: "should" },
@@ -343,8 +354,16 @@ export default function AIReview() {
 
                           return (
                             <div key={key} style={{ marginTop: needsMargin ? "var(--space-3)" : 0 }}>
-                              <FlexRow gap="var(--space-2)" style={{ marginBottom: "var(--space-2)", paddingBottom: "var(--space-1)", borderBottom: `2px solid ${color.border}` }}>
-                                <Icon size={18} color={color.main} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                              <div style={{
+                                display: "grid",
+                                gridTemplateColumns: `${ALIGN_CENTER * 2}px 1fr`,
+                                marginBottom: "var(--space-2)",
+                                paddingBottom: "var(--space-1)",
+                                borderBottom: `2px solid ${color.border}`
+                              }}>
+                                <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                                  <Icon size={18} color={color.main} strokeWidth={2.5} />
+                                </div>
                                 <span style={{
                                   fontSize: "var(--text-sm)",
                                   fontWeight: 700,
@@ -354,21 +373,36 @@ export default function AIReview() {
                                 }}>
                                   {label}
                                 </span>
-                              </FlexRow>
+                              </div>
                               <FlexColumn gap="var(--space-2)">
                                 {items.map((item: string, idx: number) => (
-                                  <FeedbackItem key={idx} dotColor={color.main}>
-                                    <span style={{ fontSize: "var(--text-sm)", color: key === "advise" ? "var(--neutral-700)" : "var(--neutral-800)", lineHeight: "var(--leading-relaxed)" }}>
+                                  <div key={idx} style={{
+                                    display: "grid",
+                                    gridTemplateColumns: `${ALIGN_CENTER * 2}px 1fr`
+                                  }}>
+                                    <div style={{ display: "flex", justifyContent: "center", paddingTop: "6px" }}>
+                                      <span style={{
+                                        width: "6px",
+                                        height: "6px",
+                                        borderRadius: "50%",
+                                        background: color.main,
+                                        flexShrink: 0
+                                      }} />
+                                    </div>
+                                    <span style={{
+                                      fontSize: "var(--text-sm)",
+                                      color: key === "advise" ? "var(--neutral-700)" : "var(--neutral-800)",
+                                      lineHeight: "var(--leading-relaxed)"
+                                    }}>
                                       {item}
                                     </span>
-                                  </FeedbackItem>
+                                  </div>
                                 ))}
                               </FlexColumn>
                             </div>
                           );
                         })}
-                      </div>
-                    )}
+                    </div>
                   </FeedbackSection>
                 );
               })}

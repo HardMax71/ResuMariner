@@ -1,14 +1,3 @@
-"""
-Centralized file type registry for the entire application.
-
-This module provides a single source of truth for:
-- Allowed file extensions
-- Media types (MIME types)
-- File signatures for validation
-- Parser associations
-- File type categories
-"""
-
 from enum import StrEnum
 from typing import TypedDict
 

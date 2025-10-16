@@ -19,7 +19,7 @@ class LLMContentStructureService:
             "You are a resume parser. Extract information from resumes and return structured data "
             "exactly matching the schema."
         )
-        self.llm_service = LLMService(system_prompt=system_prompt, result_type=Resume)
+        self.llm_service = LLMService(system_prompt=system_prompt, output_type=Resume)
 
     def _prepare_prompt(self, text: str, links: list[dict]) -> str:
         return f"""
@@ -160,7 +160,7 @@ Resume Text (PROCESS VERBATIM):
             "and return a fully compliant JSON object matching the schema. "
         )
 
-        retry_service = LLMService(system_prompt=retry_system_prompt, result_type=Resume)
+        retry_service = LLMService(system_prompt=retry_system_prompt, output_type=Resume)
 
         enhanced_prompt = (
             "IMPORTANT: Return a valid JSON object matching the Resume schema exactly.\n\n"

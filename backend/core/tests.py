@@ -1,5 +1,3 @@
-"""Integration-style tests for core domain models and file utilities."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -117,14 +115,14 @@ class SearchModelBehaviourTests(TestCase):
 
     def test_resume_search_result_from_matches_prefers_highest_score(self) -> None:
         hits = [
-            VectorHit(resume_id="res-1", text="Python", score=0.72, source="skills"),
-            VectorHit(resume_id="res-1", text="Django", score=0.94, source="experience"),
-            VectorHit(resume_id="res-1", text="GraphQL", score=0.65, source="experience"),
+            VectorHit(uid="res-1", text="Python", score=0.72, source="skills"),
+            VectorHit(uid="res-1", text="Django", score=0.94, source="experience"),
+            VectorHit(uid="res-1", text="GraphQL", score=0.65, source="experience"),
         ]
 
         result = ResumeSearchResult.from_matches("res-1", hits)
 
-        self.assertEqual(result.resume_id, "res-1")
+        self.assertEqual(result.uid, "res-1")
         self.assertEqual(result.score, 0.94)
         self.assertEqual([hit.text for hit in result.matches], ["Django", "Python", "GraphQL"])
 

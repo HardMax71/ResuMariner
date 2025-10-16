@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
-from enum import StrEnum
 
+from django.db.models import TextChoices
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -13,25 +13,9 @@ from core.file_types import (
     validate_file_signature,
 )
 
-"""
-> python -c "from processor.serializers import JobStatus; print('JobStatus values:', list(JobStatus))"
-returns:  [<JobStatus.PENDING: 'pending'>, <JobStatus.PROCESSING: 'processing'>,
-     <JobStatus.COMPLETED: 'completed'>, <JobStatus.FAILED: 'failed'>]
 
-Weird things with <> (cause of __repr__) = bad!
-
-> python -c "from processor.serializers import JobStatus; print('JobStatus values:', [s.value for s in JobStatus])"
-returns: JobStatus values: ['pending', 'processing', 'completed', 'failed']
-
-`s.value for s in ..` in every place = code smell = bad!
-
-TODO: Maybe some 3rd better option available?
-
-* inheriting from StrEnum with `__repr__: self.value` is also code smell tbh
-"""
-
-
-class JobStatus(StrEnum):
+# https://docs.djangoproject.com/en/5.2/ref/models/fields/
+class JobStatus(TextChoices):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -42,7 +26,7 @@ class FileUploadSerializer(serializers.Serializer):
     file = serializers.FileField()  # The actual file field from request.FILES
 
     def validate_file(self, file):
-        # Validate filename
+        # 1. Validate filename (cheap checks first)
         filename = file.name
         if any(char in filename for char in DANGEROUS_CHARS):
             raise ValidationError("Filename contains dangerous characters")
@@ -50,11 +34,21 @@ class FileUploadSerializer(serializers.Serializer):
         if any(pattern in filename for pattern in SUSPICIOUS_PATH_PATTERNS):
             raise ValidationError("Filename contains suspicious patterns")
 
+        # 2. Validate extension BEFORE reading file
         file_ext = os.path.splitext(filename)[1].lower()
         if file_ext not in ALLOWED_EXTENSIONS:
-            raise ValidationError(f"File extension not allowed: {file_ext}")
+            allowed = ", ".join(sorted(ALLOWED_EXTENSIONS))
+            raise ValidationError(f"File extension not allowed: {file_ext}. Allowed: {allowed}")
 
-        # Read and validate content
+        # 3. Validate file size BEFORE reading content (prevents DoS)
+        from core.file_types import FILE_TYPE_REGISTRY
+
+        max_size_bytes = FILE_TYPE_REGISTRY[file_ext]["max_size_mb"] * 1024 * 1024
+        if file.size > max_size_bytes:
+            max_mb = FILE_TYPE_REGISTRY[file_ext]["max_size_mb"]
+            raise ValidationError(f"File too large. Max size for {file_ext}: {max_mb}MB")
+
+        # 4. Validate content (only after extension/size checks pass)
         file.seek(0)
         content = file.read()
 
@@ -82,31 +76,36 @@ class JobCreateSerializer(serializers.Serializer):
 
 
 class JobUpdateSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=[s.value for s in JobStatus], required=False)
+    status = serializers.ChoiceField(choices=JobStatus.choices, required=False)
     result = serializers.JSONField(required=False)
-    result_url = serializers.URLField(required=False, allow_blank=True)
     error = serializers.CharField(required=False, allow_blank=True)
     completed_at = serializers.DateTimeField(required=False)
 
 
 class JobSerializer(serializers.Serializer):
-    job_id = serializers.CharField()
-    status = serializers.ChoiceField(choices=[s.value for s in JobStatus], default=JobStatus.PENDING)
+    uid = serializers.CharField()
+    status = serializers.ChoiceField(choices=JobStatus.choices, default=JobStatus.PENDING)
     file_path = serializers.CharField()
     created_at = serializers.DateTimeField(default=datetime.now)
     updated_at = serializers.DateTimeField(default=datetime.now)
     result = serializers.JSONField(required=False, allow_null=True)
-    result_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
     error = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    user_id = serializers.CharField(required=False, allow_null=True)
     completed_at = serializers.DateTimeField(required=False, allow_null=True)
     error_message = serializers.CharField(required=False, allow_null=True)
 
 
-class JobResponseSerializer(serializers.Serializer):
-    job_id = serializers.CharField()
-    status = serializers.ChoiceField(choices=[s.value for s in JobStatus])
+class ResumeResponseSerializer(serializers.Serializer):
+    uid = serializers.CharField(help_text="Resume unique identifier")
+    status = serializers.ChoiceField(choices=JobStatus.choices, help_text="Processing status")
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
-    result_url = serializers.URLField(required=False, allow_null=True)
-    error = serializers.CharField(required=False, allow_null=True)
+    completed_at = serializers.DateTimeField(required=False, allow_null=True)
+    result = serializers.JSONField(required=False, allow_null=True)
+    error = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+
+class ResumeListResponseSerializer(serializers.Serializer):
+    count = serializers.IntegerField(help_text="Total number of resumes")
+    next = serializers.URLField(required=False, allow_null=True, help_text="Next page URL")
+    previous = serializers.URLField(required=False, allow_null=True, help_text="Previous page URL")
+    results = ResumeResponseSerializer(many=True, help_text="Resumes for current page")

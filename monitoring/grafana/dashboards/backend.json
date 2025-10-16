@@ -56,7 +56,7 @@
       "gridPos": {"h": 6, "w": 8, "x": 8, "y": 8},
       "id": 4,
       "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
-      "targets": [{"expr": "redis_queue_length", "legendFormat": "Main Queue", "refId": "A"}, {"expr": "redis_cleanup_queue_length", "legendFormat": "Cleanup Queue", "refId": "B"}, {"expr": "redis_active_jobs", "legendFormat": "Active Jobs", "refId": "C"}],
+      "targets": [{"expr": "redis_queue_length", "legendFormat": "Main Queue", "refId": "A"}, {"expr": "redis_scheduled_retries", "legendFormat": "Scheduled Retries", "refId": "B"}, {"expr": "redis_active_jobs", "legendFormat": "Active Jobs", "refId": "C"}],
       "title": "Redis Queue Metrics",
       "type": "timeseries"
     },
@@ -97,6 +97,71 @@
       "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
       "targets": [{"expr": "histogram_quantile(0.95, rate(embedding_api_duration_seconds_bucket[5m]))", "legendFormat": "p95 {{batch_size}}", "refId": "A"}],
       "title": "Embedding API Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "unit": "ops"},
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 20},
+      "id": 8,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
+      "targets": [{"expr": "rate(llm_api_calls_total[5m])", "legendFormat": "{{mode}} {{status}}", "refId": "A"}],
+      "title": "LLM API Calls",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "unit": "s"},
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 20},
+      "id": 9,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
+      "targets": [{"expr": "histogram_quantile(0.95, rate(llm_api_duration_seconds_bucket[5m]))", "legendFormat": "p95 {{mode}}", "refId": "A"}, {"expr": "histogram_quantile(0.50, rate(llm_api_duration_seconds_bucket[5m]))", "legendFormat": "p50 {{mode}}", "refId": "B"}],
+      "title": "LLM API Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.05}, {"color": "red", "value": 0.1}]}, "unit": "percentunit"},
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 26},
+      "id": 10,
+      "options": {"orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showThresholdLabels": false, "showThresholdMarkers": true},
+      "targets": [{"expr": "rate(llm_api_calls_total{status=\"error\"}[5m]) / rate(llm_api_calls_total[5m])", "legendFormat": "{{mode}}", "refId": "A"}],
+      "title": "LLM Error Rate",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.05}, {"color": "red", "value": 0.1}]}, "unit": "percentunit"},
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 26},
+      "id": 11,
+      "options": {"orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showThresholdLabels": false, "showThresholdMarkers": true},
+      "targets": [{"expr": "rate(embedding_api_calls_total{status=\"error\"}[5m]) / rate(embedding_api_calls_total[5m])", "legendFormat": "{{batch_size}}", "refId": "A"}],
+      "title": "Embedding Error Rate",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "unit": "short"},
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 26},
+      "id": 12,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
+      "targets": [{"expr": "llm_api_calls_total", "legendFormat": "{{mode}} {{status}}", "refId": "A"}, {"expr": "embedding_api_calls_total", "legendFormat": "embedding {{status}} {{batch_size}}", "refId": "B"}],
+      "title": "API Call Totals (Lifetime)",
       "type": "timeseries"
     }
   ],

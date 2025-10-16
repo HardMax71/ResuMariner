@@ -1,32 +1,29 @@
 import { apiGet, apiPost, apiUpload, SearchFilters, SearchResult, FilterOptions } from '../lib/api';
 
 export interface UploadResult {
-  job_id: string;
+  uid: string;
   status: string;
 }
 
-export interface JobResult {
-  id: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+export interface ResumeStatusResult {
+  uid: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
   result?: any;
   error?: string;
-  created_at?: string;
-  completed_at?: string;
 }
 
 export async function uploadResume(file: File): Promise<UploadResult> {
   const formData = new FormData();
   formData.append('file', file);
 
-  return apiUpload<UploadResult>('/api/v1/upload/', formData);
+  return apiUpload<UploadResult>('/api/v1/resumes/', formData);
 }
 
-export async function getJobStatus(jobId: string): Promise<JobResult> {
-  return apiGet<JobResult>(`/api/v1/jobs/${jobId}/`);
-}
-
-export async function getJobResult(jobId: string): Promise<any> {
-  return apiGet(`/api/v1/jobs/${jobId}/result/`);
+export async function getResumeStatus(uid: string): Promise<ResumeStatusResult> {
+  return apiGet<ResumeStatusResult>(`/api/v1/resumes/${uid}/`);
 }
 
 export async function searchResumes(filters: SearchFilters): Promise<SearchResult[]> {
@@ -56,8 +53,6 @@ export interface StructuredSearchParams {
 export interface HybridSearchParams {
   query: string;
   filters?: SearchFilters;
-  vector_weight?: number;
-  graph_weight?: number;
   limit?: number;
   max_matches_per_result?: number;
 }

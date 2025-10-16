@@ -10,7 +10,6 @@ class SearchType(StrEnum):
     HYBRID = "hybrid"
 
 
-# CEFR level ordering for comparison
 CEFR_ORDER = {"A1": 1, "A2": 2, "B1": 3, "B2": 4, "C1": 5, "C2": 6}
 
 
@@ -94,22 +93,18 @@ class FilterOptionsResult:
 
 @dataclass
 class VectorHit:
-    """Single vector match from Qdrant with full metadata"""
-
-    resume_id: str
+    uid: str
     text: str
     score: float
-    source: str  # 'skill', 'employment', 'project', etc
+    source: str
     context: str | None = None
-    name: str | None = None
-    email: str | None = None
 
 
 @dataclass
 class ResumeSearchResult:
     """Aggregated search result for a single resume"""
 
-    resume_id: str
+    uid: str
     name: str
     email: str
     score: float
@@ -130,17 +125,15 @@ class ResumeSearchResult:
         self.matches.sort(key=lambda h: h.score, reverse=True)
 
     @classmethod
-    def from_matches(cls, resume_id: str, hits: list[VectorHit]) -> "ResumeSearchResult":
+    def from_matches(cls, uid: str, hits: list[VectorHit]) -> "ResumeSearchResult":
         """Create ResumeSearchResult from vector matches when not found in graph"""
         if not hits:
-            return cls(resume_id=resume_id, name="Unknown", email="", score=0.0, matches=[])
+            return cls(uid=uid, name="[Missing Data]", email="", score=0.0, matches=[])
 
-        # Get name and email from first hit if available
-        first_hit = hits[0]
         return cls(
-            resume_id=resume_id,
-            name=first_hit.name or "Unknown",
-            email=first_hit.email or "",
+            uid=uid,
+            name="[Missing Data]",
+            email="",
             score=max(hit.score for hit in hits),
             matches=hits,
         )
@@ -156,10 +149,6 @@ class SearchRequest:
     limit: int = 10
     min_score: float = 0.0
     max_matches_per_result: int = 10  # Maximum matches to return per resume
-
-    # For hybrid search
-    vector_weight: float = 0.7
-    graph_weight: float = 0.3
 
 
 @dataclass

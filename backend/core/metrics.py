@@ -1,13 +1,5 @@
-"""
-Centralized Prometheus metrics definitions.
-
-All metrics are defined at module level to ensure they're singleton instances.
-This follows prometheus_client best practices for Django applications.
-"""
-
 from prometheus_client import Counter, Gauge, Histogram
 
-# HTTP Request metrics
 REQUEST_COUNT = Counter(
     "django_requests_total",
     "Total HTTP requests",
@@ -20,10 +12,7 @@ REQUEST_DURATION = Histogram(
     ["method", "endpoint"],
 )
 
-# Redis Queue metrics
 REDIS_QUEUE_LENGTH = Gauge("redis_queue_length", "Number of jobs in main queue")
-
-REDIS_CLEANUP_QUEUE_LENGTH = Gauge("redis_cleanup_queue_length", "Number of jobs in cleanup queue")
 
 REDIS_SCHEDULED_RETRIES = Gauge("redis_scheduled_retries", "Number of scheduled retry jobs")
 
@@ -31,7 +20,6 @@ REDIS_ACTIVE_JOBS = Gauge("redis_active_jobs", "Number of currently active jobs"
 
 REDIS_MEMORY_USAGE = Gauge("redis_memory_usage_bytes", "Redis memory usage in bytes")
 
-# Embedding service metrics
 EMBEDDING_API_CALLS = Counter(
     "embedding_api_calls_total",
     "Total calls to embedding API",
@@ -44,11 +32,28 @@ EMBEDDING_API_DURATION = Histogram(
     ["batch_size"],
 )
 
+LLM_API_CALLS = Counter(
+    "llm_api_calls_total",
+    "Total calls to LLM API",
+    ["mode", "status"],
+)
+
+LLM_API_DURATION = Histogram(
+    "llm_api_duration_seconds",
+    "LLM API call duration",
+    ["mode"],
+)
+
+QDRANT_CORRUPTED_POINTS = Counter(
+    "qdrant_corrupted_points_total",
+    "Total number of corrupted points in Qdrant (missing payload or uid)",
+    ["corruption_type"],
+)
+
 
 def update_queue_metrics(stats: dict) -> None:
     """Update Redis queue metrics from stats dictionary."""
     REDIS_QUEUE_LENGTH.set(stats.get("queue_length", 0))
-    REDIS_CLEANUP_QUEUE_LENGTH.set(stats.get("cleanup_queue_length", 0))
     REDIS_SCHEDULED_RETRIES.set(stats.get("scheduled_retries", 0))
     REDIS_ACTIVE_JOBS.set(stats.get("active_jobs", 0))
     REDIS_MEMORY_USAGE.set(stats.get("redis_memory_usage", 0))

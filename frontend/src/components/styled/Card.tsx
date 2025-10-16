@@ -38,7 +38,6 @@ export const MetricValue = styled.div<{ color?: string }>`
   font-weight: 800;
   color: ${props => props.color || 'var(--neutral-900)'};
   line-height: 1;
-  font-family: var(--font-display);
 `;
 
 export const IconWrapper = styled.div<{ color?: string; bgColor?: string }>`
@@ -88,10 +87,6 @@ export const Grid = styled.div<{ columns?: number; gap?: string }>`
   display: grid;
   grid-template-columns: repeat(${props => props.columns || 6}, 1fr);
   gap: ${props => props.gap || 'var(--space-2)'};
-
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -149,12 +144,12 @@ export const FeedbackSection = styled.div<{ isExpanded?: boolean; priorityColor?
 export const SectionHeader = styled.div<{ isExpanded?: boolean; priorityColor?: string; priorityBg?: string }>`
   padding: var(--space-3) var(--space-4);
   background: ${props => props.priorityBg || 'var(--primary-50)'};
-  border-bottom: ${props => props.isExpanded ? `1px solid ${props.priorityColor}20` : 'none'};
+  border-bottom: ${props => props.isExpanded ? `1px solid ${props.priorityColor}20` : '1px solid transparent'};
   display: flex;
   align-items: center;
   justify-content: space-between;
   user-select: none;
-  transition: background var(--transition-fast);
+  transition: all var(--transition-base);
 
   &:hover {
     background: ${props => !props.isExpanded ? `${props.priorityColor}15` : props.priorityBg};
@@ -219,6 +214,7 @@ export const FeedbackItem = styled.div<{
   border: none;
   display: flex;
   gap: 8px;
+  align-items: flex-start;
 
   &::before {
     content: '';
@@ -227,7 +223,6 @@ export const FeedbackItem = styled.div<{
     border-radius: 50%;
     background: ${props => props.dotColor || 'var(--neutral-400)'};
     margin-top: 6px;
-    margin-left: 6px;
     flex-shrink: 0;
   }
 `;

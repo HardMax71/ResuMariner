@@ -1,146 +1,136 @@
 import logging
-import uuid
 
 from adrf.views import APIView
 from django.conf import settings
-from django.core.cache import cache
+from django.core.cache import cache as django_cache
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
+from rest_framework.exceptions import NotFound
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from core.file_types import FILE_TYPE_REGISTRY
 
-from .serializers import FileUploadSerializer, JobResponseSerializer, JobStatus
-from .services.cleanup_service import CleanupService
-from .services.file_service import FileService
-from .services.job_service import JobService
-from .utils.redis_queue import RedisJobQueue
+from .serializers import FileUploadSerializer, ResumeListResponseSerializer, ResumeResponseSerializer
 
 logger = logging.getLogger(__name__)
 
+THROTTLE_RATES: dict[str, str] = settings.REST_FRAMEWORK.get("DEFAULT_THROTTLE_RATES", {})  # type: ignore[assignment]
 
-class UploadCVView(APIView):
+
+class ResumeCollectionView(APIView):
+    """List and upload resume endpoints."""
+
+    pagination_class = LimitOffsetPagination
+    throttle_scope = "upload"
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name="limit", type=int, description="Number of results per page", required=False),
+            OpenApiParameter(name="offset", type=int, description="Starting index", required=False),
+        ],
+        responses={200: ResumeListResponseSerializer},
+        description="List all resumes with pagination.",
+    )
+    async def get(self, request: Request) -> Response:
+        paginator = self.pagination_class()
+
+        limit = paginator.get_limit(request)
+        offset = paginator.get_offset(request)
+        total_count = await request.job_service.count_jobs()
+
+        jobs = await request.job_service.list_jobs(limit=limit, offset=offset)
+        jobs_data = [job.model_dump(exclude={"file_path"}) for job in jobs]
+
+        paginator.count = total_count
+        paginator.limit = limit
+        paginator.offset = offset
+        paginator.request = request
+
+        return paginator.get_paginated_response(jobs_data)
+
     @extend_schema(
         request=FileUploadSerializer,
-        responses={202: JobResponseSerializer},
-        description="Upload a resume file for processing. Supported formats available at /api/v1/config/file-types/. Returns a job ID for tracking.",
+        responses={
+            202: ResumeResponseSerializer,
+            400: OpenApiResponse(description="Invalid file or resume already exists"),
+            429: OpenApiResponse(description=f"Rate limit exceeded ({THROTTLE_RATES.get('upload', 'N/A')})"),
+        },
+        description="Upload a resume file for processing. Supported formats available at /api/v1/config/file-types/. Returns resume ID for tracking.",
     )
     async def post(self, request: Request) -> Response:
         serializer = FileUploadSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response({"detail": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
 
         file = serializer.validated_data["file"]
-        job_id = str(uuid.uuid4())
+        file_content = file.read()
 
-        try:
-            file.seek(0)
-            temp_path = await FileService.save_validated_content(file.read(), file.name, job_id)
+        job = await request.resume_service.upload_resume(file_content, file.name)
 
-            service = JobService()
-            job = await service.create_job(temp_path)
-            _ = await service.process_job(job.job_id)
-
-            response_data = JobResponseSerializer(job.model_dump()).data
-            return Response(response_data, status=status.HTTP_202_ACCEPTED)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(job.model_dump(exclude={"file_path"}), status=status.HTTP_202_ACCEPTED)
 
 
-class JobStatusView(APIView):
-    @extend_schema(
-        responses={200: JobResponseSerializer},
-        description="Get the status of a processing job. Returns job status (pending, processing, completed, failed) and result URL if completed.",
-    )
-    async def get(self, request, job_id):
-        service = JobService()
-        job = await service.get_job(job_id)
-        if not job:
-            return Response({"detail": "Job not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Add result_url to response
-        job_data = job.model_dump()
-        if job.status == JobStatus.COMPLETED:
-            job_data["result_url"] = request.build_absolute_uri(f"/api/v1/jobs/{job_id}/result/")
-
-        serializer = JobResponseSerializer(job_data)
-        return Response(serializer.data)
+class ResumeDetailView(APIView):
+    """Get and delete resume by ID endpoints."""
 
     @extend_schema(
         responses={
-            200: OpenApiResponse(description="Deletion result with status for each component"),
-            404: OpenApiResponse(description="Job not found"),
+            200: ResumeResponseSerializer,
+            400: OpenApiResponse(description="Resume not found"),
         },
-        description="Delete a job and all associated data including resume from graph DB, vectors from vector DB, and uploaded file. Preserves shared entities like company names and institutions.",
+        description="Get resume by ID. Returns status and full data if completed.",
     )
-    async def delete(self, request, job_id):
-        service = JobService()
-        result = await service.delete_job_complete(job_id)
+    async def get(self, request: Request, uid: str) -> Response:
+        job = await request.job_service.get_job(uid)
+        return Response(job.model_dump(exclude={"file_path"}))
 
-        if result["errors"] and not result["job_deleted"]:
-            return Response(result, status=status.HTTP_404_NOT_FOUND)
-
-        return Response(result, status=status.HTTP_200_OK)
-
-
-class JobResultView(APIView):
     @extend_schema(
-        responses={200: OpenApiResponse(description="Job result containing resume data, review, and metadata")},
-        description="Get the result of a completed job. Returns structured resume data, review feedback, and processing metadata.",
-    )
-    async def get(self, request, job_id):
-        service = JobService()
-        job = await service.get_job(job_id)
-        if not job:
-            return Response({"detail": "Job not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        if job.status != JobStatus.COMPLETED:
-            return Response({"detail": "Job not completed yet"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not job.result:
-            return Response({"detail": "No result data available"}, status=status.HTTP_404_NOT_FOUND)
-
-        return Response(job.result)
-
-
-class CleanupJobsView(APIView):
-    @extend_schema(
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {"days": {"type": "integer"}, "force": {"type": "boolean"}},
-            }
+        responses={
+            204: OpenApiResponse(description="Resume deleted successfully"),
+            400: OpenApiResponse(description="Resume not found"),
         },
-        responses={200: OpenApiResponse(description="Cleanup result with deleted count")},
-        description="Cleanup old jobs. Deletes jobs older than specified days. Use force=true to delete all jobs.",
+        description="Delete resume and all associated data (vectors, files). Preserves shared entities.",
     )
-    async def post(self, request: Request) -> Response:
-        days = request.data.get("days", settings.JOB_RETENTION_DAYS)
-        force = request.data.get("force", False)
+    async def delete(self, request: Request, uid: str) -> Response:
+        await request.resume_service.delete_resume(uid)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-        cleanup = CleanupService()
-        deleted_count = await cleanup.cleanup_old_jobs(days=days, force=force)
 
-        return Response(
-            {"status": "success", "deleted_count": deleted_count, "retention_days": days}, status=status.HTTP_200_OK
-        )
+class ResumeByEmailView(APIView):
+    """Delete resume by email endpoint."""
+
+    @extend_schema(
+        responses={
+            204: OpenApiResponse(description="Resume deleted successfully"),
+            400: OpenApiResponse(description="Resume not found"),
+        },
+        description="Delete resume by email address.",
+    )
+    async def delete(self, request: Request, email: str) -> Response:
+        existing = await request.graph_db.get_resume_by_email(email.lower())
+        if not existing:
+            logger.warning("Resume delete failed: email %s not found", email)
+            raise NotFound("Resume not found")
+
+        await request.resume_service.delete_resume(existing.uid)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class HealthView(APIView):
+    """Service health status endpoint."""
+
     @extend_schema(
         responses={200: OpenApiResponse(description="Health status including queue stats and configuration")},
         description="Get service health status. Returns system status, queue statistics, and processing configuration.",
     )
-    async def get(self, request):
-        queue = RedisJobQueue()
-
+    async def get(self, request: Request) -> Response:
         health_data = {
             "status": "ok",
             "service": "resume-processing-api",
-            "queue": await queue.get_queue_stats(),
+            "queue": await request.job_service.get_queue_stats(),
             "processing_config": {
                 "text_llm_provider": settings.TEXT_LLM_PROVIDER,
                 "text_llm_model": settings.TEXT_LLM_MODEL,
@@ -154,6 +144,8 @@ class HealthView(APIView):
 
 
 class FileConfigView(APIView):
+    """File upload configuration endpoint."""
+
     @extend_schema(
         responses={200: OpenApiResponse(description="File upload configuration")},
         description="Get file upload configuration. Returns allowed extensions, MIME types, max sizes, and categories.",
@@ -161,7 +153,7 @@ class FileConfigView(APIView):
     @method_decorator(cache_page(60 * 60 * 24))
     def get(self, request):
         cache_key = "file_config_v1"
-        cached = cache.get(cache_key)
+        cached = django_cache.get(cache_key)
         if cached:
             return Response(cached, status=status.HTTP_200_OK)
 
@@ -175,5 +167,5 @@ class FileConfigView(APIView):
             for ext, spec in FILE_TYPE_REGISTRY.items()
         }
 
-        cache.set(cache_key, config, 60 * 60 * 24)
+        django_cache.set(cache_key, config, 60 * 60 * 24)
         return Response(config, status=status.HTTP_200_OK)

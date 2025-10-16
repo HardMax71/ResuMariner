@@ -1,6 +1,6 @@
 import { useHealth } from "../hooks/useHealth";
 import { API_BASE_URL } from "../lib/api";
-import { Activity, RefreshCw, Code2, Zap, Database, Clock, BarChart3 } from "lucide-react";
+import { RefreshCw, Code2, BarChart3 } from "lucide-react";
 import {
   PageWrapper,
   PageContainer,
@@ -42,12 +42,8 @@ export default function Health() {
 
   return (
     <PageWrapper>
-      <div className="decorative-blur decorative-blur-health-top" />
-      <div className="decorative-blur decorative-blur-health-bottom" />
-
       <PageContainer>
         <PageHeader
-          icon={<Activity size={24} style={{ color: "white" }} strokeWidth={2.5} />}
           title="System Health"
           actions={
             <FlexRow gap="var(--space-2)">
@@ -86,7 +82,6 @@ export default function Health() {
                     <span style={{ fontWeight: 700 }}>{isHealthy ? "Healthy" : "Degraded"}</span>
                   </FlexRow>
                   <FlexRow gap="8px">
-                    <Clock size={16} color="var(--neutral-600)" />
                     <span className="small muted">Last Checked:</span>
                     <span style={{ fontWeight: 600 }}>{new Date().toLocaleTimeString()}</span>
                   </FlexRow>
@@ -107,21 +102,17 @@ export default function Health() {
               </FlexRow>
             </GlassCard>
 
-            <Grid columns={6} style={{ marginBottom: "var(--space-4)" }}>
+            <Grid columns={5} style={{ marginBottom: "var(--space-4)" }}>
               {[
-                { label: "Pending", value: data.queue.stream_length, color: "#4338ca", bgColor: "rgba(67, 56, 202, 0.1)", Icon: Database },
-                { label: "Active", value: data.queue.active_jobs, color: "#22c55e", bgColor: "rgba(34, 197, 94, 0.1)", Icon: Zap },
-                { label: "Retries", value: data.queue.scheduled_retries, color: "#f59e0b", bgColor: "rgba(245, 158, 11, 0.1)", Icon: RefreshCw },
-                { label: "Cleanup", value: data.queue.cleanup_queue_length, color: "#8b5cf6", bgColor: "rgba(139, 92, 246, 0.1)", Icon: Activity },
-                { label: "Memory", value: formatBytes(data.queue.redis_memory_usage), color: "#06b6d4", bgColor: "rgba(6, 182, 212, 0.1)", Icon: Database },
-                { label: "Total", value: data.queue.stream_length + data.queue.active_jobs + data.queue.cleanup_queue_length + data.queue.scheduled_retries, color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.1)", Icon: Activity }
+                { label: "Pending", value: data.queue.queue_length },
+                { label: "Active", value: data.queue.active_jobs },
+                { label: "Retries", value: data.queue.scheduled_retries },
+                { label: "Memory", value: formatBytes(data.queue.redis_memory_usage) },
+                { label: "Total", value: data.queue.queue_length + data.queue.active_jobs + data.queue.scheduled_retries }
               ].map((metric) => (
-                <MetricCard key={metric.label} color={metric.color} bgColor={metric.bgColor}>
-                  <FlexRow gap="var(--space-2)" align="center" style={{ marginBottom: "var(--space-2)" }}>
-                    <metric.Icon size={18} strokeWidth={2.5} color={metric.color} />
-                    <MetricLabel>{metric.label}</MetricLabel>
-                  </FlexRow>
-                  <MetricValue color={metric.color}>{metric.value}</MetricValue>
+                <MetricCard key={metric.label}>
+                  <MetricLabel>{metric.label}</MetricLabel>
+                  <MetricValue>{metric.value}</MetricValue>
                 </MetricCard>
               ))}
             </Grid>
@@ -131,7 +122,6 @@ export default function Health() {
               <ConfigGrid>
                 <div>
                   <SubsectionTitle>
-                    <Zap size={16} color="#4338ca" />
                     LLM Providers
                   </SubsectionTitle>
                   <FlexColumn gap="var(--space-2)">
@@ -155,18 +145,17 @@ export default function Health() {
 
                 <div>
                   <SubsectionTitle>
-                    <Activity size={16} color="#22c55e" />
                     Features
                   </SubsectionTitle>
                   <FlexColumn gap="var(--space-2)">
-                    <ConfigRow bgColor="rgba(34, 197, 94, 0.03)" borderColor="rgba(34, 197, 94, 0.1)">
+                    <ConfigRow>
                       <ConfigLabel>Review</ConfigLabel>
                       <ToggleBadge isOn={data.processing_config.generate_review}>
                         {data.processing_config.generate_review ? "ON" : "OFF"}
                       </ToggleBadge>
                     </ConfigRow>
 
-                    <ConfigRow bgColor="rgba(34, 197, 94, 0.03)" borderColor="rgba(34, 197, 94, 0.1)">
+                    <ConfigRow>
                       <ConfigLabel>Store DB</ConfigLabel>
                       <ToggleBadge isOn={data.processing_config.store_in_db}>
                         {data.processing_config.store_in_db ? "ON" : "OFF"}

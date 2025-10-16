@@ -5,7 +5,7 @@ export function useResumeUpload() {
   return useMutation({
     mutationFn: (file: File) => uploadResume(file),
     onSuccess: (data) => {
-      console.log('Upload successful:', data.job_id);
+      console.log('Upload successful:', data.uid);
     },
     onError: (error) => {
       console.error('Upload failed:', error);

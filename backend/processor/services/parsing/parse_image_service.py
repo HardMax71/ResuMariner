@@ -31,7 +31,7 @@ class ParseImageService(BaseExtractionService):
         schema_hint = OCRExtractedPage.model_json_schema()
         self.system_prompt = system_prompt + "\nSchema:\n" + str(schema_hint)
 
-        self.llm_service = LLMService(system_prompt=self.system_prompt, result_type=OCRExtractedPage, mode="ocr")
+        self.llm_service = LLMService(system_prompt=self.system_prompt, output_type=OCRExtractedPage, mode="ocr")
 
     async def parse_to_json(self) -> ParsedDocument:
         processed_timestamp = datetime.datetime.now().isoformat() + "Z"
@@ -50,7 +50,7 @@ class ParseImageService(BaseExtractionService):
             )
             result.pages.append(ocr_page.page)
         except Exception as e:
-            logger.error(f"Vision extraction failed for {self.image_path}: {e}")
+            logger.error("Vision extraction failed for %s: %s", self.image_path, e)
 
         return result
 

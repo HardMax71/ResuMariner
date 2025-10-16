@@ -655,19 +655,18 @@ textarea {
   gap: var(--space-2);
 }
 
-/* Unified compact input/select styling for search page */
+/* Compact input/select styling for filter grid */
 .filter-grid select,
-.filter-grid input[type="number"],
-.search-compact-input {
-  padding: var(--space-1) var(--space-2) !important;
-  font-size: var(--text-sm) !important;
+.filter-grid input[type="text"],
+.filter-grid input[type="number"] {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
 }
 
-.filter-grid select,
-.search-compact-select {
-  background-position: right var(--space-1) center !important;
-  background-size: 16px !important;
-  padding-right: var(--space-4) !important;
+.filter-grid select {
+  background-position: right var(--space-1) center;
+  background-size: 16px;
+  padding-right: var(--space-4);
 }
 
 /* Responsive grid for advanced options */

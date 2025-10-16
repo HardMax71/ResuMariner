@@ -73,7 +73,7 @@ export default function ResultCard({ result }: Props) {
       <div>
         <div className="flex justify-between items-center mb-2">
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <h3 className="title" style={{ marginBottom: 0 }}>
+            <h3 className="title" style={{ marginBottom: 0, fontFamily: "var(--font-body)" }}>
               {result.name}
             </h3>
             {result.email && (
@@ -305,6 +305,7 @@ export default function ResultCard({ result }: Props) {
       {expanded && result.experiences && result.experiences.length > 0 && (
         <div>
           <h4 style={{
+            fontFamily: "var(--font-body)",
             fontWeight: 700,
             color: "var(--gray-900)",
             fontSize: "13px",
@@ -345,8 +346,8 @@ export default function ResultCard({ result }: Props) {
                         </div>
                         <div className="small muted">
                           {exp.company}
-                          {exp.employment_type && ` • ${exp.employment_type}`}
-                          {exp.work_mode && ` • ${exp.work_mode}`}
+                          {exp.employment_type && ` - ${exp.employment_type}`}
+                          {exp.work_mode && ` - ${exp.work_mode}`}
                         </div>
                       </div>
                       <span className="small" style={{
@@ -367,36 +368,24 @@ export default function ResultCard({ result }: Props) {
                             const years = Math.round(exp.duration_months / 12 * 10) / 10;
                             parts.push(`${years}y`);
                           }
-                          return parts.join(' • ') || 'N/A';
+                          return parts.join(' - ') || 'N/A';
                         })()}
                       </span>
                     </div>
                     {exp.key_points && exp.key_points.length > 0 && (
                       <ul style={{
                         margin: "0",
-                        paddingLeft: "20px",
-                        listStyleType: "none",
-                        position: "relative"
+                        paddingLeft: "12px",
+                        listStyleType: "none"
                       }}>
                         {exp.key_points.map((point, pidx) => (
                           <li key={pidx} style={{
                             fontSize: "12px",
                             color: "var(--gray-600)",
                             lineHeight: "1.5",
-                            marginBottom: pidx < exp.key_points.length - 1 ? "4px" : "0",
-                            position: "relative",
-                            paddingLeft: "0"
+                            marginBottom: pidx < exp.key_points.length - 1 ? "4px" : "0"
                           }}>
-                            <span style={{
-                              position: "absolute",
-                              left: "-16px",
-                              top: "5px",
-                              width: "4px",
-                              height: "4px",
-                              background: "var(--blue-400)",
-                              borderRadius: "50%"
-                            }}/>
-                            {typeof point === 'string' ? point : point.text || point.description}
+                            - {typeof point === 'string' ? point : point.text || point.description}
                           </li>
                         ))}
                       </ul>
@@ -423,7 +412,7 @@ export default function ResultCard({ result }: Props) {
                       </div>
                       {(exp.employment_type || exp.work_mode) && (
                         <div className="small muted" style={{ fontSize: "11px" }}>
-                          {[exp.employment_type, exp.work_mode].filter(Boolean).join(" • ")}
+                          {[exp.employment_type, exp.work_mode].filter(Boolean).join(" - ")}
                         </div>
                       )}
                     </div>
@@ -438,7 +427,7 @@ export default function ResultCard({ result }: Props) {
                           const years = Math.round(exp.duration_months / 12 * 10) / 10;
                           parts.push(`${years}y`);
                         }
-                        return parts.join(' • ') || 'N/A';
+                        return parts.join(' - ') || 'N/A';
                       })()}
                     </span>
                   </div>
@@ -453,6 +442,7 @@ export default function ResultCard({ result }: Props) {
       {result.matches && result.matches.length > 0 && (
         <div>
           <h4 style={{
+            fontFamily: "var(--font-body)",
             fontWeight: 700,
             color: "var(--gray-900)",
             fontSize: "13px",
@@ -551,6 +541,7 @@ export default function ResultCard({ result }: Props) {
           {result.education && result.education.length > 0 && (
             <div>
               <h4 style={{
+                fontFamily: "var(--font-body)",
                 fontWeight: 700,
                 color: "var(--gray-900)",
                 fontSize: "13px",

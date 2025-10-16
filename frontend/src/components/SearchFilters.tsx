@@ -33,6 +33,28 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
   const [expandedLanguage, setExpandedLanguage] = useState<string | null>(null);
   const [expandedCountry, setExpandedCountry] = useState<string | null>(null);
   const [expandedEducationLevel, setExpandedEducationLevel] = useState<string | null>(null);
+  const [roleSearch, setRoleSearch] = useState("");
+  const [companySearch, setCompanySearch] = useState("");
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+
+  const filteredRoles = useMemo(() => {
+    if (!roleSearch.trim()) return roles;
+    const search = roleSearch.toLowerCase();
+    return roles.filter(r => r.value.toLowerCase().includes(search));
+  }, [roles, roleSearch]);
+
+  const filteredCompanies = useMemo(() => {
+    if (!companySearch.trim()) return companies;
+    const search = companySearch.toLowerCase();
+    return companies.filter(c => c.value.toLowerCase().includes(search));
+  }, [companies, companySearch]);
+
+  // Sync local search state with external filter changes (e.g., Clear All)
+  useEffect(() => {
+    if (!value.role) setRoleSearch("");
+    if (!value.company) setCompanySearch("");
+  }, [value.role, value.company]);
 
   // Close expanded selectors on outside click
   useEffect(() => {
@@ -40,12 +62,14 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
       setExpandedLanguage(null);
       setExpandedCountry(null);
       setExpandedEducationLevel(null);
+      setShowRoleDropdown(false);
+      setShowCompanyDropdown(false);
     };
-    if (expandedLanguage || expandedCountry || expandedEducationLevel) {
+    if (expandedLanguage || expandedCountry || expandedEducationLevel || showRoleDropdown || showCompanyDropdown) {
       document.addEventListener("click", handleClickOutside);
       return () => document.removeEventListener("click", handleClickOutside);
     }
-  }, [expandedLanguage, expandedCountry, expandedEducationLevel]);
+  }, [expandedLanguage, expandedCountry, expandedEducationLevel, showRoleDropdown, showCompanyDropdown]);
 
   const toggleLanguage = (language: string, level: string) => {
     const current = value.languages ?? [];
@@ -187,38 +211,196 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
     onChange({ ...value, skills: Array.from(current) });
   };
 
+  const selectRole = (roleValue: string) => {
+    onChange({ ...value, role: roleValue });
+    setRoleSearch(roleValue);
+    setShowRoleDropdown(false);
+  };
+
+  const selectCompany = (companyValue: string) => {
+    onChange({ ...value, company: companyValue });
+    setCompanySearch(companyValue);
+    setShowCompanyDropdown(false);
+  };
+
   return (
     <div className="filters-compact">
       {/* Dropdown Filters in Grid */}
       <div className="filter-grid" style={{ marginBottom: "var(--space-3)" }}>
-        <div>
+        <div style={{ position: "relative" }}>
           <label className="label small">Role</label>
-          <select
-            value={value.role ?? ""}
-            onChange={(e) => onChange({ ...value, role: e.target.value || null })}
-          >
-            <option value="">Any Role</option>
-            {roles.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.value} ({r.count})
-              </option>
-            ))}
-          </select>
+          <input
+            type="text"
+            placeholder="Search role..."
+            value={value.role || roleSearch}
+            onChange={(e) => {
+              setRoleSearch(e.target.value);
+              if (!e.target.value) {
+                onChange({ ...value, role: null });
+              }
+            }}
+            onFocus={() => setShowRoleDropdown(true)}
+            onClick={(e) => e.stopPropagation()}
+          />
+          {showRoleDropdown && (
+            <div
+              style={{
+                position: "absolute",
+                top: "calc(100% + 4px)",
+                left: 0,
+                right: 0,
+                zIndex: 20,
+                background: "var(--neutral-0)",
+                border: "1px solid var(--neutral-300)",
+                borderRadius: "var(--radius-sm)",
+                maxHeight: "250px",
+                overflowY: "auto",
+                boxShadow: "var(--shadow-lg)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  padding: "var(--space-1) var(--space-2)",
+                  cursor: "pointer",
+                  fontSize: "var(--text-sm)",
+                  color: "var(--neutral-600)",
+                  borderBottom: "1px solid var(--neutral-200)",
+                  fontWeight: 500,
+                }}
+                onClick={() => {
+                  onChange({ ...value, role: null });
+                  setRoleSearch("");
+                  setShowRoleDropdown(false);
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "var(--neutral-50)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "var(--neutral-0)"}
+              >
+                Any Role
+              </div>
+              {filteredRoles.map((r) => (
+                <div
+                  key={r.value}
+                  style={{
+                    padding: "var(--space-1) var(--space-2)",
+                    cursor: "pointer",
+                    fontSize: "var(--text-sm)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    background: value.role === r.value ? "var(--primary-50)" : "var(--neutral-0)",
+                    color: value.role === r.value ? "var(--primary-700)" : "var(--neutral-700)",
+                    fontWeight: value.role === r.value ? 600 : 400,
+                  }}
+                  onClick={() => selectRole(r.value)}
+                  onMouseEnter={(e) => {
+                    if (value.role !== r.value) e.currentTarget.style.background = "var(--neutral-50)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (value.role !== r.value) e.currentTarget.style.background = "var(--neutral-0)";
+                  }}
+                >
+                  <span>{r.value}</span>
+                  <span style={{ color: "var(--neutral-500)", fontSize: "var(--text-xs)", fontWeight: 500 }}>
+                    {r.count}
+                  </span>
+                </div>
+              ))}
+              {filteredRoles.length === 0 && (
+                <div style={{ padding: "var(--space-2)", textAlign: "center", color: "var(--neutral-500)", fontSize: "var(--text-sm)" }}>
+                  No matching roles
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        <div>
+        <div style={{ position: "relative" }}>
           <label className="label small">Company</label>
-          <select
-            value={value.company ?? ""}
-            onChange={(e) => onChange({ ...value, company: e.target.value || null })}
-          >
-            <option value="">Any Company</option>
-            {companies.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.value} ({c.count})
-              </option>
-            ))}
-          </select>
+          <input
+            type="text"
+            placeholder="Search company..."
+            value={value.company || companySearch}
+            onChange={(e) => {
+              setCompanySearch(e.target.value);
+              if (!e.target.value) {
+                onChange({ ...value, company: null });
+              }
+            }}
+            onFocus={() => setShowCompanyDropdown(true)}
+            onClick={(e) => e.stopPropagation()}
+          />
+          {showCompanyDropdown && (
+            <div
+              style={{
+                position: "absolute",
+                top: "calc(100% + 4px)",
+                left: 0,
+                right: 0,
+                zIndex: 20,
+                background: "var(--neutral-0)",
+                border: "1px solid var(--neutral-300)",
+                borderRadius: "var(--radius-sm)",
+                maxHeight: "250px",
+                overflowY: "auto",
+                boxShadow: "var(--shadow-lg)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  padding: "var(--space-1) var(--space-2)",
+                  cursor: "pointer",
+                  fontSize: "var(--text-sm)",
+                  color: "var(--neutral-600)",
+                  borderBottom: "1px solid var(--neutral-200)",
+                  fontWeight: 500,
+                }}
+                onClick={() => {
+                  onChange({ ...value, company: null });
+                  setCompanySearch("");
+                  setShowCompanyDropdown(false);
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "var(--neutral-50)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "var(--neutral-0)"}
+              >
+                Any Company
+              </div>
+              {filteredCompanies.map((c) => (
+                <div
+                  key={c.value}
+                  style={{
+                    padding: "var(--space-1) var(--space-2)",
+                    cursor: "pointer",
+                    fontSize: "var(--text-sm)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    background: value.company === c.value ? "var(--primary-50)" : "var(--neutral-0)",
+                    color: value.company === c.value ? "var(--primary-700)" : "var(--neutral-700)",
+                    fontWeight: value.company === c.value ? 600 : 400,
+                  }}
+                  onClick={() => selectCompany(c.value)}
+                  onMouseEnter={(e) => {
+                    if (value.company !== c.value) e.currentTarget.style.background = "var(--neutral-50)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (value.company !== c.value) e.currentTarget.style.background = "var(--neutral-0)";
+                  }}
+                >
+                  <span>{c.value}</span>
+                  <span style={{ color: "var(--neutral-500)", fontSize: "var(--text-xs)", fontWeight: 500 }}>
+                    {c.count}
+                  </span>
+                </div>
+              ))}
+              {filteredCompanies.length === 0 && (
+                <div style={{ padding: "var(--space-2)", textAlign: "center", color: "var(--neutral-500)", fontSize: "var(--text-sm)" }}>
+                  No matching companies
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div>
@@ -226,12 +408,17 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
           <input
             type="number"
             min={0}
-            max={50}
-            placeholder="Any"
+            placeholder="Min 0"
             value={value.years_experience ?? ""}
             onChange={(e) =>
               onChange({ ...value, years_experience: e.target.value ? Number(e.target.value) : null })
             }
+            style={{
+              MozAppearance: "textfield",
+              WebkitAppearance: "none",
+              appearance: "textfield",
+            }}
+            onWheel={(e) => e.currentTarget.blur()}
           />
         </div>
       </div>

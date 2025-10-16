@@ -136,12 +136,12 @@ services:
 
   backend:
     build: ./backend
-    command: sh -c "./.venv/bin/python manage.py migrate --noinput && ./.venv/bin/python manage.py collectstatic --noinput || true && ./.venv/bin/python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "./.venv/bin/python manage.py init_databases && ./.venv/bin/python manage.py migrate --noinput && ./.venv/bin/python manage.py collectstatic --noinput || true && ./.venv/bin/uvicorn backend.asgi:application --host 0.0.0.0 --port 8000"
     expose:
       - "8000"
     volumes:
       - ./uploads:/app/uploads
-      - cv_temp:/tmp/cv_uploads
+      - cv_temp:/tmp/resume_uploads
     env_file:
       - ./backend/.env
     networks:
@@ -186,29 +186,33 @@ services:
 
   backend-worker-processing:
     build: ./backend
-    command: sh -c "sleep 10 && ./.venv/bin/python manage.py intake_worker processing"
+    command: sh -c "sleep 5 && ./.venv/bin/python manage.py intake_worker processing"
     volumes:
       - ./uploads:/app/uploads
-      - cv_temp:/tmp/cv_uploads
+      - cv_temp:/tmp/resume_uploads
     env_file:
       - ./backend/.env
     networks:
       - internal-network
     depends_on:
+      backend:
+        condition: service_started
       redis:
         condition: service_started
 
   backend-worker-cleanup:
     build: ./backend
-    command: sh -c "sleep 10 && ./.venv/bin/python manage.py intake_worker cleanup"
+    command: sh -c "sleep 5 && ./.venv/bin/python manage.py intake_worker cleanup"
     volumes:
       - ./uploads:/app/uploads
-      - cv_temp:/tmp/cv_uploads
+      - cv_temp:/tmp/resume_uploads
     env_file:
       - ./backend/.env
     networks:
       - internal-network
     depends_on:
+      backend:
+        condition: service_started
       redis:
         condition: service_started
 

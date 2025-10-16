@@ -11,12 +11,11 @@ class ProcessingMetadata:
     file_ext: str = ""
     source: str = ""
     page_count: int = 0
-    graph_id: str | None = None
-    graph_operation: str | None = None
-    previous_graph_id: str | None = None
-    embeddings_stored: bool = False
-    embeddings_count: int = 0
-    storage_error: str | None = None
+    graph_stored: bool = False
+    vector_stored: bool = False
+    vector_count: int = 0
+    graph_error: str | None = None
+    vector_error: str | None = None
     review_generated: bool = False
     review_error: str | None = None
 

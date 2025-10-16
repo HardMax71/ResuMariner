@@ -1,22 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../lib/api";
-import {
-  Search,
-  Network,
-  Zap,
-  Database,
-  GitBranch,
-  Cpu,
-  Shield,
-  Globe,
-  ArrowRight,
-  CheckCircle2,
-  XCircle,
-  Terminal,
-  Code2,
-  Sparkles
-} from 'lucide-react';
+import { ArrowRight, GitBranch } from 'lucide-react';
 import AnimatedTerminal from '../components/AnimatedTerminal';
 
 export default function Landing() {
@@ -64,14 +49,14 @@ export default function Landing() {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const curlExample = `curl -X POST ${API_BASE_URL}/api/v1/upload/ \\
+  const curlExample = `curl -X POST ${API_BASE_URL}/api/v1/resumes/ \\
   -H "Content-Type: multipart/form-data" \\
   -F "file=@resume.pdf"`;
 
   const pythonExample = `import requests
 
 response = requests.post(
-    '${API_BASE_URL}/api/v1/upload/',
+    '${API_BASE_URL}/api/v1/resumes/',
     files={'file': open('resume.pdf', 'rb')}
 )
 print(response.json())`;
@@ -82,7 +67,7 @@ const fs = require('fs');
 const form = new FormData();
 form.append('file', fs.createReadStream('resume.pdf'));
 
-fetch('${API_BASE_URL}/api/v1/upload/', {
+fetch('${API_BASE_URL}/api/v1/resumes/', {
   method: 'POST',
   body: form
 }).then(r => r.json()).then(console.log);`;
@@ -105,7 +90,7 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
           minHeight: '100vh',
           position: 'relative',
           background: 'linear-gradient(135deg, var(--neutral-950) 0%, var(--neutral-900) 50%, var(--primary-950) 100%)',
-          padding: '100px 0 180px 0',
+          padding: '100px 0',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center'
@@ -132,7 +117,7 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
           bottom: 0,
           backgroundImage: `linear-gradient(var(--neutral-800) 1px, transparent 1px),
                            linear-gradient(90deg, var(--neutral-800) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px',
+          backgroundSize: '40px 40px',
           opacity: 0.05,
           pointerEvents: 'none'
         }} />
@@ -146,32 +131,16 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
             marginBottom: 'var(--space-10)'
           }}>
             {/* Left: Text Content */}
-            <div className={visibleSections.has('hero') ? 'fade-in' : 'opacity-0'}>
-              {/* Badge - positioned above heading */}
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                background: 'rgba(67, 56, 202, 0.15)',
-                border: '1.5px solid var(--primary-700)',
-                borderRadius: 'var(--radius-sm)',
-                marginBottom: 'var(--space-3)',
-                backdropFilter: 'blur(8px)'
-              }}>
-                <Sparkles size={16} color="var(--accent1-400)" />
-                <span style={{
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 700,
-                  color: 'var(--accent1-400)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}>
-                  LLM-Powered
-                </span>
-              </div>
-
-              {/* Main Heading - aligns with terminal top */}
+            <div
+              className={visibleSections.has('hero') ? 'fade-in' : 'opacity-0'}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                height: '100%'
+              }}
+            >
+              {/* Main Heading */}
               <h1 style={{
                 fontFamily: 'var(--font-display)',
                 fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
@@ -203,64 +172,67 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 Process thousands of resumes with enterprise-grade accuracy.
               </p>
 
-              {/* Tech Stack Pills - match button width */}
+              {/* Tech Stack Pills */}
               <div style={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: 'var(--space-2)',
-                marginBottom: 'var(--space-6)',
-                flexWrap: 'wrap'
+                marginBottom: 'var(--space-6)'
               }}>
                 {[
-                  { icon: <Search size={16} />, label: 'Vector Search' },
-                  { icon: <Network size={16} />, label: 'Graph DB' },
-                  { icon: <Sparkles size={16} />, label: 'AI Reviews' }
-                ].map((item, idx) => (
+                  'Vector Search',
+                  'Graph DB',
+                  'AI Reviews'
+                ].map((label, idx) => (
                   <div
                     key={idx}
                     style={{
-                      flex: 1,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
-                      padding: '8px 12px',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid var(--neutral-700)',
+                      padding: '12px 16px',
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
                       borderRadius: 'var(--radius-sm)',
                       fontSize: 'var(--text-sm)',
                       fontWeight: 600,
-                      color: 'var(--neutral-200)',
-                      transition: 'all 0.3s'
+                      color: 'var(--neutral-100)',
+                      transition: 'all 0.3s',
+                      letterSpacing: '0.02em'
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.background = 'rgba(67, 56, 202, 0.2)';
-                      e.currentTarget.style.borderColor = 'var(--primary-600)';
+                      e.currentTarget.style.background = 'rgba(67, 56, 202, 0.25)';
+                      e.currentTarget.style.borderColor = 'var(--primary-500)';
                       e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.color = 'var(--neutral-0)';
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                      e.currentTarget.style.borderColor = 'var(--neutral-700)';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
                       e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.color = 'var(--neutral-100)';
                     }}
                   >
-                    {item.icon}
-                    {item.label}
+                    {label}
                   </div>
                 ))}
               </div>
 
               {/* CTAs */}
-              <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 'var(--space-3)'
+              }}>
                 <Link
                   to="/upload"
                   style={{
-                    flex: 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    padding: '14px 28px',
-                    fontSize: 'var(--text-lg)',
+                    padding: '16px 24px',
+                    fontSize: 'var(--text-base)',
                     fontWeight: 700,
                     background: 'linear-gradient(135deg, var(--primary-700) 0%, var(--primary-600) 100%)',
                     color: 'white',
@@ -286,13 +258,12 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 <Link
                   to="/search"
                   style={{
-                    flex: 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    padding: '14px 28px',
-                    fontSize: 'var(--text-lg)',
+                    padding: '16px 24px',
+                    fontSize: 'var(--text-base)',
                     fontWeight: 700,
                     background: 'transparent',
                     color: 'var(--neutral-0)',
@@ -337,19 +308,18 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
           >
             <div style={{
               display: 'grid',
-              gridTemplateColumns: windowWidth < 968 ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-              gap: 'var(--space-4)',
-              padding: 'var(--space-5)',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--neutral-700)',
-              borderRadius: 'var(--radius-lg)',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 'var(--space-6)',
+              padding: 'var(--space-6)',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: 'var(--radius-sm)',
               backdropFilter: 'blur(12px)'
             }}>
                 {[
-                  { value: '<30s', label: 'Avg Processing', icon: <Zap size={20} color="var(--accent1-400)" /> },
-                  { value: '768D', label: 'Vector Dimensions', icon: <Database size={20} color="var(--primary-400)" /> },
-                  { value: 'Unlimited', label: 'Graph Relations', icon: <Network size={20} color="var(--accent2-400)" /> },
-                  { value: 'MIT', label: 'Open Source', icon: <Globe size={20} color="var(--success)" /> }
+                  { value: '<30s', label: 'Processing' },
+                  { value: '768D', label: 'Embeddings' },
+                  { value: 'MIT', label: 'License' }
                 ].map((stat, idx) => (
                   <div
                     key={idx}
@@ -359,30 +329,22 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                     }}
                   >
                     <div style={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      marginBottom: 'var(--space-2)'
-                    }}>
-                      {stat.icon}
-                    </div>
-                    <div style={{
-                      fontSize: 'var(--text-3xl)',
+                      fontSize: 'var(--text-4xl)',
                       fontWeight: 800,
                       color: 'var(--neutral-0)',
-                      marginBottom: '4px',
+                      marginBottom: 'var(--space-1)',
                       fontFamily: 'var(--font-display)',
-                      lineHeight: '1.2',
-                      minHeight: '45px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
+                      lineHeight: '1',
+                      letterSpacing: '-0.03em'
                     }}>
                       {stat.value}
                     </div>
                     <div style={{
                       fontSize: 'var(--text-sm)',
                       color: 'var(--neutral-400)',
-                      fontWeight: 500
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em'
                     }}>
                       {stat.label}
                     </div>
@@ -418,13 +380,11 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
                 padding: '6px 12px',
                 background: '#dc2626',
                 borderRadius: 'var(--radius-sm)',
                 marginBottom: 'var(--space-3)'
               }}>
-                <XCircle size={16} color="#ffffff" />
                 <span style={{
                   fontSize: 'var(--text-xs)',
                   fontWeight: 700,
@@ -444,9 +404,27 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 marginBottom: 'var(--space-4)',
                 lineHeight: 1.2
               }}>
-                Traditional ATS Loses 40% of
+                88% of Qualified Candidates
                 <br />
-                Qualified Candidates
+                Lost to Rigid ATS Matching
+                <sup style={{
+                  fontSize: '0.4em',
+                  verticalAlign: 'super',
+                  marginLeft: '0.25em'
+                }}>
+                  <a
+                    href="https://www.hbs.edu/managing-the-future-of-work/Documents/research/hiddenworkers09032021.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: '#7f1d1d',
+                      textDecoration: 'none',
+                      fontWeight: 700
+                    }}
+                  >
+                    1
+                  </a>
+                </sup>
               </h2>
 
               <p style={{
@@ -457,7 +435,7 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
               }}>
                 Regex patterns miss context. Keyword matching fails on synonyms.
                 Your perfect candidate gets filtered out because they wrote
-                "React.js" instead of "ReactJS".
+                "Python" instead of "python".
               </p>
 
               <div style={{
@@ -477,10 +455,9 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
           </div>
         </div>
 
-        {/* Solution Section */}
         <div style={{
-          background: 'linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 50%, #818cf8 100%)',
-          padding: '100px 0 80px 0',
+          background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 50%, #6ee7b7 100%)',
+          padding: '80px 0',
           clipPath: 'polygon(0 5%, 100% 0, 100% 100%, 0 100%)'
         }}>
           <div className="container">
@@ -492,13 +469,11 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
                 padding: '6px 12px',
-                background: '#4338ca',
+                background: '#059669',
                 borderRadius: 'var(--radius-sm)',
                 marginBottom: 'var(--space-3)'
               }}>
-                <CheckCircle2 size={16} color="#ffffff" />
                 <span style={{
                   fontSize: 'var(--text-xs)',
                   fontWeight: 700,
@@ -514,7 +489,7 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 fontFamily: 'var(--font-display)',
                 fontSize: 'clamp(2rem, 5vw, 3.5rem)',
                 fontWeight: 800,
-                color: '#312e81',
+                color: '#065f46',
                 marginBottom: 'var(--space-4)',
                 lineHeight: 1.2
               }}>
@@ -525,7 +500,7 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
 
               <p style={{
                 fontSize: 'var(--text-xl)',
-                color: '#3730a3',
+                color: '#047857',
                 lineHeight: 1.7,
                 marginBottom: 'var(--space-5)'
               }}>
@@ -537,11 +512,11 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 display: 'inline-block',
                 padding: 'var(--space-3) var(--space-4)',
                 background: 'white',
-                border: '2px solid #4338ca',
+                border: '2px solid #059669',
                 borderRadius: 'var(--radius-sm)',
                 fontFamily: 'var(--font-mono)',
                 fontSize: 'var(--text-lg)',
-                color: '#3730a3',
+                color: '#047857',
                 fontWeight: 600
               }}>
                 Python ≈ python ≈ Python3 ≈ py
@@ -580,14 +555,12 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
               padding: '8px 16px',
               background: 'rgba(245, 158, 11, 0.15)',
               border: '1.5px solid var(--accent1-600)',
               borderRadius: 'var(--radius-sm)',
               marginBottom: 'var(--space-4)'
             }}>
-              <Code2 size={16} color="var(--accent1-400)" />
               <span style={{
                 fontSize: 'var(--text-sm)',
                 fontWeight: 700,
@@ -652,7 +625,7 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                       textTransform: 'capitalize'
                     }}
                   >
-                    {lang === 'node' ? 'Node.js' : lang}
+                    {lang === 'node' ? 'NodeJS' : lang}
                   </button>
                 ))}
                 <button
@@ -771,85 +744,45 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
               style={{
                 gridColumn: windowWidth < 768 ? 'span 1' : 'span 2',
                 gridRow: 'span 1',
-                background: 'linear-gradient(135deg, var(--primary-950) 0%, var(--primary-900) 100%)',
-                border: '1.5px solid var(--primary-700)',
+                background: 'white',
+                border: '1.5px solid var(--neutral-200)',
                 borderRadius: 'var(--radius-lg)',
-                padding: 'var(--space-4)',
-                position: 'relative',
-                overflow: 'hidden',
+                padding: 'var(--space-5)',
                 animationDelay: '0.1s',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
+                justifyContent: 'center',
                 cursor: 'pointer',
                 transition: 'all 0.3s'
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(67, 56, 202, 0.3)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.borderColor = 'var(--primary-300)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'var(--neutral-200)';
               }}
             >
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{
-                  width: '44px',
-                  height: '44px',
-                  background: 'rgba(99, 102, 241, 0.2)',
-                  borderRadius: 'var(--radius-sm)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 'var(--space-1)'
-                }}>
-                  <Search size={22} color="var(--primary-400)" />
-                </div>
-                <h3 style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 'var(--text-xl)',
-                  fontWeight: 800,
-                  color: 'var(--neutral-0)',
-                  marginBottom: 'var(--space-1)'
-                }}>
-                  Vector Search
-                </h3>
-                <p style={{
-                  fontSize: 'var(--text-base)',
-                  color: 'var(--neutral-300)',
-                  lineHeight: 1.6,
-                  marginBottom: 'var(--space-2)'
-                }}>
-                  Qdrant-powered semantic search. Find candidates by meaning, not keywords.
-                  768-dimensional embeddings capture context.
-                </p>
-              </div>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                background: 'rgba(245, 158, 11, 0.2)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 600,
-                color: 'var(--accent1-400)',
-                alignSelf: 'flex-start'
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-xl)',
+                fontWeight: 700,
+                color: 'var(--neutral-900)',
+                marginBottom: 'var(--space-2)'
               }}>
-                <Database size={14} />
-                Qdrant
-              </div>
-              <div style={{
-                position: 'absolute',
-                bottom: '-40px',
-                right: '-40px',
-                width: '200px',
-                height: '200px',
-                background: 'radial-gradient(circle, var(--primary-600) 0%, transparent 70%)',
-                opacity: 0.2,
-                pointerEvents: 'none'
-              }} />
+                Vector Search
+              </h3>
+              <p style={{
+                fontSize: 'var(--text-base)',
+                color: 'var(--neutral-600)',
+                lineHeight: 1.6
+              }}>
+                Qdrant-powered semantic search. Find candidates by meaning, not keywords.
+                768-dimensional embeddings capture context.
+              </p>
             </div>
 
             {/* Feature 2 - Now spans 2 rows */}
@@ -857,86 +790,44 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
               className={visibleSections.has('features') ? 'fade-in' : 'opacity-0'}
               style={{
                 gridRow: windowWidth < 768 ? 'span 1' : 'span 2',
-                background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                border: '1.5px solid var(--accent1-300)',
+                background: 'white',
+                border: '1.5px solid var(--neutral-200)',
                 borderRadius: 'var(--radius-lg)',
                 padding: 'var(--space-5)',
                 transition: 'all 0.3s',
                 animationDelay: '0.2s',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
+                justifyContent: 'center',
                 cursor: 'pointer'
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(245, 158, 11, 0.2)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.borderColor = 'var(--primary-300)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'var(--neutral-200)';
               }}
             >
-              <div>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: 'rgba(180, 83, 9, 0.15)',
-                  borderRadius: 'var(--radius-sm)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 'var(--space-2)'
-                }}>
-                  <Zap size={24} color="var(--accent1-700)" />
-                </div>
-                <h3 style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 'var(--text-xl)',
-                  fontWeight: 700,
-                  color: 'var(--neutral-900)',
-                  marginBottom: 'var(--space-2)'
-                }}>
-                  Sub-30s Processing
-                </h3>
-                <p style={{
-                  fontSize: 'var(--text-base)',
-                  color: 'var(--neutral-700)',
-                  lineHeight: 1.6,
-                  marginBottom: 'var(--space-3)'
-                }}>
-                  Async workers with Redis queue. Process thousands of resumes concurrently with automatic retry logic.
-                </p>
-              </div>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--space-2)'
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-xl)',
+                fontWeight: 700,
+                color: 'var(--neutral-900)',
+                marginBottom: 'var(--space-2)'
               }}>
-                {[
-                  'Redis Queue',
-                  'Async Workers',
-                  'Auto Retry',
-                  'Job Tracking'
-                ].map((item, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '10px 14px',
-                      background: 'rgba(255, 255, 255, 0.6)',
-                      backdropFilter: 'blur(8px)',
-                      border: '1px solid rgba(180, 83, 9, 0.2)',
-                      borderLeft: '3px solid var(--accent1-600)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: 'var(--text-sm)',
-                      fontWeight: 600,
-                      color: 'var(--accent1-900)'
-                    }}
-                  >
-                    {item}
-                  </div>
-                ))}
-              </div>
+                Sub-30s Processing
+              </h3>
+              <p style={{
+                fontSize: 'var(--text-base)',
+                color: 'var(--neutral-600)',
+                lineHeight: 1.6
+              }}>
+                Async workers with Redis queue. Process thousands of resumes concurrently with automatic retry logic.
+              </p>
             </div>
 
             {/* Feature 3 */}
@@ -952,35 +843,25 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between'
+                justifyContent: 'center'
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
                 e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.borderColor = 'var(--primary-300)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'var(--neutral-200)';
               }}
             >
-              <div style={{
-                width: '44px',
-                height: '44px',
-                background: 'rgba(225, 29, 72, 0.1)',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 'var(--space-2)'
-              }}>
-                <Network size={22} color="var(--accent2-600)" />
-              </div>
               <h3 style={{
                 fontFamily: 'var(--font-display)',
                 fontSize: 'var(--text-lg)',
                 fontWeight: 700,
                 color: 'var(--neutral-900)',
-                marginBottom: 'var(--space-1)'
+                marginBottom: 'var(--space-2)'
               }}>
                 Graph Relations
               </h3>
@@ -998,86 +879,44 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
               className={visibleSections.has('features') ? 'fade-in' : 'opacity-0'}
               style={{
                 gridRow: windowWidth < 768 ? 'span 1' : 'span 2',
-                background: 'linear-gradient(135deg, var(--accent1-50) 0%, var(--accent1-100) 100%)',
-                border: '1.5px solid var(--accent1-300)',
+                background: 'white',
+                border: '1.5px solid var(--neutral-200)',
                 borderRadius: 'var(--radius-lg)',
                 padding: 'var(--space-5)',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
+                justifyContent: 'center',
                 animationDelay: '0.4s',
                 cursor: 'pointer',
                 transition: 'all 0.3s'
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(245, 158, 11, 0.2)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.borderColor = 'var(--primary-300)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'var(--neutral-200)';
               }}
             >
-              <div>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  background: 'rgba(180, 83, 9, 0.15)',
-                  borderRadius: 'var(--radius-sm)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 'var(--space-2)'
-                }}>
-                  <Cpu size={24} color="var(--accent1-700)" />
-                </div>
-                <h3 style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 'var(--text-xl)',
-                  fontWeight: 700,
-                  color: 'var(--neutral-900)',
-                  marginBottom: 'var(--space-2)'
-                }}>
-                  LLM Extraction
-                </h3>
-                <p style={{
-                  fontSize: 'var(--text-base)',
-                  color: 'var(--neutral-700)',
-                  lineHeight: 1.6,
-                  marginBottom: 'var(--space-3)'
-                }}>
-                  Structured Pydantic models. Claude/GPT-4 parse with context awareness.
-                </p>
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 'var(--space-2)'
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-xl)',
+                fontWeight: 700,
+                color: 'var(--neutral-900)',
+                marginBottom: 'var(--space-2)'
               }}>
-                {[
-                  'Skills',
-                  'Experience',
-                  'Education',
-                  'Projects'
-                ].map((item, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '10px 14px',
-                      background: 'rgba(255, 255, 255, 0.7)',
-                      backdropFilter: 'blur(8px)',
-                      border: '1px solid rgba(180, 83, 9, 0.25)',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: 'var(--text-sm)',
-                      fontWeight: 600,
-                      color: 'var(--accent1-900)',
-                      textAlign: 'center'
-                    }}
-                  >
-                    {item}
-                  </div>
-                ))}
-              </div>
+                LLM Extraction
+              </h3>
+              <p style={{
+                fontSize: 'var(--text-base)',
+                color: 'var(--neutral-600)',
+                lineHeight: 1.6
+              }}>
+                Structured Pydantic models. Claude/GPT-4 parse with context awareness.
+              </p>
             </div>
 
             {/* Feature 5 & 6 */}
@@ -1093,35 +932,25 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between'
+                justifyContent: 'center'
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
                 e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.borderColor = 'var(--primary-300)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'var(--neutral-200)';
               }}
             >
-              <div style={{
-                width: '44px',
-                height: '44px',
-                background: 'rgba(67, 56, 202, 0.1)',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 'var(--space-2)'
-              }}>
-                <Shield size={22} color="var(--primary-700)" />
-              </div>
               <h3 style={{
                 fontFamily: 'var(--font-display)',
                 fontSize: 'var(--text-lg)',
                 fontWeight: 700,
                 color: 'var(--neutral-900)',
-                marginBottom: 'var(--space-1)'
+                marginBottom: 'var(--space-2)'
               }}>
                 Self-Hosted
               </h3>
@@ -1146,35 +975,25 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between'
+                justifyContent: 'center'
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
                 e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.borderColor = 'var(--primary-300)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'var(--neutral-200)';
               }}
             >
-              <div style={{
-                width: '44px',
-                height: '44px',
-                background: 'rgba(16, 185, 129, 0.1)',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 'var(--space-2)'
-              }}>
-                <Globe size={22} color="var(--success)" />
-              </div>
               <h3 style={{
                 fontFamily: 'var(--font-display)',
                 fontSize: 'var(--text-lg)',
                 fontWeight: 700,
                 color: 'var(--neutral-900)',
-                marginBottom: 'var(--space-1)'
+                marginBottom: 'var(--space-2)'
               }}>
                 Open Source
               </h3>
@@ -1229,7 +1048,7 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
           <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>
             <h2 style={{
               fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
+              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
               fontWeight: 800,
               color: 'var(--neutral-0)',
               marginBottom: 'var(--space-4)',
@@ -1237,7 +1056,7 @@ fetch('${API_BASE_URL}/api/v1/upload/', {
             }}>
               Stop Losing Candidates to{' '}
               <span style={{
-                background: 'linear-gradient(135deg, var(--accent2-400) 0%, var(--accent1-400) 100%)',
+                background: 'linear-gradient(135deg, #f87171 0%, #dc2626 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text'

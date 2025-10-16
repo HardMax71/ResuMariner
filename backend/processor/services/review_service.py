@@ -26,7 +26,7 @@ class ReviewService:
         self.file_type = parsed_document.file_type
         self.processed_at = parsed_document.processed_at
 
-        self.llm_service = LLMService(system_prompt=self._get_system_prompt(), result_type=ReviewResult, mode="text")
+        self.llm_service = LLMService(system_prompt=self._get_system_prompt(), output_type=ReviewResult, mode="text")
 
     def _get_system_prompt(self) -> str:
         return """
@@ -102,12 +102,7 @@ class ReviewService:
         Returns:
             Structured ReviewResult as dict
         """
-        try:
-            prompt = self._build_review_prompt()
-            result = await self.llm_service.run(prompt, temperature=0.3)
-            logger.info("Resume review completed successfully")
-            return result  # type: ignore[no-any-return]
-
-        except Exception as e:
-            logger.error(f"Review generation failed: {e}")
-            return ReviewResult()
+        prompt = self._build_review_prompt()
+        result = await self.llm_service.run(prompt, temperature=0.3)
+        logger.info("Resume review completed successfully")
+        return result  # type: ignore[no-any-return]

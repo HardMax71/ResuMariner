@@ -1,30 +1,31 @@
 import logging
-from collections import defaultdict
+from typing import assert_never
 
-from django.conf import settings
+from rest_framework.exceptions import ValidationError
 
-from core.domain import (
-    ResumeSearchResult,
-    SearchRequest,
-    SearchResponse,
-    SearchType,
-    VectorHit,
-)
+from core.domain import ResumeSearchResult, SearchRequest, SearchResponse, SearchType
 from core.services import EmbeddingService
 
 from .graph_search import GraphSearchService
 from .hybrid_search import HybridSearchService
+from .result_enrichment import enrich_vector_hits_with_resume_data
 from .vector_search import VectorSearchService
 
 logger = logging.getLogger(__name__)
 
 
 class SearchCoordinator:
+    """Coordinates all search types and delegates to specialized services."""
+
     def __init__(self):
         self.vector_search = VectorSearchService()
         self.graph_search = GraphSearchService()
-        self.hybrid_search = HybridSearchService()
-        self.embedding_service = EmbeddingService(settings.EMBEDDING_MODEL)
+        self.embedding_service = EmbeddingService()
+        self.hybrid_search = HybridSearchService(
+            vector_search=self.vector_search,
+            graph_search=self.graph_search,
+            embedding_service=self.embedding_service,
+        )
 
     async def search(self, request: SearchRequest) -> SearchResponse:
         """Main entry point for all search types"""
@@ -35,7 +36,7 @@ class SearchCoordinator:
         elif request.search_type == SearchType.HYBRID:
             results = await self._hybrid_search(request)
         else:
-            raise ValueError(f"Unknown search type: {request.search_type}")
+            assert_never(request.search_type)
 
         return SearchResponse(
             results=results, query=request.query or "", search_type=request.search_type, total_found=len(results)
@@ -43,44 +44,23 @@ class SearchCoordinator:
 
     async def _semantic_search(self, request: SearchRequest) -> list[ResumeSearchResult]:
         if not request.query:
-            raise ValueError("Query is required for semantic search")
+            logger.error("Semantic search attempted without query")
+            raise ValidationError("Query is required for semantic search")
 
-        query_vector = self.embedding_service.encode(request.query)
+        query_vector = await self.embedding_service.encode(request.query)
 
         vector_hits = await self.vector_search.search(
             query_vector=query_vector,
             limit=request.limit * 5,  # Over-fetch for grouping
             min_score=request.min_score,
-            filters=None,
         )
 
-        grouped = self._group_vector_hits_by_resume_id(vector_hits)
-
-        resume_ids = list(grouped.keys())
-        complete_resumes = await self.graph_search.get_resumes_by_ids(resume_ids)
-
-        # Create a map for quick lookup
-        resume_map = {r.resume_id: r for r in complete_resumes}
-
-        # Combine vector hits with complete resume data
-        results = []
-        for resume_id, hits in grouped.items():
-            if resume_id in resume_map:
-                # Use complete data from graph
-                result = resume_map[resume_id]
-                # Keep the VectorHit objects for matches, just limit them
-                result.matches = hits[: request.max_matches_per_result]
-                result.score = max(hit.score for hit in hits)
-            else:
-                # Fallback if not found in graph (shouldn't happen normally)
-                limited_hits = hits[: request.max_matches_per_result]
-                result = ResumeSearchResult.from_matches(resume_id, limited_hits)
-
-            results.append(result)
-
-        # Sort by score and limit
-        results.sort(key=lambda r: r.score, reverse=True)
-        return results[: request.limit]
+        return await enrich_vector_hits_with_resume_data(
+            vector_hits,
+            self.graph_search,
+            request.max_matches_per_result,
+            request.limit,
+        )
 
     async def _structured_search(self, request: SearchRequest) -> list[ResumeSearchResult]:
         return await self.graph_search.search(filters=request.filters, limit=request.limit)
@@ -89,14 +69,12 @@ class SearchCoordinator:
         return await self.hybrid_search.search(
             query=request.query or "",
             filters=request.filters,
-            vector_weight=request.vector_weight,
-            graph_weight=request.graph_weight,
             limit=request.limit,
             max_matches_per_result=request.max_matches_per_result,
         )
 
-    def _group_vector_hits_by_resume_id(self, hits: list[VectorHit]) -> dict[str, list[VectorHit]]:
-        grouped = defaultdict(list)
-        for hit in hits:
-            grouped[hit.resume_id].append(hit)
-        return dict(grouped)
+    async def close(self) -> None:
+        """Cleanup all service connections."""
+        await self.vector_search.close()
+        await self.graph_search.close()
+        logger.info("SearchCoordinator connections closed")

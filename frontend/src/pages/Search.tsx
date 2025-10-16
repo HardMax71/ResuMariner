@@ -18,8 +18,6 @@ export default function Search() {
   const [limit, setLimit] = useState(10);
   const [minScore, setMinScore] = useState(0.3);
   const [maxMatches, setMaxMatches] = useState(5);
-  const [vectorWeight, setVectorWeight] = useState(0.7);
-  const [graphWeight, setGraphWeight] = useState(0.3);
 
   const semanticSearch = useSemanticSearch();
   const structuredSearch = useStructuredSearch();
@@ -30,13 +28,6 @@ export default function Search() {
     : hybridSearch;
 
   const { data: res, isPending: loading, error } = activeSearch;
-
-  useEffect(() => {
-    const total = vectorWeight + graphWeight;
-    if (total !== 1) {
-      setGraphWeight(+(1 - vectorWeight).toFixed(2));
-    }
-  }, [vectorWeight]);
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,8 +50,6 @@ export default function Search() {
       hybridSearch.mutate({
         query,
         filters,
-        vector_weight: vectorWeight,
-        graph_weight: graphWeight,
         limit,
         max_matches_per_result: maxMatches
       });
@@ -75,8 +64,6 @@ export default function Search() {
     setLimit(10);
     setMinScore(0.3);
     setMaxMatches(5);
-    setVectorWeight(0.7);
-    setGraphWeight(0.3);
   };
 
   const activeFilterCount = Object.values(filters).filter(v =>
@@ -254,43 +241,17 @@ export default function Search() {
                 )}
 
                 {tab === "hybrid" && (
-                  <>
-                    <div>
-                      <label className="label small">Vector Weight</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min={0}
-                        max={1}
-                        value={vectorWeight}
-                        onChange={(e) => setVectorWeight(Number(e.target.value))}
-                        className="search-compact-input"
-                      />
-                    </div>
-                    <div>
-                      <label className="label small">Graph Weight</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min={0}
-                        max={1}
-                        value={graphWeight}
-                        onChange={(e) => setGraphWeight(Number(e.target.value))}
-                        className="search-compact-input"
-                      />
-                    </div>
-                    <div>
-                      <label className="label small">Max Matches</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={20}
-                        value={maxMatches}
-                        onChange={(e) => setMaxMatches(Number(e.target.value))}
-                        className="search-compact-input"
-                      />
-                    </div>
-                  </>
+                  <div>
+                    <label className="label small">Max Matches</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={maxMatches}
+                      onChange={(e) => setMaxMatches(Number(e.target.value))}
+                      className="search-compact-input"
+                    />
+                  </div>
                 )}
               </div>
             </CollapsibleSection>
@@ -360,7 +321,7 @@ export default function Search() {
           ) : (
             <div className="stack">
               {res.results.map(r => (
-                <ResultCard key={r.resume_id} result={r} />
+                <ResultCard key={r.uid} result={r} />
               ))}
             </div>
           )}
