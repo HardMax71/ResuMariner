@@ -11,11 +11,13 @@ export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
   const [error, setError] = useState<string | null>(null);
   const { data: fileConfig, isLoading } = useFileConfig();
 
-  const { acceptedTypes, maxSizes, groupedBySize } = useMemo(() => {
+  const { acceptedTypes, acceptedExtensions, acceptValue, maxSizes, groupedBySize } = useMemo(() => {
     if (!fileConfig) {
-      return { acceptedTypes: [], maxSizes: {}, groupedBySize: [] };
+      return { acceptedTypes: [], acceptedExtensions: [], acceptValue: "", maxSizes: {}, groupedBySize: [] };
     }
     const types = Object.values(fileConfig).map(cfg => cfg.media_type);
+    const extensions = Object.keys(fileConfig);
+    const accept = [...extensions, ...types].join(",");
     const sizes: Record<string, number> = {};
     Object.values(fileConfig).forEach(cfg => {
       sizes[cfg.media_type] = cfg.max_size_mb;
@@ -37,10 +39,10 @@ export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
         extensions: exts.sort()
       }));
 
-    return { acceptedTypes: types, maxSizes: sizes, groupedBySize: grouped };
+    return { acceptedTypes: types, acceptedExtensions: extensions, acceptValue: accept, maxSizes: sizes, groupedBySize: grouped };
   }, [fileConfig]);
 
-  const validate = (file: File) => {
+  const validate = useCallback((file: File) => {
     if (!fileConfig) {
       return "Configuration loading, please wait...";
     }
@@ -53,7 +55,7 @@ export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
       return `File too large. Max ${maxMb}MB for this type.`;
     }
     return null;
-  };
+  }, [fileConfig, acceptedTypes, maxSizes, groupedBySize]);
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -127,7 +129,7 @@ export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
           )}
           <input
             type="file"
-            accept={acceptedTypes.join(",")}
+            accept={acceptValue}
             className="file-input"
             onChange={(e) => handleFiles(e.target.files)}
           />

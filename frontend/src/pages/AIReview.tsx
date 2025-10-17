@@ -25,6 +25,21 @@ import {
 } from "../components/styled/Card";
 import PageHeader from "../components/PageHeader";
 
+const COLOR_PALETTES = {
+  red: {
+    dark: { main: "#dc2626", text: "#991b1b", bg: "#fecaca", bgLight: "rgba(254, 226, 226, 0.5)", border: "#fca5a5" },
+    medium: { main: "#ef4444", text: "#b91c1c", bg: "#fed7d7", bgLight: "rgba(254, 242, 242, 0.5)", border: "#fbb6b6" },
+    light: { main: "#f87171", text: "#dc2626", bg: "#fee2e2", bgLight: "rgba(254, 245, 245, 0.5)", border: "#fecaca" }
+  },
+  orange: {
+    dark: { main: "#ea580c", text: "#9a3412", bg: "#fed7aa", bgLight: "rgba(255, 237, 213, 0.5)", border: "#fdba74" },
+    light: { main: "#f97316", text: "#c2410c", bg: "#ffedd5", bgLight: "rgba(255, 247, 237, 0.5)", border: "#fed7aa" }
+  },
+  blue: {
+    main: "#2563eb", text: "#1e40af", bg: "#bfdbfe", bgLight: "rgba(219, 234, 254, 0.5)", border: "#93c5fd"
+  }
+} as const;
+
 export default function AIReview() {
   const { uid = "" } = useParams();
   const { data: job, isLoading: loading, error: queryError } = useResumeStatus(uid);
@@ -202,33 +217,18 @@ export default function AIReview() {
                 const isExpanded = expandedSections.has(section);
                 const priorityLevel = mustCount > 0 ? "critical" : shouldCount > 0 ? "important" : "tip";
 
-                const redPalette = {
-                  dark: { main: "#dc2626", text: "#991b1b", bg: "#fecaca", bgLight: "rgba(254, 226, 226, 0.5)", border: "#fca5a5" },
-                  medium: { main: "#ef4444", text: "#b91c1c", bg: "#fed7d7", bgLight: "rgba(254, 242, 242, 0.5)", border: "#fbb6b6" },
-                  light: { main: "#f87171", text: "#dc2626", bg: "#fee2e2", bgLight: "rgba(254, 245, 245, 0.5)", border: "#fecaca" }
-                };
-
-                const orangePalette = {
-                  dark: { main: "#ea580c", text: "#9a3412", bg: "#fed7aa", bgLight: "rgba(255, 237, 213, 0.5)", border: "#fdba74" },
-                  light: { main: "#f97316", text: "#c2410c", bg: "#ffedd5", bgLight: "rgba(255, 247, 237, 0.5)", border: "#fed7aa" }
-                };
-
-                const bluePalette = {
-                  main: "#2563eb", text: "#1e40af", bg: "#bfdbfe", bgLight: "rgba(219, 234, 254, 0.5)", border: "#93c5fd"
-                };
-
                 const colors = priorityLevel === "critical" ?
-                  { must: redPalette.dark, should: redPalette.medium, advise: redPalette.light } :
+                  { must: COLOR_PALETTES.red.dark, should: COLOR_PALETTES.red.medium, advise: COLOR_PALETTES.red.light } :
                   priorityLevel === "important" ?
-                  { should: orangePalette.dark, advise: orangePalette.light } :
-                  { advise: bluePalette };
+                  { should: COLOR_PALETTES.orange.dark, advise: COLOR_PALETTES.orange.light } :
+                  { advise: COLOR_PALETTES.blue };
 
-                const priorityColor = priorityLevel === "critical" ? redPalette.dark.main :
-                                     priorityLevel === "important" ? orangePalette.dark.main :
-                                     bluePalette.main;
-                const priorityBg = priorityLevel === "critical" ? redPalette.dark.bgLight :
-                                  priorityLevel === "important" ? orangePalette.dark.bgLight :
-                                  bluePalette.bgLight;
+                const priorityColor = priorityLevel === "critical" ? COLOR_PALETTES.red.dark.main :
+                                     priorityLevel === "important" ? COLOR_PALETTES.orange.dark.main :
+                                     COLOR_PALETTES.blue.main;
+                const priorityBg = priorityLevel === "critical" ? COLOR_PALETTES.red.dark.bgLight :
+                                  priorityLevel === "important" ? COLOR_PALETTES.orange.dark.bgLight :
+                                  COLOR_PALETTES.blue.bgLight;
 
                 const ALIGN_CENTER = 14;
 
