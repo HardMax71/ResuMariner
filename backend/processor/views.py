@@ -110,12 +110,12 @@ class ResumeByEmailView(APIView):
         description="Delete resume by email address.",
     )
     async def delete(self, request: Request, email: str) -> Response:
-        existing = await request.graph_db.get_resume_by_email(email.lower())
-        if not existing:
+        uid = await request.graph_db.get_resume_uid_by_email(email.lower())
+        if not uid:
             logger.warning("Resume delete failed: email %s not found", email)
             raise NotFound("Resume not found")
 
-        await request.resume_service.delete_resume(existing.uid)
+        await request.resume_service.delete_resume(uid)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

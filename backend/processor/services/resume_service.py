@@ -55,9 +55,9 @@ class ResumeService:
                 logger.warning("Resume upload failed: no email found in file %s", filename)
                 raise ValidationError("Cannot process resume without email address")
 
-            existing = await self.graph_db.get_resume_by_email(email)
-            if existing:
-                logger.warning("Resume upload failed: email %s already exists with uid %s", email, existing.uid)
+            existing_uid = await self.graph_db.get_resume_uid_by_email(email)
+            if existing_uid:
+                logger.warning("Resume upload failed: email %s already exists with uid %s", email, existing_uid)
                 raise ValidationError("Resume with this email already exists")
 
             job = await self.job_service.create_job(file_path=temp_path, uid=uid)
@@ -78,22 +78,20 @@ class ResumeService:
         Args:
             uid: Resume/job unique identifier
         """
-        job = await self.job_service.get_job(uid)
-
         try:
-            deleted = await self.graph_db.delete_resume(job.uid)
+            deleted = await self.graph_db.delete_resume(uid)
             if deleted:
-                logger.info("Deleted resume %s from graph DB", job.uid)
+                logger.info("Deleted resume %s from graph DB", uid)
             else:
-                logger.warning("Resume %s not found in graph DB", job.uid)
+                logger.warning("Resume %s not found in graph DB", uid)
         except Exception as e:
-            logger.error("Failed to delete resume %s from graph DB: %s", job.uid, e)
+            logger.error("Failed to delete resume %s from graph DB: %s", uid, e)
 
         try:
-            count = await self.vector_db.delete_resume_vectors(job.uid)
-            logger.info("Deleted %d vectors for resume %s", count, job.uid)
+            count = await self.vector_db.delete_resume_vectors(uid)
+            logger.info("Deleted %d vectors for resume %s", count, uid)
         except Exception as e:
-            logger.error("Failed to delete vectors for resume %s: %s", job.uid, e)
+            logger.error("Failed to delete vectors for resume %s: %s", uid, e)
 
         await FileService.cleanup_all_job_files(uid)
         logger.info("Deleted files for job %s", uid)
