@@ -6,6 +6,7 @@ import JobStatus from "./pages/JobStatus";
 import AIReview from "./pages/AIReview";
 import Search from "./pages/Search";
 import Health from "./pages/Health";
+import Error from "./pages/Error";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/resumes/:uid/review" element={<AIReview />} />
           <Route path="/search" element={<Search />} />
           <Route path="/health" element={<Health />} />
+          <Route path="*" element={<Error />} />
         </Routes>
       </main>
     </div>

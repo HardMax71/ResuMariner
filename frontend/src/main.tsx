@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./styles.css";
 
 // Create React Query client
@@ -15,14 +16,27 @@ const queryClient = new QueryClient({
   },
 });
 
+const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
+  // Log to external error tracking service (e.g., Sentry, LogRocket)
+  // For now, just log to console in production
+  if (!import.meta.env.DEV) {
+    console.error('Application Error:', error);
+    console.error('Error Info:', errorInfo);
+    // TODO: Send to error tracking service
+    // Example: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
+  }
+};
+
 const rootEl = document.getElementById("root")!;
 createRoot(rootEl).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary onError={handleError}>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
 

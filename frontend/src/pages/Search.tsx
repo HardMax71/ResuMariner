@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import SearchFiltersComp from "../components/SearchFilters";
 import ResultCard from "../components/ResultCard";
 import CollapsibleSection from "../components/CollapsibleSection";
 import Badge from "../components/Badge";
-import { useSemanticSearch, useStructuredSearch, useHybridSearch } from "../hooks/useResumeSearch";
+import { useSearch } from "../hooks/useResumeSearch";
 import type { SearchFilters } from "../lib/api";
 import { PageWrapper, PageContainer } from "../components/styled";
 import PageHeader from "../components/PageHeader";
@@ -19,21 +19,15 @@ export default function Search() {
   const [minScore, setMinScore] = useState(0.3);
   const [maxMatches, setMaxMatches] = useState(5);
 
-  const semanticSearch = useSemanticSearch();
-  const structuredSearch = useStructuredSearch();
-  const hybridSearch = useHybridSearch();
-
-  const activeSearch = tab === "semantic" ? semanticSearch
-    : tab === "structured" ? structuredSearch
-    : hybridSearch;
-
-  const { data: res, isPending: loading, error } = activeSearch;
+  const search = useSearch();
+  const { data: res, isPending: loading, error } = search;
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (tab === "semantic") {
-      semanticSearch.mutate({
+      search.mutate({
+        type: "semantic",
         query,
         limit,
         min_score: minScore,
@@ -41,13 +35,15 @@ export default function Search() {
         filters
       });
     } else if (tab === "structured") {
-      structuredSearch.mutate({
+      search.mutate({
+        type: "structured",
         query: query || "",
         filters,
         limit
       });
     } else {
-      hybridSearch.mutate({
+      search.mutate({
+        type: "hybrid",
         query,
         filters,
         limit,
@@ -56,7 +52,7 @@ export default function Search() {
     }
   };
 
-  const disabled = useMemo(() => tab !== "structured" && !query.trim(), [tab, query]);
+  const disabled = tab !== "structured" && !query.trim();
 
   const clearFilters = () => {
     setFilters({});
@@ -282,9 +278,7 @@ export default function Search() {
                 type="button"
                 className="btn ghost"
                 onClick={() => {
-                  semanticSearch.reset();
-                  structuredSearch.reset();
-                  hybridSearch.reset();
+                  search.reset();
                   clearFilters();
                 }}
               >

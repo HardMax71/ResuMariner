@@ -17,29 +17,24 @@ export function useFilterOptions() {
   });
 }
 
-export function useSemanticSearch() {
-  return useMutation({
-    mutationFn: (params: SemanticSearchParams) => searchSemantic(params),
-    onError: (error) => {
-      console.error('Semantic search failed:', error);
-    },
-  });
-}
+type UnifiedSearchParams =
+  | ({ type: "semantic" } & SemanticSearchParams)
+  | ({ type: "structured" } & StructuredSearchParams)
+  | ({ type: "hybrid" } & HybridSearchParams);
 
-export function useStructuredSearch() {
+export function useSearch() {
   return useMutation({
-    mutationFn: (params: StructuredSearchParams) => searchStructured(params),
-    onError: (error) => {
-      console.error('Structured search failed:', error);
-    },
-  });
-}
-
-export function useHybridSearch() {
-  return useMutation({
-    mutationFn: (params: HybridSearchParams) => searchHybrid(params),
-    onError: (error) => {
-      console.error('Hybrid search failed:', error);
+    mutationFn: (params: UnifiedSearchParams) => {
+      if (params.type === "semantic") {
+        const { type, ...rest } = params;
+        return searchSemantic(rest);
+      } else if (params.type === "structured") {
+        const { type, ...rest } = params;
+        return searchStructured(rest);
+      } else {
+        const { type, ...rest } = params;
+        return searchHybrid(rest);
+      }
     },
   });
 }
