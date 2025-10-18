@@ -2,6 +2,7 @@ import { PageWrapper, PageContainer } from "../components/styled";
 import PageHeader from "../components/PageHeader";
 import { AlertTriangle } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
+import { POLICY_LAST_UPDATED } from "../constants";
 
 export default function PrivacyPolicy() {
   return (
@@ -12,7 +13,7 @@ export default function PrivacyPolicy() {
         <div className="glass-card" style={{ marginBottom: "var(--space-4)" }}>
           <div style={{ maxWidth: "800px", lineHeight: 1.7, fontSize: "var(--text-base)" }}>
             <p style={{ color: "var(--neutral-600)", marginBottom: "var(--space-4)" }}>
-              <strong>Last Updated:</strong> {new Date().toLocaleDateString()}
+              <strong>Last Updated:</strong> {POLICY_LAST_UPDATED}
             </p>
 
             <div style={{
