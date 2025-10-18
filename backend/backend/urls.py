@@ -23,12 +23,14 @@ async def metrics_view(_request: Any) -> HttpResponse:
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("metrics", metrics_view),
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
-    # API endpoints
-    path("", include("search.urls")),
-    path("", include("processor.urls")),
+    # API v1 endpoints
+    path("api/v1/", include("search.urls")),
+    path("api/v1/", include("processor.urls")),
+    path("api/v1/rag/", include("rag.urls")),
+    # Metrics (Prometheus format)
+    path("metrics", metrics_view),
 ]

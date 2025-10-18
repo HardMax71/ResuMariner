@@ -105,4 +105,4 @@ class ReviewService:
         prompt = self._build_review_prompt()
         result = await self.llm_service.run(prompt, temperature=0.3)
         logger.info("Resume review completed successfully")
-        return result  # type: ignore[no-any-return]
+        return result.output

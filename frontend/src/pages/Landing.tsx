@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../lib/api";
-import { ArrowRight, GitBranch } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import AnimatedTerminal from '../components/AnimatedTerminal';
 
 export default function Landing() {
@@ -1076,10 +1076,8 @@ fetch('${API_BASE_URL}/api/v1/resumes/', {
 
             <div style={{
               display: 'flex',
-              gap: 'var(--space-3)',
               justifyContent: 'center',
-              marginBottom: 'var(--space-8)',
-              flexWrap: 'wrap'
+              marginBottom: 'var(--space-8)'
             }}>
               <Link
                 to="/upload"
@@ -1110,39 +1108,6 @@ fetch('${API_BASE_URL}/api/v1/resumes/', {
                 Start Processing Now
                 <ArrowRight size={20} />
               </Link>
-
-              <a
-                href="https://github.com/HardMax71/ResuMariner"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '16px 32px',
-                  fontSize: 'var(--text-xl)',
-                  fontWeight: 700,
-                  background: 'transparent',
-                  color: 'var(--neutral-0)',
-                  border: '2px solid var(--neutral-500)',
-                  borderRadius: 'var(--radius-sm)',
-                  textDecoration: 'none',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = 'var(--neutral-0)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                  e.currentTarget.style.transform = 'translateY(-3px)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'var(--neutral-500)';
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                <GitBranch size={20} />
-                View on GitHub
-              </a>
             </div>
           </div>
         </div>

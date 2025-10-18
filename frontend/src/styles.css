@@ -181,8 +181,15 @@ body {
 }
 
 #root {
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 /* Typography */
@@ -316,8 +323,23 @@ a:hover {
 
 /* Content */
 .content {
-  min-height: calc(100vh - var(--space-8));
-  padding: var(--space-6) 0 0;
+  width: 100%;
+  min-height: calc(100vh - 64px);
+  padding: var(--space-8) 0 0;
+}
+
+/* Add bottom padding on desktop for footer */
+@media (min-width: 768px) {
+  .content {
+    padding-bottom: 50px;
+  }
+}
+
+/* Remove bottom padding when footer is hidden (small viewport height) */
+@media (max-height: 500px) {
+  .content {
+    padding-bottom: 0 !important;
+  }
 }
 
 /* Cards */
@@ -672,9 +694,82 @@ textarea {
 /* Responsive grid for advanced options */
 .advanced-options-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: var(--space-2);
   padding-top: var(--space-1);
+}
+
+/* Wide screens: All 3 in one row (semantic mode) */
+@media (min-width: 640px) {
+  .advanced-options-grid:has(.min-score-slider-wrapper) {
+    grid-template-columns: minmax(100px, 140px) 1fr minmax(100px, 140px);
+  }
+
+  .min-score-slider-wrapper {
+    grid-column: 2;
+  }
+
+  /* Only 2 items (hybrid mode): 50/50 */
+  .advanced-options-grid:not(:has(.min-score-slider-wrapper)) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Medium screens: 2 inputs on top row (50/50), slider full width on second row */
+@media (min-width: 400px) and (max-width: 639px) {
+  .advanced-options-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .min-score-slider-wrapper {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}
+
+/* Small screens: Each item takes full width in stack */
+@media (max-width: 399px) {
+  .advanced-options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .min-score-slider-wrapper {
+    order: 2;
+  }
+}
+
+/* Custom slider styling */
+.custom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary-600);
+  cursor: pointer;
+  border: 2px solid var(--white);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.custom-slider::-webkit-slider-thumb:hover {
+  background: var(--primary-700);
+  transform: scale(1.1);
+}
+
+.custom-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary-600);
+  cursor: pointer;
+  border: 2px solid var(--white);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.custom-slider::-moz-range-thumb:hover {
+  background: var(--primary-700);
+  transform: scale(1.1);
 }
 
 /* Badges */
@@ -854,9 +949,16 @@ textarea {
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
   background-attachment: fixed;
   padding-top: 40px;
-  padding-bottom: var(--space-6);
+  padding-bottom: 0;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* Add bottom padding on desktop for footer */
+@media (min-width: 768px) {
+  .page-wrapper {
+    padding-bottom: 50px;
+  }
 }
 
 .page-container {
@@ -1130,6 +1232,31 @@ details summary .chevron {
 
 details[open] summary .chevron {
   transform: rotate(180deg);
+}
+
+/* Tooltip */
+.tooltip-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  padding: 4px 8px;
+  background: var(--neutral-900);
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 1000;
+}
+
+.tooltip-btn:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-8px);
 }
 
 /* Print Styles */

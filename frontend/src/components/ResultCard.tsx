@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { SearchResult } from "../lib/api";
 import Chip from "./Chip";
-import { Mail, MapPin, Briefcase, GraduationCap, Target, Globe, ChevronDown } from "lucide-react";
+import { Mail, MapPin, Briefcase, GraduationCap, Target, Globe, ChevronDown, Copy, Check, Sparkles, MessageCircle, Users } from "lucide-react";
+import { useSelection } from "../contexts/SelectionContext";
 
 type Props = {
   result: SearchResult;
@@ -9,6 +11,17 @@ type Props = {
 
 export default function ResultCard({ result }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const { isSelected, toggleSelection } = useSelection();
+  const navigate = useNavigate();
+
+  const selected = isSelected(result.uid);
+
+  const handleCopyUid = async () => {
+    await navigator.clipboard.writeText(result.uid);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const formatYearsExperience = (years?: number | null) => {
     if (!years) return null;
@@ -73,6 +86,17 @@ export default function ResultCard({ result }: Props) {
       <div>
         <div className="flex justify-between items-center mb-2">
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => toggleSelection(result.uid, result.name)}
+              style={{
+                width: "18px",
+                height: "18px",
+                cursor: "pointer",
+                accentColor: "var(--primary-600)"
+              }}
+            />
             <h3 className="title" style={{ marginBottom: 0, fontFamily: "var(--font-body)" }}>
               {result.name}
             </h3>
@@ -101,6 +125,42 @@ export default function ResultCard({ result }: Props) {
                 <Mail size={16} strokeWidth={2} />
               </a>
             )}
+            <button
+              type="button"
+              onClick={handleCopyUid}
+              aria-label={copied ? "Copied!" : "Copy UID"}
+              className="tooltip-btn"
+              data-tooltip={copied ? "Copied!" : "Copy UID"}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "28px",
+                height: "28px",
+                borderRadius: "var(--radius-sm)",
+                color: copied ? "var(--green-600)" : "var(--gray-600)",
+                background: "transparent",
+                border: "none",
+                transition: "all 0.2s",
+                cursor: "pointer",
+                padding: 0,
+                position: "relative"
+              }}
+              onMouseEnter={(e) => {
+                if (!copied) {
+                  e.currentTarget.style.background = "var(--gray-100)";
+                  e.currentTarget.style.color = "var(--gray-900)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!copied) {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--gray-600)";
+                }
+              }}
+            >
+              {copied ? <Check size={16} strokeWidth={2} /> : <Copy size={16} strokeWidth={2} />}
+            </button>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -199,6 +259,46 @@ export default function ResultCard({ result }: Props) {
               {result.desired_role}
             </span>
           )}
+        </div>
+
+        <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-2)", flexWrap: "wrap" }}>
+          <button
+            onClick={() => navigate(`/rag/explain-match?uid=${result.uid}`)}
+            className="btn"
+            style={{
+              background: "var(--accent1-600)",
+              color: "white",
+              border: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--space-1)",
+              padding: "6px 12px",
+              fontSize: "13px",
+              fontWeight: 600
+            }}
+          >
+            <Sparkles size={14} />
+            Explain Match
+          </button>
+
+          <button
+            onClick={() => navigate(`/rag/interview?uid=${result.uid}`)}
+            className="btn"
+            style={{
+              background: "var(--accent2-600)",
+              color: "white",
+              border: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--space-1)",
+              padding: "6px 12px",
+              fontSize: "13px",
+              fontWeight: 600
+            }}
+          >
+            <MessageCircle size={14} />
+            Interview
+          </button>
         </div>
       </div>
 

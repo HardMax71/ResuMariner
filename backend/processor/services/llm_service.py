@@ -1,11 +1,12 @@
 import logging
 import time
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Literal
 
 from django.conf import settings
 from pydantic_ai import Agent
 from pydantic_ai.messages import BinaryContent, ImageUrl
+from pydantic_ai.run import AgentRunResult
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.usage import UsageLimits
 
@@ -16,11 +17,11 @@ logger = logging.getLogger(__name__)
 LLMMode = Literal["text", "ocr"]
 
 
-class LLMService:
+class LLMService[OutputT]:
     def __init__(
         self,
         system_prompt: str,
-        output_type: type,
+        output_type: type[OutputT],
         mode: LLMMode = "text",
     ):
         self.mode = mode
@@ -42,7 +43,9 @@ class LLMService:
 
         return f"{provider}:{model_name}"
 
-    async def run(self, prompt: str | Sequence[str | ImageUrl | BinaryContent], temperature: float = 0.1) -> Any:
+    async def run(
+        self, prompt: str | Sequence[str | ImageUrl | BinaryContent], temperature: float = 0.1
+    ) -> AgentRunResult[OutputT]:
         model_settings = ModelSettings(
             temperature=temperature,
             parallel_tool_calls=False,
@@ -61,7 +64,7 @@ class LLMService:
             LLM_API_CALLS.labels(mode=self.mode, status="success").inc()
             LLM_API_DURATION.labels(mode=self.mode).observe(time.time() - start_time)
 
-            return result.output
+            return result
         except Exception as e:
             logger.error("LLM API call failed (%s mode): %s", self.mode, e)
             LLM_API_CALLS.labels(mode=self.mode, status="error").inc()

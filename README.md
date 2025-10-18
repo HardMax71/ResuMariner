@@ -39,6 +39,10 @@ The processor app handles uploads and LLM parsing. CVs get queued in Redis, proc
 
 Traefik is the reverse proxy. Redis handles queuing, caching, and worker coordination. Workers run Django Q for async processing.
 
+<p align="center">
+  <img src="http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/HardMax71/ResuMariner/main/frontend/public/diagrams/infrastructure.puml" alt="System Architecture" />
+</p>
+
 ## Getting started
 
 You need Docker, Docker Compose, and at least 4GB of RAM. Grab an API key from OpenAI, Gemini, or whatever LLM provider you prefer - just one is enough. 

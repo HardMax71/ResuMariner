@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "core",
     "processor",
     "search",
+    "rag",
 ]
 
 MIDDLEWARE = [
@@ -147,6 +148,7 @@ REST_FRAMEWORK = {
         "anon": "1000/hour",
         "upload": "10/hour",
         "search": "100/hour",
+        "rag": "100/hour",
     },
 }
 
@@ -250,6 +252,30 @@ if OCR_LLM_PROVIDER != TEXT_LLM_PROVIDER and OCR_LLM_API_KEY:
     if OCR_LLM_BASE_URL:
         os.environ[f"{OCR_LLM_PROVIDER.upper()}_BASE_URL"] = OCR_LLM_BASE_URL
 
+
+# =============================================================================
+# DJANGO CACHE (for RAG caching)
+# =============================================================================
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/2",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "KEY_PREFIX": "resumariner",
+        "TIMEOUT": 3600,
+    }
+}
+
+# =============================================================================
+# RAG CONFIGURATION
+# =============================================================================
+
+RAG_CACHE_EXPLAIN_MATCH_TTL = int(os.getenv("RAG_CACHE_EXPLAIN_MATCH_TTL", "86400"))
+RAG_CACHE_COMPARE_TTL = int(os.getenv("RAG_CACHE_COMPARE_TTL", "3600"))
+RAG_CACHE_INTERVIEW_TTL = int(os.getenv("RAG_CACHE_INTERVIEW_TTL", "604800"))
 
 # =============================================================================
 # SEARCH

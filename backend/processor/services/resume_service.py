@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from django.core.cache import cache
 from rest_framework.exceptions import ValidationError
 
 from core.services.graph_db_service import GraphDBService
@@ -73,8 +74,6 @@ class ResumeService:
     async def delete_resume(self, uid: str) -> None:
         """Delete resume and all associated data.
 
-        Orchestrates: graph DB deletion, vector DB deletion, file cleanup, and job deletion.
-
         Args:
             uid: Resume/job unique identifier
         """
@@ -98,3 +97,10 @@ class ResumeService:
 
         await self.job_service.delete_job(uid)
         logger.info("Deleted job %s from Redis", uid)
+
+        try:
+            deleted = cache.delete_pattern(f"*:rag:*:uids:*{uid}*")  # type: ignore[attr-defined]
+            if deleted > 0:
+                logger.info("Invalidated %d cache entries for resume %s", deleted, uid)
+        except Exception as e:
+            logger.warning("Failed to invalidate cache for resume %s: %s", uid, e)

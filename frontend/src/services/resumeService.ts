@@ -26,10 +26,6 @@ export async function getResumeStatus(uid: string): Promise<ResumeStatusResult> 
   return apiGet<ResumeStatusResult>(`/api/v1/resumes/${uid}/`);
 }
 
-export async function searchResumes(filters: SearchFilters): Promise<SearchResult[]> {
-  return apiPost<SearchResult[]>('/api/v1/resumes/search', filters);
-}
-
 export interface SearchResponse {
   results: SearchResult[];
   search_type: string;
@@ -58,17 +54,17 @@ export interface HybridSearchParams {
 }
 
 export async function searchSemantic(params: SemanticSearchParams): Promise<SearchResponse> {
-  return apiPost<SearchResponse>('/search/semantic/', params);
+  return apiPost<SearchResponse>('/api/v1/search/semantic/', params);
 }
 
 export async function searchStructured(params: StructuredSearchParams): Promise<SearchResponse> {
-  return apiPost<SearchResponse>('/search/structured/', params);
+  return apiPost<SearchResponse>('/api/v1/search/structured/', params);
 }
 
 export async function searchHybrid(params: HybridSearchParams): Promise<SearchResponse> {
-  return apiPost<SearchResponse>('/search/hybrid/', params);
+  return apiPost<SearchResponse>('/api/v1/search/hybrid/', params);
 }
 
 export async function getFilterOptions(): Promise<FilterOptions> {
-  return apiGet<FilterOptions>('/filters/');
+  return apiGet<FilterOptions>('/api/v1/filters/');
 }

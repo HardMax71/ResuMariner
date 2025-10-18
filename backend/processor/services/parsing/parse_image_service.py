@@ -45,10 +45,10 @@ class ParseImageService(BaseExtractionService):
         try:
             image_content = self._load_image()
             # NIT: We also get confidence from OCRExtractedPage; maybe use this field too?
-            ocr_page: OCRExtractedPage = await self.llm_service.run(
+            ocr_result = await self.llm_service.run(
                 ["Extract all text from this image. Include any URLs you find.", image_content]
             )
-            result.pages.append(ocr_page.page)
+            result.pages.append(ocr_result.output.page)
         except Exception as e:
             logger.error("Vision extraction failed for %s: %s", self.image_path, e)
 

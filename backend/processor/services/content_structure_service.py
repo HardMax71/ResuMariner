@@ -148,7 +148,7 @@ Resume Text (PROCESS VERBATIM):
             prompt = self._prepare_prompt(full_text, links)
             result = await self.llm_service.run(prompt)
             logging.info("Successfully structured resume content")
-            return result  # type: ignore[no-any-return]
+            return result.output
 
         except Exception as e:
             logging.error(f"Content structuring failed: {str(e)}")
@@ -172,4 +172,4 @@ Resume Text (PROCESS VERBATIM):
         ) + self._prepare_prompt(text, links)
 
         result = await retry_service.run(enhanced_prompt, temperature=0.1)
-        return result  # type: ignore[no-any-return]
+        return result.output

@@ -1,5 +1,4 @@
 uploads/
 .idea/
 .venv/
-*.md
 __pycache__/

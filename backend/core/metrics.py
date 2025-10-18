@@ -50,6 +50,37 @@ QDRANT_CORRUPTED_POINTS = Counter(
     ["corruption_type"],
 )
 
+RAG_GENERATION_COUNT = Counter(
+    "rag_generation_total",
+    "Total RAG generations",
+    ["feature", "status"],
+)
+
+RAG_GENERATION_DURATION = Histogram(
+    "rag_generation_duration_seconds",
+    "RAG generation duration",
+    ["feature"],
+    buckets=[0.5, 1.0, 2.0, 5.0, 10.0, 30.0],
+)
+
+RAG_CACHE_HIT_COUNT = Counter(
+    "rag_cache_hit_total",
+    "RAG cache hits",
+    ["feature"],
+)
+
+RAG_CACHE_MISS_COUNT = Counter(
+    "rag_cache_miss_total",
+    "RAG cache misses",
+    ["feature"],
+)
+
+RAG_TOKEN_USAGE = Counter(
+    "rag_token_usage_total",
+    "Total tokens used by RAG features",
+    ["feature", "token_type"],
+)
+
 
 def update_queue_metrics(stats: dict) -> None:
     """Update Redis queue metrics from stats dictionary."""
