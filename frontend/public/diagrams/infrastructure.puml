@@ -1,0 +1,96 @@
+@startuml
+skinparam componentStyle rectangle
+
+skinparam package {
+  BackgroundColor<<external>> #fef3c7
+  BorderColor<<external>> #f59e0b
+  BackgroundColor<<proxy>> #fce7f3
+  BorderColor<<proxy>> #ec4899
+  BackgroundColor<<frontend>> #dbeafe
+  BorderColor<<frontend>> #3b82f6
+  BackgroundColor<<backend>> #bfdbfe
+  BorderColor<<backend>> #3b82f6
+  BackgroundColor<<data>> #d1fae5
+  BorderColor<<data>> #10b981
+  BackgroundColor<<monitoring>> #fed7aa
+  BorderColor<<monitoring>> #f59e0b
+}
+
+actor User
+cloud "External APIs" {
+    component [LLM API] as LLM
+    component [Embeddings API] as Embeddings
+}
+
+package "App" {
+  package "Reverse Proxy" <<proxy>> {
+    component [Traefik\n:80, :8000, :8081] as Traefik
+  }
+
+  package "Frontend" <<frontend>> {
+    component [React/Vite SPA\n:5173] as FrontendApp
+  }
+
+  together {
+    package "Backend" <<backend>> {
+      component [Django API\nUvicorn :8000] as BackendAPI
+      component [Processing\nWorker] as ProcessingWorker
+      component [Cleanup\nWorker] as CleanupWorker
+    }
+  }
+
+  together {
+    package "Data Layer" <<data>> {
+      database [Neo4j\n:7474/:7687] as Neo4j
+      database [Qdrant\n:6333] as Qdrant
+      database [Redis\n:6379] as Redis
+      storage [File Storage\nuploads/] as Storage
+    }
+  }
+
+  package "Monitoring" <<monitoring>> {
+    component [Prometheus\n:9090] as Prometheus
+    component [Grafana\n:3000] as Grafana
+    component [Redis Exporter\n:9121] as RedisExporter
+    component [Neo4j Exporter\n:5000] as Neo4jExporter
+  }
+}
+
+User -down-> Traefik : HTTP :80
+
+Traefik -down-> FrontendApp : app.localhost
+Traefik -down-> BackendAPI : localhost:8000\napi.localhost
+Traefik -down-> Grafana : grafana.localhost:8081
+
+FrontendApp -down-> BackendAPI : REST API
+
+' Backend API connections
+BackendAPI -down-> Neo4j : Cypher
+BackendAPI -down-> Qdrant : Vectors
+BackendAPI -down-> Redis : Queue/Cache
+BackendAPI -down-> Storage : Files
+BackendAPI -up-> LLM : Parse
+BackendAPI -up-> Embeddings : Encode
+
+' Processing Worker connections (avoid BackendAPI arrows)
+ProcessingWorker -[hidden]right- BackendAPI
+ProcessingWorker --> Redis : Dequeue
+ProcessingWorker --> Neo4j : Store
+ProcessingWorker --> Qdrant : Store
+ProcessingWorker -up-> LLM : Parse
+ProcessingWorker -up-> Embeddings : Encode
+
+' Cleanup Worker connections
+CleanupWorker -[hidden]right- ProcessingWorker
+CleanupWorker --> Redis : Jobs
+CleanupWorker --> Storage : Delete
+
+' Monitoring connections
+RedisExporter --> Redis : Scrape
+Neo4jExporter --> Neo4j : Scrape
+Prometheus -down-> RedisExporter : Metrics
+Prometheus -down-> Neo4jExporter : Metrics
+Prometheus -down-> BackendAPI : /metrics
+Grafana -down-> Prometheus : Query
+
+@enduml

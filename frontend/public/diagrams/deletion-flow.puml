@@ -1,0 +1,45 @@
+@startuml
+participant User
+participant "Django API" as API
+participant Neo4j
+participant Qdrant
+participant "File Storage" as Storage
+participant Redis
+participant "Cache" as Cache
+
+User -> API: DELETE /api/v1/resumes/{uid}
+
+API -> Neo4j: DETACH DELETE ResumeNode
+note right
+  Cascading delete:
+  - PersonalInfo
+  - Contact
+  - Employment
+  - Education
+  - Projects
+  - All relationships
+end note
+Neo4j --> API: Deleted
+
+API -> Qdrant: Delete vectors (FilterSelector)
+Qdrant --> API: Count of deleted vectors
+
+API -> Storage: Remove PDF files
+note right
+  Local: uploads/{uid}.pdf
+  S3: List & batch delete
+  objects with uid prefix
+end note
+Storage --> API: Files removed
+
+API -> Redis: Delete job record
+Redis --> API: Deleted
+
+API -> Cache: Invalidate pattern
+note right
+  Pattern: *:rag:*:uids:*{uid}*
+end note
+Cache --> API: Cache invalidated
+
+API --> User: 204 No Content
+@enduml

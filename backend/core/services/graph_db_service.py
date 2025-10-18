@@ -79,13 +79,13 @@ class GraphDBService:
             logger.error("Failed to delete resume %s: %s", uid, e)
             return False
 
-    async def get_resume_by_email(self, email: str) -> Resume | None:
-        """Find resume by email address."""
+    async def get_resume_uid_by_email(self, email: str) -> str | None:
+        """Find resume uid by email address."""
         async with adb.read_transaction:
             query = """
             MATCH (r:ResumeNode)-[:HAS_PERSONAL_INFO]->(pi:PersonalInfoNode)-[:HAS_CONTACT]->(c:ContactNode)
             WHERE c.email = $email
-            RETURN r
+            RETURN r.uid
             LIMIT 1
             """
             results, _ = await adb.cypher_query(query, {"email": email.lower()})
@@ -93,8 +93,7 @@ class GraphDBService:
             if not results:
                 return None
 
-            resume_node = results[0][0]
-            return await self.converter.to_pydantic(resume_node)  # type: ignore[return-value]
+            return str(results[0][0])
 
     async def delete_resume_cascade(self, resume_node: ResumeNode) -> None:
         query = """

@@ -181,16 +181,18 @@ export default function Search() {
 
                 {tab === "semantic" && (
                   <>
-                    <div>
+                    <div className="min-score-slider-wrapper">
                       <label className="label small">Min Score</label>
                       <div style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "8px",
-                        padding: "var(--space-1) var(--space-2)",
-                        background: "var(--white)",
+                        gap: "clamp(6px, 2vw, 10px)",
+                        padding: "var(--space-2)",
+                        background: "var(--gray-50)",
                         borderRadius: "var(--radius-sm)",
-                        border: "1px solid var(--gray-300)"
+                        border: "1px solid var(--neutral-300)",
+                        maxWidth: "100%",
+                        boxSizing: "border-box"
                       }}>
                         <input
                           type="range"
@@ -201,22 +203,24 @@ export default function Search() {
                           onChange={(e) => setMinScore(Number(e.target.value))}
                           style={{
                             flex: 1,
-                            height: "4px",
-                            background: `linear-gradient(to right, var(--blue-500) 0%, var(--blue-500) ${minScore * 100}%, var(--gray-300) ${minScore * 100}%, var(--gray-300) 100%)`,
+                            minWidth: 0,
+                            height: "6px",
+                            background: `linear-gradient(to right, var(--primary-600) 0%, var(--primary-600) ${minScore * 100}%, var(--neutral-300) ${minScore * 100}%, var(--neutral-300) 100%)`,
                             outline: "none",
                             WebkitAppearance: "none",
                             appearance: "none",
                             cursor: "pointer",
-                            borderRadius: "2px"
+                            borderRadius: "var(--radius-sm)"
                           }}
                           className="custom-slider"
                         />
                         <span style={{
-                          fontSize: "var(--text-sm)",
-                          fontWeight: 500,
-                          color: "var(--gray-600)",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          color: "var(--neutral-700)",
                           minWidth: "40px",
-                          textAlign: "right"
+                          textAlign: "right",
+                          flexShrink: 0
                         }}>
                           {Math.round(minScore * 100)}%
                         </span>

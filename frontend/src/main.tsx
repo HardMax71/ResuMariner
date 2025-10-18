@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { SelectionProvider } from "./contexts/SelectionContext";
 import "./styles.css";
 
 // Create React Query client
@@ -33,7 +34,9 @@ createRoot(rootEl).render(
     <ErrorBoundary onError={handleError}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <App />
+          <SelectionProvider>
+            <App />
+          </SelectionProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>

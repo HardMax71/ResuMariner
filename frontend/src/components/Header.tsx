@@ -1,9 +1,12 @@
-import { Link, NavLink } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { Upload, Search as SearchIcon, Activity, Github } from "lucide-react";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Upload, Search as SearchIcon, FileSearch, Sparkles, Users, MessageCircle, ChevronDown } from "lucide-react";
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
+  const [ragDropdownOpen, setRagDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -14,11 +17,29 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navItems = [
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setRagDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const mainNavItems = [
     { path: "/upload", label: "Upload", icon: Upload },
     { path: "/search", label: "Search", icon: SearchIcon },
-    { path: "/health", label: "Health", icon: Activity },
   ];
+
+  const ragItems = [
+    { path: "/rag/explain-match", label: "Match", icon: Sparkles },
+    { path: "/rag/compare", label: "Compare", icon: Users },
+    { path: "/rag/interview", label: "Interview", icon: MessageCircle },
+  ];
+
+  const isRagActive = location.pathname.startsWith("/rag");
 
   return (
     <>
@@ -86,16 +107,60 @@ export default function Header() {
               display: "none",
               gap: "4px",
               alignItems: "center",
+              flex: 1,
+              marginLeft: "clamp(24px, 5vw, 64px)",
             }}
             className="desktop-nav"
           >
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  style={({ isActive }) => ({
+            {/* Left: Main actions */}
+            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+              {mainNavItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    style={({ isActive }) => ({
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "8px 14px",
+                      fontFamily: "var(--font-body)",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: "#ffffff",
+                      background: isActive
+                        ? "rgba(129, 140, 248, 0.15)"
+                        : "transparent",
+                      border: "1px solid transparent",
+                      borderRadius: "2px",
+                      textDecoration: "none",
+                      transition: "all 0.2s",
+                    })}
+                    onMouseEnter={(e) => {
+                      const isActive = e.currentTarget.getAttribute('aria-current') === 'page';
+                      if (!isActive) {
+                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      const isActive = e.currentTarget.getAttribute('aria-current') === 'page';
+                      if (!isActive) {
+                        e.currentTarget.style.background = "transparent";
+                      }
+                    }}
+                  >
+                    <Icon size={16} />
+                    {item.label}
+                  </NavLink>
+                );
+              })}
+
+              {/* RAG Dropdown */}
+              <div ref={dropdownRef} style={{ position: "relative" }}>
+                <button
+                  onClick={() => setRagDropdownOpen(!ragDropdownOpen)}
+                  style={{
                     display: "flex",
                     alignItems: "center",
                     gap: "6px",
@@ -104,65 +169,91 @@ export default function Header() {
                     fontSize: "14px",
                     fontWeight: 600,
                     color: "#ffffff",
-                    background: isActive
-                      ? "rgba(129, 140, 248, 0.15)"
-                      : "transparent",
+                    background: isRagActive ? "rgba(129, 140, 248, 0.15)" : "transparent",
                     border: "1px solid transparent",
                     borderRadius: "2px",
-                    textDecoration: "none",
+                    cursor: "pointer",
                     transition: "all 0.2s",
-                  })}
+                  }}
                   onMouseEnter={(e) => {
-                    const isActive = e.currentTarget.getAttribute('aria-current') === 'page';
-                    if (!isActive) {
+                    if (!isRagActive) {
                       e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
                     }
                   }}
                   onMouseLeave={(e) => {
-                    const isActive = e.currentTarget.getAttribute('aria-current') === 'page';
-                    if (!isActive) {
+                    if (!isRagActive) {
                       e.currentTarget.style.background = "transparent";
                     }
                   }}
                 >
-                  <Icon size={16} />
-                  {item.label}
-                </NavLink>
-              );
-            })}
+                  <FileSearch size={16} />
+                  RAG
+                  <ChevronDown size={14} style={{
+                    transform: ragDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.2s"
+                  }} />
+                </button>
 
-            {/* GitHub Link */}
-            <a
-              href="https://github.com/HardMax71/ResuMariner"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "8px",
-                marginLeft: "8px",
-                fontFamily: "var(--font-body)",
-                fontSize: "14px",
-                fontWeight: 600,
-                color: "#ffffff",
-                background: "transparent",
-                border: "1px solid rgba(255, 255, 255, 0.15)",
-                borderRadius: "2px",
-                textDecoration: "none",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.25)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.15)";
-              }}
-            >
-              <Github size={18} />
-            </a>
+                {ragDropdownOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      left: 0,
+                      minWidth: "180px",
+                      background: "rgba(12, 10, 9, 0.98)",
+                      backdropFilter: "blur(16px)",
+                      WebkitBackdropFilter: "blur(16px)",
+                      border: "1px solid rgba(129, 140, 248, 0.15)",
+                      borderRadius: "4px",
+                      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+                      padding: "8px",
+                      zIndex: 1001,
+                    }}
+                  >
+                    {ragItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = location.pathname === item.path;
+                      return (
+                        <NavLink
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setRagDropdownOpen(false)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "10px 12px",
+                            fontFamily: "var(--font-body)",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                            color: "#ffffff",
+                            background: isActive ? "rgba(129, 140, 248, 0.15)" : "transparent",
+                            borderRadius: "2px",
+                            textDecoration: "none",
+                            transition: "all 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isActive) {
+                              e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isActive) {
+                              e.currentTarget.style.background = "transparent";
+                            }
+                          }}
+                        >
+                          <Icon size={16} />
+                          {item.label}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
           </nav>
         </div>
       </header>
@@ -181,18 +272,21 @@ export default function Header() {
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
           borderTop: "1px solid rgba(68, 64, 60, 0.3)",
-          padding: "12px 0",
+          padding: "8px",
         }}
       >
         <div
+          className="mobile-nav-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(3, 1fr)",
-            maxWidth: "500px",
+            maxWidth: "100%",
             margin: "0 auto",
+            gap: "8px",
+            padding: "0 4px",
           }}
         >
-          {navItems.map((item) => {
+          {mainNavItems.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
@@ -202,17 +296,42 @@ export default function Header() {
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  gap: "4px",
-                  padding: "8px",
+                  gap: "2px",
+                  padding: "6px 4px",
                   fontFamily: "var(--font-body)",
-                  fontSize: "12px",
+                  fontSize: "11px",
                   fontWeight: 600,
                   color: isActive ? "#818cf8" : "#a8a29e",
                   textDecoration: "none",
                   transition: "all 0.2s",
                 })}
               >
-                <Icon size={20} />
+                <Icon size={18} />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+          {ragItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                style={({ isActive }) => ({
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "2px",
+                  padding: "6px 4px",
+                  fontFamily: "var(--font-body)",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: isActive ? "#818cf8" : "#a8a29e",
+                  textDecoration: "none",
+                  transition: "all 0.2s",
+                })}
+              >
+                <Icon size={18} />
                 <span>{item.label}</span>
               </NavLink>
             );
@@ -230,6 +349,19 @@ export default function Header() {
         @media (max-width: 767px) {
           .mobile-nav-bottom {
             display: block !important;
+          }
+        }
+
+        /* Mobile grid adaptive layout - 5 items total */
+        @media (max-width: 767px) and (min-width: 500px) {
+          .mobile-nav-grid {
+            grid-template-columns: repeat(5, 1fr) !important;
+          }
+        }
+
+        @media (max-width: 499px) {
+          .mobile-nav-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
           }
         }
       `}</style>

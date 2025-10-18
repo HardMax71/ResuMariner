@@ -9,6 +9,7 @@ from core.database import create_graph_service, create_vector_service
 from core.metrics import REQUEST_COUNT, REQUEST_DURATION
 from processor.services.job_service import JobService
 from processor.services.resume_service import ResumeService
+from rag.services.rag_service import RAGService
 from search.services.search_coordinator import SearchCoordinator
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,7 @@ class DatabaseServicesMiddleware:
     _vector_db = None
     _job_service = None
     _resume_service = None
+    _rag_service = None
 
     def __init__(self, get_response: Callable[[HttpRequest], Awaitable[HttpResponse]]):
         self.get_response = get_response
@@ -65,24 +67,25 @@ class DatabaseServicesMiddleware:
         if DatabaseServicesMiddleware._job_service is None:
             async with DatabaseServicesMiddleware._initialization_lock:
                 if DatabaseServicesMiddleware._job_service is None:
-                    # Create all services
                     graph_db = create_graph_service()
                     vector_db = create_vector_service()
                     await JobService.initialize()
                     job_service = JobService()
                     resume_service = ResumeService(job_service, graph_db, vector_db)
+                    rag_service = RAGService(graph_db, vector_db)
 
-                    # Atomic assignment - all or nothing
                     DatabaseServicesMiddleware._graph_db = graph_db
                     DatabaseServicesMiddleware._vector_db = vector_db
                     DatabaseServicesMiddleware._job_service = job_service
                     DatabaseServicesMiddleware._resume_service = resume_service
+                    DatabaseServicesMiddleware._rag_service = rag_service
                     logger.info("Database services initialized")
 
         request.graph_db = DatabaseServicesMiddleware._graph_db  # type: ignore[attr-defined]
         request.vector_db = DatabaseServicesMiddleware._vector_db  # type: ignore[attr-defined]
         request.job_service = DatabaseServicesMiddleware._job_service  # type: ignore[attr-defined]
         request.resume_service = DatabaseServicesMiddleware._resume_service  # type: ignore[attr-defined]
+        request.rag_service = DatabaseServicesMiddleware._rag_service  # type: ignore[attr-defined]
 
         response = await self.get_response(request)
         return response

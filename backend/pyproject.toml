@@ -22,6 +22,7 @@ dependencies = [
     "pydantic-neomodel-dict==0.4.2",
     "qdrant-client==1.15.1",
     "redis==6.4.0",
+    "django-redis==5.4.0",
     "pydantic==2.11.9",
     "pdfplumber==0.11.4",
     "pypdf==5.0.0",

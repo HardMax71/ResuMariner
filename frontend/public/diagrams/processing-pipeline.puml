@@ -1,0 +1,36 @@
+@startuml
+participant User
+participant "Django API" as API
+participant Redis
+participant PyMuPDF
+participant "LLM API" as LLM
+participant "Embeddings API" as Embeddings
+participant Neo4j
+participant Qdrant
+participant "File Storage" as Storage
+
+User -> API: Upload PDF
+API -> Storage: Save to uploads/
+API -> PyMuPDF: Extract text
+PyMuPDF --> API: Raw text
+API -> API: Extract email
+API -> Neo4j: Check duplicate email
+Neo4j --> API: Email exists?
+
+alt Email exists
+    API --> User: 400 Error: Duplicate
+else New resume
+    API -> Redis: Create job (pending)
+    API --> User: 202 Accepted + uid
+    Redis -> LLM: Parse text to structured data
+    LLM --> Redis: Resume object
+    Redis -> Neo4j: Store nodes + relationships
+    Neo4j --> Redis: Success
+    Redis -> API: Chunk resume text
+    API -> Embeddings: Generate vectors
+    Embeddings --> API: 768-dim embeddings
+    API -> Qdrant: Store vectors + metadata
+    Qdrant --> API: Success
+    API -> Redis: Update status: completed
+end
+@enduml
