@@ -4,18 +4,44 @@
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
+  "graphTooltip": 1,
   "id": null,
   "links": [],
   "panels": [
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}},
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "vertical", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "name"},
+      "targets": [{"expr": "app_info", "legendFormat": "{{name}} v{{version}}", "refId": "A"}],
+      "title": "Qdrant Info",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "gray", "value": 0}, {"color": "green", "value": 1}]}, "mappings": [{"type": "value", "options": {"0": {"text": "Disabled"}}, "from": 0, "to": 0}, {"type": "value", "options": {"1": {"text": "Enabled"}}, "from": 1, "to": 1}]},
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "id": 2,
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value"},
+      "targets": [{"expr": "cluster_enabled", "refId": "A"}],
+      "title": "Cluster Mode",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
         "defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}},
         "overrides": []
       },
-      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0},
-      "id": 1,
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "id": 3,
       "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}},
       "targets": [{"expr": "collections_total", "refId": "A"}],
       "title": "Total Collections",
@@ -24,14 +50,59 @@
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}, "unit": "short"},
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "id": 4,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "(sum(qdrant_corrupted_points_total)) or vector(0)", "refId": "A"}],
+      "title": "Total Corrupted Points",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"},
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 12, "x": 0, "y": 4},
+      "id": 5,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}},
+      "targets": [{"expr": "collections_vector_total", "refId": "A"}],
+      "title": "Total Vectors",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 1}]}, "mappings": [{"type": "value", "options": {"0": {"text": "Normal"}}, "from": 0, "to": 0}, {"type": "value", "options": {"1": {"text": "Recovery"}}, "from": 1, "to": 1}]},
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 12, "x": 12, "y": 4},
+      "id": 6,
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value"},
+      "targets": [{"expr": "app_status_recovery_mode", "refId": "A"}],
+      "title": "Recovery Mode Status",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
         "defaults": {"color": {"mode": "palette-classic"}, "unit": "bytes"},
         "overrides": []
       },
-      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0},
-      "id": 2,
-      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
-      "targets": [{"expr": "memory_active_bytes", "legendFormat": "Active Memory", "refId": "A"}],
-      "title": "Memory Usage",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 7,
+      "options": {"legend": {"calcs": ["last", "mean"], "displayMode": "table", "placement": "right"}},
+      "targets": [
+        {"expr": "memory_active_bytes", "legendFormat": "Active", "refId": "A"},
+        {"expr": "memory_allocated_bytes", "legendFormat": "Allocated", "refId": "B"},
+        {"expr": "memory_resident_bytes", "legendFormat": "Resident", "refId": "C"},
+        {"expr": "memory_metadata_bytes", "legendFormat": "Metadata", "refId": "D"},
+        {"expr": "memory_retained_bytes", "legendFormat": "Retained", "refId": "E"}
+      ],
+      "title": "Memory Breakdown",
       "type": "timeseries"
     },
     {
@@ -40,11 +111,41 @@
         "defaults": {"color": {"mode": "palette-classic"}, "unit": "reqps"},
         "overrides": []
       },
-      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0},
-      "id": 3,
-      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
-      "targets": [{"expr": "rate(rest_responses_total[5m])", "legendFormat": "{{method}} {{status}}", "refId": "A"}],
-      "title": "REST API Responses",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 8,
+      "options": {"legend": {"calcs": ["last", "mean"], "displayMode": "table", "placement": "right"}},
+      "targets": [{"expr": "rate(rest_responses_total[5m])", "legendFormat": "{{method}} {{endpoint}} [{{status}}]", "refId": "A"}],
+      "title": "REST API Request Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "unit": "s"},
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "id": 9,
+      "options": {"legend": {"calcs": ["last", "mean", "max"], "displayMode": "table", "placement": "right"}},
+      "targets": [
+        {"expr": "histogram_quantile(0.99, rate(rest_responses_duration_seconds_bucket[5m]))", "legendFormat": "p99", "refId": "A"},
+        {"expr": "histogram_quantile(0.95, rate(rest_responses_duration_seconds_bucket[5m]))", "legendFormat": "p95", "refId": "B"},
+        {"expr": "histogram_quantile(0.50, rate(rest_responses_duration_seconds_bucket[5m]))", "legendFormat": "p50", "refId": "C"}
+      ],
+      "title": "REST Response Latency (p50/p95/p99)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "unit": "reqps"},
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "id": 10,
+      "options": {"legend": {"calcs": ["last", "sum"], "displayMode": "table", "placement": "right"}},
+      "targets": [{"expr": "(rate(rest_responses_fail_total[5m])) or vector(0)", "legendFormat": "{{method}} {{endpoint}} [{{status}}]", "refId": "A"}],
+      "title": "REST API Failure Rate",
       "type": "timeseries"
     },
     {
@@ -53,36 +154,10 @@
         "defaults": {"color": {"mode": "palette-classic"}, "unit": "short"},
         "overrides": []
       },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
-      "id": 4,
-      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom"}},
-      "targets": [{"expr": "app_info", "legendFormat": "{{version}}", "refId": "A"}],
-      "title": "Qdrant Info",
-      "type": "table"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {
-        "defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}]}},
-        "overrides": []
-      },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
-      "id": 5,
-      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}},
-      "targets": [{"expr": "cluster_peers_total", "refId": "A"}],
-      "title": "Cluster Peers",
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {
-        "defaults": {"color": {"mode": "palette-classic"}, "unit": "short"},
-        "overrides": []
-      },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
-      "id": 6,
-      "options": {"legend": {"calcs": ["last", "sum"], "displayMode": "table", "placement": "bottom"}},
-      "targets": [{"expr": "rate(qdrant_corrupted_points_total[5m])", "legendFormat": "{{corruption_type}}", "refId": "A"}],
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
+      "id": 11,
+      "options": {"legend": {"calcs": ["last", "sum"], "displayMode": "table", "placement": "right"}},
+      "targets": [{"expr": "(rate(qdrant_corrupted_points_total[5m])) or vector(0)", "legendFormat": "{{corruption_type}}", "refId": "A"}],
       "title": "Data Corruption Rate (points/sec)",
       "type": "timeseries",
       "alert": {
@@ -102,19 +177,6 @@
         "noDataState": "no_data",
         "notifications": []
       }
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {
-        "defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}, "unit": "short"},
-        "overrides": []
-      },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
-      "id": 7,
-      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
-      "targets": [{"expr": "sum(qdrant_corrupted_points_total)", "refId": "A"}],
-      "title": "Total Corrupted Points (Lifetime)",
-      "type": "stat"
     }
   ],
   "schemaVersion": 39,

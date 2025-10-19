@@ -62,7 +62,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(rag_cache_hit_total[5m])) / (sum(rate(rag_cache_hit_total[5m])) + sum(rate(rag_cache_miss_total[5m])))",
+          "expr": "(sum(rate(rag_cache_hit_total[5m])) / (sum(rate(rag_cache_hit_total[5m])) + sum(rate(rag_cache_miss_total[5m])))) or vector(0)",
           "legendFormat": "Cache Hit Rate",
           "refId": "A"
         }
@@ -90,7 +90,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(rag_generation_total{status=\"error\"}[5m])) / sum(rate(rag_generation_total[5m]))",
+          "expr": "(sum(rate(rag_generation_total{status=\"error\"}[5m])) / sum(rate(rag_generation_total[5m]))) or vector(0)",
           "legendFormat": "Error Rate",
           "refId": "A"
         }
@@ -130,7 +130,7 @@
       "options": {"legend": {"calcs": ["last", "mean"], "displayMode": "table", "placement": "right"}},
       "targets": [
         {
-          "expr": "rate(rag_cache_hit_total[5m]) / (rate(rag_cache_hit_total[5m]) + rate(rag_cache_miss_total[5m]))",
+          "expr": "(rate(rag_cache_hit_total[5m]) / (rate(rag_cache_hit_total[5m]) + rate(rag_cache_miss_total[5m]))) or vector(0)",
           "legendFormat": "{{feature}}",
           "refId": "A"
         }
@@ -324,7 +324,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rag_cache_hit_total) / (sum(rag_cache_hit_total) + sum(rag_cache_miss_total))",
+          "expr": "(sum(rag_cache_hit_total) / (sum(rag_cache_hit_total) + sum(rag_cache_miss_total))) or vector(0)",
           "legendFormat": "Lifetime Cache Hit Rate",
           "refId": "A"
         }
