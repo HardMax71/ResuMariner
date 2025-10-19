@@ -1,7 +1,6 @@
 import hashlib
 import json
 import logging
-import time
 
 from django.conf import settings
 from django.core.cache import cache
@@ -17,8 +16,6 @@ from core.domain.rag import (
 from core.metrics import (
     RAG_CACHE_HIT_COUNT,
     RAG_CACHE_MISS_COUNT,
-    RAG_GENERATION_COUNT,
-    RAG_GENERATION_DURATION,
     RAG_TOKEN_USAGE,
 )
 from core.services.graph_db_service import GraphDBService
@@ -34,7 +31,6 @@ class RAGService:
         self.vector_db = vector_db
 
     async def explain_match(self, resume_uid: str, job_description: str) -> JobMatchExplanation:
-        start_time = time.time()
         feature = "explain_match"
 
         cache_key = self._make_cache_key(feature, uid=resume_uid, job_desc=job_description)
@@ -59,13 +55,9 @@ class RAGService:
         result = await llm.run(context, temperature=0.3)
         self._track_usage(feature, result.usage())
 
-        duration = time.time() - start_time
-        RAG_GENERATION_COUNT.labels(feature=feature, status="success").inc()
-        RAG_GENERATION_DURATION.labels(feature=feature).observe(duration)
-
         cache.set(cache_key, result.output.model_dump(), timeout=settings.RAG_CACHE_EXPLAIN_MATCH_TTL)
 
-        logger.info("Generated match explanation for resume %s in %.2fs", resume_uid, duration)
+        logger.info("Generated match explanation for resume %s", resume_uid)
 
         return result.output
 
@@ -77,7 +69,6 @@ class RAGService:
         if len(candidate_uids) > 5:
             raise ValueError("Maximum 5 candidates for comparison")
 
-        start_time = time.time()
         feature = "compare_candidates"
 
         cache_key = self._make_cache_key(
@@ -108,13 +99,9 @@ class RAGService:
         result = await llm.run(context, temperature=0.4)
         self._track_usage(feature, result.usage())
 
-        duration = time.time() - start_time
-        RAG_GENERATION_COUNT.labels(feature=feature, status="success").inc()
-        RAG_GENERATION_DURATION.labels(feature=feature).observe(duration)
-
         cache.set(cache_key, result.output.model_dump(), timeout=settings.RAG_CACHE_COMPARE_TTL)
 
-        logger.info("Generated comparison for %d candidates in %.2fs", len(candidate_uids), duration)
+        logger.info("Generated comparison for %d candidates", len(candidate_uids))
 
         return result.output
 
@@ -125,7 +112,6 @@ class RAGService:
         role_context: str | None = None,
         focus_areas: list[str] | None = None,
     ) -> InterviewQuestionSet:
-        start_time = time.time()
         feature = "interview_questions"
 
         cache_key = self._make_cache_key(
@@ -165,13 +151,9 @@ class RAGService:
         result = await llm.run(context, temperature=0.5)
         self._track_usage(feature, result.usage())
 
-        duration = time.time() - start_time
-        RAG_GENERATION_COUNT.labels(feature=feature, status="success").inc()
-        RAG_GENERATION_DURATION.labels(feature=feature).observe(duration)
-
         cache.set(cache_key, result.output.model_dump(), timeout=settings.RAG_CACHE_INTERVIEW_TTL)
 
-        logger.info("Generated interview questions for %s in %.2fs", candidate_uid, duration)
+        logger.info("Generated interview questions for %s", candidate_uid)
 
         return result.output
 
