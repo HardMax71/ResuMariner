@@ -20,10 +20,10 @@
   </a>
   <br/>
   <a href="https://github.com/HardMax71/ResuMariner/pkgs/container/resumariner-backend">
-    <img src="https://ghcr-badge.egpl.dev/hardmax71/resumariner-backend/latest_tag?label=backend" alt="Backend Version" />
+    <img src="https://ghcr-badge.egpl.dev/hardmax71/resumariner-backend/latest_tag?label=backend&ignore=sha-*,latest" alt="Backend Version" />
   </a>
   <a href="https://github.com/HardMax71/ResuMariner/pkgs/container/resumariner-frontend">
-    <img src="https://ghcr-badge.egpl.dev/hardmax71/resumariner-frontend/latest_tag?label=frontend" alt="Frontend Version" />
+    <img src="https://ghcr-badge.egpl.dev/hardmax71/resumariner-frontend/latest_tag?label=frontend&ignore=sha-*,latest" alt="Frontend Version" />
   </a>
 </p>
 

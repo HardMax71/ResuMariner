@@ -31,6 +31,15 @@ jobs:
         sed -i "s|TEXT_LLM_API_KEY=.*|TEXT_LLM_API_KEY=$TEXT_LLM_API_KEY|" backend/.env
         sed -i "s|OCR_LLM_API_KEY=.*|OCR_LLM_API_KEY=$OCR_LLM_API_KEY|" backend/.env
 
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install frontend dependencies
+      run: npm ci
+      working-directory: ./frontend
+
     - name: Start all services
       run: docker compose up -d --wait
 

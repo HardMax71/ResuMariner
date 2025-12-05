@@ -1,13 +1,21 @@
 import { useEffect, useState } from "react";
-import plantumlEncoder from "plantuml-encoder";
+import pako from "pako";
 
 interface PlantUMLDiagramProps {
   src: string;
   alt?: string;
   caption?: string;
+  format?: "svg" | "png";
 }
 
-export default function PlantUMLDiagram({ src, alt = "PlantUML Diagram", caption }: PlantUMLDiagramProps) {
+function encodeForKroki(source: string): string {
+  const data = new TextEncoder().encode(source);
+  const compressed = pako.deflate(data, { level: 9 });
+  const base64 = btoa(String.fromCharCode(...compressed));
+  return base64.replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+export default function PlantUMLDiagram({ src, alt = "PlantUML Diagram", caption, format = "svg" }: PlantUMLDiagramProps) {
   const [imageUrl, setImageUrl] = useState<string>("");
 
   useEffect(() => {
@@ -15,15 +23,15 @@ export default function PlantUMLDiagram({ src, alt = "PlantUML Diagram", caption
       try {
         const response = await fetch(src);
         const pumlContent = await response.text();
-        const encoded = plantumlEncoder.encode(pumlContent);
-        setImageUrl(`https://www.plantuml.com/plantuml/png/${encoded}`);
+        const encoded = encodeForKroki(pumlContent);
+        setImageUrl(`https://kroki.io/plantuml/${format}/${encoded}`);
       } catch (error) {
         console.error("Error loading PlantUML diagram:", error);
       }
     };
 
     fetchAndEncode();
-  }, [src]);
+  }, [src, format]);
 
   if (!imageUrl) {
     return (
