@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v2.9
+    image: traefik:v3.6
     command:
       - "--api.dashboard=true"
       - "--providers.docker=true"
@@ -11,15 +11,20 @@ services:
     ports:
       - "80:80"
       - "8000:8000"
-      - "8080:8080"
       - "8081:8081"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik-dashboard-users:/dashboard-users:ro
     networks:
       - public-network
       - internal-network
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.dashboard.entrypoints=internal"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/dashboard-users"
 
   neo4j:
     image: neo4j:latest
@@ -27,7 +32,7 @@ services:
       - "7474"
       - "7687"
     environment:
-      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-secure_default_password}
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:?NEO4J_PASSWORD required - copy .env.example to .env}
       - NEO4J_apoc_export_file_enabled=true
       - NEO4J_dbms_connector_bolt_listen__address=0.0.0.0:7687
       - NEO4J_dbms_connector_http_listen__address=0.0.0.0:7474
@@ -86,7 +91,7 @@ services:
     expose:
       - "5000"
     environment:
-      - NEO4J_SERVICE=neo4j:${NEO4J_PASSWORD:-secure_default_password}@neo4j
+      - NEO4J_SERVICE=neo4j:${NEO4J_PASSWORD:?NEO4J_PASSWORD required}@neo4j
     networks:
       - internal-network
     depends_on:
@@ -120,7 +125,7 @@ services:
     expose:
       - "3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD required}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
@@ -171,8 +176,8 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_BASE_URL=http://localhost:8000
-      - VITE_GRAFANA_URL=http://grafana.localhost:8081
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+      - VITE_GRAFANA_URL=${VITE_GRAFANA_URL}
     networks:
       - public-network
     depends_on:

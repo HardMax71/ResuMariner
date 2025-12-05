@@ -1,0 +1,6 @@
+# Traefik Dashboard htpasswd file
+# Generate with: docker run --rm httpd:alpine htpasswd -nb username password
+# One user per line, format: username:password_hash
+#
+# Example (admin:admin - DO NOT use in production):
+admin:$apr1$emM8p4cl$KD8JNBAjuoy7ZtJ.tBqu8/
