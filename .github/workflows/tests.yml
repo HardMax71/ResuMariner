@@ -24,12 +24,12 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Create .env file from example
+    - name: Create .env files
       run: |
+        cp .env.example .env
         cp backend/.env.example backend/.env
         sed -i "s|TEXT_LLM_API_KEY=.*|TEXT_LLM_API_KEY=$TEXT_LLM_API_KEY|" backend/.env
         sed -i "s|OCR_LLM_API_KEY=.*|OCR_LLM_API_KEY=$OCR_LLM_API_KEY|" backend/.env
-        echo "✓ Created .env file with API keys from secrets"
 
     - name: Start all services
       run: docker compose up -d --wait
