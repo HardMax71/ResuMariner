@@ -1,4 +1,27 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+
+// Animation timing constants (in milliseconds)
+const TIMING = {
+  TYPING_SPEED: 50,
+  AFTER_COMMAND_DELAY: 500,
+  PROCESSING_DELAY: 1500,
+  BEFORE_SECOND_COMMAND: 1000,
+  AFTER_RESULT_DELAY: 500,
+} as const;
+
+// Layout constants for command width calculation
+const LAYOUT = {
+  CHAR_WIDTH_PX: 8,
+  PADDING_PX: 20,
+  PROMPT_CHARS: 2,
+} as const;
+
+// Terminal command strings
+const COMMANDS = {
+  SINGLE_LINE: 'curl -X POST /api/v1/resumes -F "file=@resume.pdf"',
+  MULTI_LINE: 'curl -X POST /api/v1/resumes \\\n  -F "file=@resume.pdf"',
+  RESULT: 'curl /api/v1/resumes/abc-123/',
+} as const;
 
 interface AnimatedTerminalProps {
   isVisible: boolean;
@@ -8,13 +31,19 @@ export default function AnimatedTerminal({ isVisible }: AnimatedTerminalProps) {
   const [terminalStep, setTerminalStep] = useState(0);
   const [typedCommand, setTypedCommand] = useState('');
   const [typedResultCommand, setTypedResultCommand] = useState('');
-  const [commandText, setCommandText] = useState('curl -X POST /api/v1/resumes -F "file=@resume.pdf"');
-  const typingSpeed = 50;
+  const [commandText, setCommandText] = useState('');
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const singleLineCommand = 'curl -X POST /api/v1/resumes -F "file=@resume.pdf"';
-  const multiLineCommand = 'curl -X POST /api/v1/resumes \\\n  -F "file=@resume.pdf"';
-  const resultCommand = 'curl /api/v1/resumes/abc-123/';
+  // Check for reduced motion preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
 
   // Measure and decide which command format to use
   useEffect(() => {
@@ -22,41 +51,39 @@ export default function AnimatedTerminal({ isVisible }: AnimatedTerminalProps) {
 
     const checkWidth = () => {
       const containerWidth = contentRef.current?.clientWidth || 0;
-      // Create temporary span to measure text width
-      const tempSpan = document.createElement('span');
-      tempSpan.style.fontFamily = "'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace";
-      tempSpan.style.fontSize = '14px';
-      tempSpan.style.visibility = 'hidden';
-      tempSpan.style.position = 'absolute';
-      tempSpan.style.whiteSpace = 'nowrap';
-      tempSpan.textContent = '$ ' + singleLineCommand;
-      document.body.appendChild(tempSpan);
+      const commandLength = COMMANDS.SINGLE_LINE.length + LAYOUT.PROMPT_CHARS;
+      const estimatedWidth = commandLength * LAYOUT.CHAR_WIDTH_PX;
 
-      const textWidth = tempSpan.offsetWidth;
-      document.body.removeChild(tempSpan);
-
-      // If text fits with some margin (20px), use single line
-      if (textWidth + 20 < containerWidth) {
-        setCommandText(singleLineCommand);
+      if (estimatedWidth + LAYOUT.PADDING_PX < containerWidth) {
+        setCommandText(COMMANDS.SINGLE_LINE);
       } else {
-        setCommandText(multiLineCommand);
+        setCommandText(COMMANDS.MULTI_LINE);
       }
     };
 
     checkWidth();
-    window.addEventListener('resize', checkWidth);
-    return () => window.removeEventListener('resize', checkWidth);
+
+    const resizeObserver = new ResizeObserver(checkWidth);
+    resizeObserver.observe(contentRef.current);
+
+    return () => resizeObserver.disconnect();
   }, []);
 
   // Terminal typing animation
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible || !commandText) return;
 
-    // Reset animation when terminal becomes visible
+    if (prefersReducedMotion) {
+      setTypedCommand(commandText);
+      setTerminalStep(4);
+      setTypedResultCommand(COMMANDS.RESULT);
+      return;
+    }
+
     setTerminalStep(0);
     setTypedCommand('');
+    setTypedResultCommand('');
 
-    // Step 0: Type command character by character
     let charIndex = 0;
     const typeInterval = setInterval(() => {
       if (charIndex < commandText.length) {
@@ -64,276 +91,152 @@ export default function AnimatedTerminal({ isVisible }: AnimatedTerminalProps) {
         charIndex++;
       } else {
         clearInterval(typeInterval);
-        // Move to step 1 (processing) after command is typed
-        setTimeout(() => setTerminalStep(1), 500);
+        setTimeout(() => setTerminalStep(1), TIMING.AFTER_COMMAND_DELAY);
       }
-    }, typingSpeed);
+    }, TIMING.TYPING_SPEED);
 
     return () => clearInterval(typeInterval);
-  }, [isVisible]);
+  }, [isVisible, commandText, prefersReducedMotion]);
 
   // Handle subsequent animation steps
   useEffect(() => {
+    if (prefersReducedMotion) return;
+
     if (terminalStep === 1) {
-      // Step 1: Show processing for 1.5s, then move to step 2 (result)
-      const timer = setTimeout(() => setTerminalStep(2), 1500);
+      const timer = setTimeout(() => setTerminalStep(2), TIMING.PROCESSING_DELAY);
       return () => clearTimeout(timer);
     } else if (terminalStep === 2) {
-      // Step 2: Show upload result for 1s, then move to step 3 (type result command)
       const timer = setTimeout(() => {
         setTerminalStep(3);
         setTypedResultCommand('');
-      }, 1000);
+      }, TIMING.BEFORE_SECOND_COMMAND);
       return () => clearTimeout(timer);
     } else if (terminalStep === 3) {
-      // Step 3: Type result command
       let charIndex = 0;
       const typeInterval = setInterval(() => {
-        if (charIndex < resultCommand.length) {
-          setTypedResultCommand(resultCommand.slice(0, charIndex + 1));
+        if (charIndex < COMMANDS.RESULT.length) {
+          setTypedResultCommand(COMMANDS.RESULT.slice(0, charIndex + 1));
           charIndex++;
         } else {
           clearInterval(typeInterval);
-          // Move to step 4 (show result data) after command is typed
-          setTimeout(() => setTerminalStep(4), 500);
+          setTimeout(() => setTerminalStep(4), TIMING.AFTER_RESULT_DELAY);
         }
-      }, typingSpeed);
+      }, TIMING.TYPING_SPEED);
       return () => clearInterval(typeInterval);
     }
-  }, [terminalStep]);
+  }, [terminalStep, prefersReducedMotion]);
+
+  // Helper for visibility classes
+  const vis = useCallback((step: number) =>
+    terminalStep >= step ? 'terminal-visible' : 'terminal-hidden'
+  , [terminalStep]);
+
+  const JsonLine = useCallback(({ keyName, value, comma = true }: { keyName: string; value: string; comma?: boolean }) => (
+    <div className="landing-terminal-line landing-terminal-line-indent">
+      <span className="landing-terminal-json-key">"{keyName}"</span>
+      <span className="landing-terminal-json-punct">: </span>
+      <span className="landing-terminal-json-value">"{value}"</span>
+      {comma && <span className="landing-terminal-json-punct">,</span>}
+    </div>
+  ), []);
 
   return (
-    <div style={{
-      background: 'var(--neutral-900)',
-      border: '1.5px solid var(--neutral-700)',
-      borderRadius: 'var(--radius-lg)',
-      overflow: 'hidden',
-      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%'
-    }}>
+    <div className="landing-terminal" role="img" aria-label="Terminal demo showing API interaction">
       {/* Terminal Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '12px 16px',
-        background: 'var(--neutral-800)',
-        borderBottom: '1px solid var(--neutral-700)'
-      }}>
-        <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ff5f56' }} />
-        <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffbd2e' }} />
-        <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#27c93f' }} />
-        <span style={{
-          marginLeft: 'auto',
-          fontSize: 'var(--text-xs)',
-          color: 'var(--neutral-500)',
-          fontFamily: 'var(--font-mono)'
-        }}>
-          resumariner.sh
-        </span>
+      <div className="landing-terminal-header">
+        <div className="landing-terminal-dots" aria-hidden="true">
+          <div className="landing-terminal-dot landing-terminal-dot-red" />
+          <div className="landing-terminal-dot landing-terminal-dot-yellow" />
+          <div className="landing-terminal-dot landing-terminal-dot-green" />
+        </div>
+        <span className="landing-terminal-title">resumariner.sh</span>
       </div>
 
-      {/* Terminal Content */}
-      <div
-        ref={contentRef}
-        style={{
-          flex: 1,
-          padding: 'var(--space-4)',
-          fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace",
-          fontSize: '14px',
-          lineHeight: '1.6',
-          color: 'var(--neutral-300)',
-          overflowY: 'auto'
-        }}
-      >
-        {/* Command line with typing animation */}
-        <div style={{ marginBottom: 'clamp(8px, 1vw, 16px)' }}>
-          <span style={{ color: 'var(--accent1-400)' }}>$</span>
-          <span style={{ color: 'var(--neutral-0)' }}>
-            {' '}
-            {typedCommand.split('\n')[0]}
-            {/* Show cursor only if we're still typing the first line AND command isn't complete */}
-            {typedCommand.split('\n')[0] && !typedCommand.includes('\n') && typedCommand.length < commandText.length && (
-              <span style={{
-                display: 'inline-block',
-                width: '9px',
-                height: '18px',
-                background: 'var(--neutral-0)',
-                marginLeft: '2px',
-                animation: 'cursor-blink 0.8s infinite',
-                verticalAlign: 'middle'
-              }} />
-            )}
-          </span>
-        </div>
-        {typedCommand.includes('\n') && (
-          <div style={{ marginBottom: 'clamp(8px, 1vw, 16px)', paddingLeft: '16px' }}>
-            <span style={{ color: 'var(--neutral-0)' }}>
-              {typedCommand.split('\n')[1] || ''}
-              {/* Show cursor only if we're still typing the second line */}
-              {typedCommand.split('\n')[1] && typedCommand.split('\n')[1].length < commandText.split('\n')[1].length && (
-                <span style={{
-                  display: 'inline-block',
-                  width: '9px',
-                  height: '18px',
-                  background: 'var(--neutral-0)',
-                  marginLeft: '2px',
-                  animation: 'cursor-blink 0.8s infinite',
-                  verticalAlign: 'middle'
-                }} />
+      {/* Terminal Content - ALL content pre-rendered, visibility controlled */}
+      <div ref={contentRef} className="landing-terminal-content">
+        {/* Command block - contains 1 or 2 lines */}
+        <div className="landing-terminal-cmd-block">
+          <div className="landing-terminal-line">
+            <span className="landing-terminal-prompt">$</span>
+            <span className="landing-terminal-command">
+              {' '}
+              {typedCommand.split('\n')[0] || commandText.split('\n')[0]}
+              {typedCommand.split('\n')[0] && !typedCommand.includes('\n') && typedCommand.length < commandText.length && !prefersReducedMotion && (
+                <span className="landing-terminal-cursor" />
               )}
             </span>
           </div>
-        )}
-
-        {/* Processing text - shows after command is fully typed */}
-        {terminalStep >= 1 && (
-          <div style={{
-            marginBottom: 'clamp(8px, 1vw, 16px)',
-            color: 'var(--neutral-500)',
-            fontSize: '14px',
-            lineHeight: '1.6',
-            opacity: terminalStep >= 1 ? 1 : 0,
-            transition: 'opacity 0.3s'
-          }}>
-            Processing...
-          </div>
-        )}
-
-        {/* Response visualization - shows after processing */}
-        {terminalStep >= 2 && (
-          <div style={{
-            background: 'rgba(67, 56, 202, 0.1)',
-            border: '1px solid var(--primary-700)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '12px',
-            marginBottom: 'clamp(8px, 1vw, 16px)',
-            opacity: terminalStep >= 2 ? 1 : 0,
-            transform: terminalStep >= 2 ? 'translateY(0)' : 'translateY(10px)',
-            transition: 'opacity 0.4s, transform 0.4s'
-          }}>
-            <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-              <span style={{ color: 'var(--neutral-500)' }}>{'{'}</span>
-            </div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6', paddingLeft: '16px' }}>
-              <span style={{ color: 'var(--primary-400)' }}>"uid"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>: </span>
-              <span style={{ color: 'var(--accent1-400)' }}>"abc-123"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>,</span>
-            </div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6', paddingLeft: '16px' }}>
-              <span style={{ color: 'var(--primary-400)' }}>"status"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>: </span>
-              <span style={{ color: 'var(--accent1-400)' }}>"completed"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>,</span>
-            </div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6', paddingLeft: '16px' }}>
-              <span style={{ color: 'var(--primary-400)' }}>"processing_time"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>: </span>
-              <span style={{ color: 'var(--accent1-400)' }}>"28s"</span>
-            </div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-              <span style={{ color: 'var(--neutral-500)' }}>{'}'}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Result command - step 3 */}
-        {terminalStep >= 3 && (
-          <div style={{ marginBottom: 'clamp(8px, 1vw, 16px)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', height: '22px' }}>
-              <span style={{ color: 'var(--accent1-400)', fontSize: '14px', lineHeight: '1.6' }}>$</span>
-              <span style={{ color: 'var(--neutral-0)', marginLeft: '6px' }}>
-                {typedResultCommand}
-                {terminalStep === 3 && typedResultCommand.length < resultCommand.length && (
-                  <span style={{
-                    display: 'inline-block',
-                    width: '9px',
-                    height: '18px',
-                    background: 'var(--neutral-0)',
-                    marginLeft: '2px',
-                    animation: 'cursor-blink 0.8s infinite',
-                    verticalAlign: 'middle'
-                  }} />
+          {/* Second line of command - only if multi-line */}
+          {commandText.includes('\n') && (
+            <div className="landing-terminal-line landing-terminal-line-indent">
+              <span className="landing-terminal-command">
+                {typedCommand.includes('\n') ? typedCommand.split('\n')[1] : commandText.split('\n')[1] || ''}
+                {typedCommand.includes('\n') && typedCommand.split('\n')[1]?.length < (commandText.split('\n')[1]?.length || 0) && !prefersReducedMotion && (
+                  <span className="landing-terminal-cursor" />
                 )}
               </span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Result data - step 4 */}
-        {terminalStep >= 4 && (
-          <div style={{
-            background: 'rgba(67, 56, 202, 0.1)',
-            border: '1px solid var(--primary-700)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '12px',
-            opacity: terminalStep >= 4 ? 1 : 0,
-            transform: terminalStep >= 4 ? 'translateY(0)' : 'translateY(10px)',
-            transition: 'opacity 0.4s, transform 0.4s',
-            marginBottom: 'clamp(8px, 1vw, 16px)'
-          }}>
-            <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-              <span style={{ color: 'var(--neutral-500)' }}>{'{'}</span>
-            </div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6', paddingLeft: '16px' }}>
-              <span style={{ color: 'var(--primary-400)' }}>"name"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>: </span>
-              <span style={{ color: 'var(--accent1-400)' }}>"John Doe"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>,</span>
-            </div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6', paddingLeft: '16px' }}>
-              <span style={{ color: 'var(--primary-400)' }}>"email"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>: </span>
-              <span style={{ color: 'var(--accent1-400)' }}>"john@example.com"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>,</span>
-            </div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6', paddingLeft: '16px' }}>
-              <span style={{ color: 'var(--primary-400)' }}>"skills"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>: [</span>
-              <span style={{ color: 'var(--accent1-400)' }}>"Python", "Django", "React"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>],</span>
-            </div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6', paddingLeft: '16px' }}>
-              <span style={{ color: 'var(--primary-400)' }}>"experience"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>: </span>
-              <span style={{ color: 'var(--accent1-400)' }}>"5 years"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>,</span>
-            </div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6', paddingLeft: '16px' }}>
-              <span style={{ color: 'var(--primary-400)' }}>"role"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>: </span>
-              <span style={{ color: 'var(--accent1-400)' }}>"Senior Engineer"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>,</span>
-            </div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6', paddingLeft: '16px' }}>
-              <span style={{ color: 'var(--primary-400)' }}>"ai_review"</span>
-              <span style={{ color: 'var(--neutral-500)' }}>: </span>
-              <span style={{ color: 'var(--accent1-400)' }}>"Strong technical profile. Consider adding metrics."</span>
-            </div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-              <span style={{ color: 'var(--neutral-500)' }}>{'}'}</span>
-            </div>
-          </div>
-        )}
+        {/* Processing text - always in DOM */}
+        <div className={`landing-terminal-line landing-terminal-processing ${vis(1)}`}>
+          Processing...
+        </div>
 
-        {/* Final cursor - shows after result data */}
-        {terminalStep >= 4 && (
-          <div style={{ display: 'flex', alignItems: 'center', height: '22px' }}>
-            <span style={{ color: 'var(--accent1-400)', fontSize: '14px', lineHeight: '1.6' }}>$</span>
-            <span style={{
-              display: 'inline-block',
-              width: '9px',
-              height: '18px',
-              background: 'var(--neutral-0)',
-              marginLeft: '6px',
-              animation: 'cursor-blink 1s infinite',
-              verticalAlign: 'middle'
-            }} />
+        {/* First response block - always in DOM (5 lines) */}
+        <div className={`landing-terminal-response landing-terminal-response-5 ${vis(2)}`}>
+          <div className="landing-terminal-line">
+            <span className="landing-terminal-json-punct">{'{'}</span>
           </div>
-        )}
+          <JsonLine keyName="uid" value="abc-123" />
+          <JsonLine keyName="status" value="completed" />
+          <JsonLine keyName="processing_time" value="28s" comma={false} />
+          <div className="landing-terminal-line">
+            <span className="landing-terminal-json-punct">{'}'}</span>
+          </div>
+        </div>
+
+        {/* Second command - always in DOM */}
+        <div className={`landing-terminal-line ${vis(3)}`}>
+          <span className="landing-terminal-prompt">$</span>
+          <span className="landing-terminal-command">
+            {' '}
+            {terminalStep >= 3 ? typedResultCommand : COMMANDS.RESULT}
+            {terminalStep === 3 && typedResultCommand.length < COMMANDS.RESULT.length && !prefersReducedMotion && (
+              <span className="landing-terminal-cursor" />
+            )}
+          </span>
+        </div>
+
+        {/* Second response block - always in DOM (8 lines) */}
+        <div className={`landing-terminal-response landing-terminal-response-8 ${vis(4)}`}>
+          <div className="landing-terminal-line">
+            <span className="landing-terminal-json-punct">{'{'}</span>
+          </div>
+          <JsonLine keyName="name" value="John Doe" />
+          <JsonLine keyName="email" value="john@example.com" />
+          <div className="landing-terminal-line landing-terminal-line-indent">
+            <span className="landing-terminal-json-key">"skills"</span>
+            <span className="landing-terminal-json-punct">: [</span>
+            <span className="landing-terminal-json-value">"Python", "Django", "React"</span>
+            <span className="landing-terminal-json-punct">],</span>
+          </div>
+          <JsonLine keyName="experience" value="5 years" />
+          <JsonLine keyName="role" value="Senior Engineer" />
+          <JsonLine keyName="ai_review" value="Strong technical profile. Consider adding metrics." comma={false} />
+          <div className="landing-terminal-line">
+            <span className="landing-terminal-json-punct">{'}'}</span>
+          </div>
+        </div>
+
+        {/* Final cursor - always in DOM */}
+        <div className={`landing-terminal-line landing-terminal-line-flex ${vis(4)}`}>
+          <span className="landing-terminal-prompt">$</span>
+          {!prefersReducedMotion && (
+            <span className="landing-terminal-cursor" />
+          )}
+        </div>
       </div>
     </div>
   );

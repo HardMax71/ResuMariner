@@ -6,11 +6,11 @@ export const MetricCard = styled.div<{ color?: string; bgColor?: string }>`
   transition: all 0.2s;
   cursor: default;
   background: ${props => props.bgColor
-    ? `linear-gradient(135deg, ${props.bgColor} 0%, rgba(255, 255, 255, 0.95) 100%)`
-    : 'rgba(255, 255, 255, 0.95)'};
+    ? `linear-gradient(135deg, ${props.bgColor} 0%, rgba(var(--neutral-0-rgb), 0.95) 100%)`
+    : 'rgba(var(--neutral-0-rgb), 0.95)'};
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(67, 56, 202, 0.15);
+  border: 1px solid rgba(var(--primary-700-rgb), 0.15);
   border-radius: var(--radius-sm);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   display: flex;
@@ -25,7 +25,7 @@ export const MetricCard = styled.div<{ color?: string; bgColor?: string }>`
 `;
 
 export const MetricLabel = styled.div`
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--neutral-700);
   font-weight: 800;
   text-transform: uppercase;
@@ -42,9 +42,9 @@ export const MetricValue = styled.div<{ color?: string }>`
 
 export const IconWrapper = styled.div<{ color?: string; bgColor?: string }>`
   padding: 12px;
-  background: ${props => props.bgColor || 'linear-gradient(135deg, rgba(67, 56, 202, 0.15) 0%, rgba(67, 56, 202, 0.05) 100%)'};
+  background: ${props => props.bgColor || 'linear-gradient(135deg, rgba(var(--primary-700-rgb), 0.15) 0%, rgba(var(--primary-700-rgb), 0.05) 100%)'};
   border-radius: var(--radius-sm);
-  border: 1px solid ${props => props.color || 'rgba(67, 56, 202, 0.2)'};
+  border: 1px solid ${props => props.color || 'rgba(var(--primary-700-rgb), 0.2)'};
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -54,18 +54,18 @@ export const StatusBadge = styled.span<{ variant?: 'success' | 'warning' | 'erro
   padding: 6px 12px;
   background: ${props => {
     switch (props.variant) {
-      case 'success': return 'rgba(34, 197, 94, 0.15)';
-      case 'warning': return 'rgba(245, 158, 11, 0.15)';
-      case 'error': return 'rgba(239, 68, 68, 0.15)';
-      default: return 'rgba(67, 56, 202, 0.15)';
+      case 'success': return 'rgba(var(--accent3-500-rgb), 0.15)';
+      case 'warning': return 'rgba(var(--accent1-500-rgb), 0.15)';
+      case 'error': return 'rgba(var(--accent2-500-rgb), 0.15)';
+      default: return 'rgba(var(--primary-700-rgb), 0.15)';
     }
   }};
   border: 1px solid ${props => {
     switch (props.variant) {
-      case 'success': return 'rgba(34, 197, 94, 0.3)';
-      case 'warning': return 'rgba(245, 158, 11, 0.3)';
-      case 'error': return 'rgba(239, 68, 68, 0.3)';
-      default: return 'rgba(67, 56, 202, 0.3)';
+      case 'success': return 'rgba(var(--accent3-500-rgb), 0.3)';
+      case 'warning': return 'rgba(var(--accent1-500-rgb), 0.3)';
+      case 'error': return 'rgba(var(--accent2-500-rgb), 0.3)';
+      default: return 'rgba(var(--primary-700-rgb), 0.3)';
     }
   }};
   border-radius: var(--radius-sm);
@@ -73,10 +73,10 @@ export const StatusBadge = styled.span<{ variant?: 'success' | 'warning' | 'erro
   font-weight: 700;
   color: ${props => {
     switch (props.variant) {
-      case 'success': return '#15803d';
-      case 'warning': return '#b45309';
-      case 'error': return '#b91c1c';
-      default: return '#4338ca';
+      case 'success': return 'var(--accent3-700)';
+      case 'warning': return 'var(--accent1-700)';
+      case 'error': return 'var(--accent2-700)';
+      default: return 'var(--primary-700)';
     }
   }};
   letter-spacing: 0.025em;
@@ -98,7 +98,7 @@ export const ScoreHero = styled.div`
   border-radius: var(--radius-sm);
   padding: var(--space-6);
   margin-bottom: var(--space-5);
-  box-shadow: 0 8px 24px rgba(67, 56, 202, 0.2);
+  box-shadow: 0 8px 24px rgba(var(--primary-700-rgb), 0.2);
   position: relative;
   overflow: hidden;
 
@@ -107,15 +107,15 @@ export const ScoreHero = styled.div`
     position: absolute;
     top: 0;
     right: 0;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    width: 30vw;
+    height: 30vw;
+    background: radial-gradient(circle, rgba(var(--neutral-0-rgb), 0.1) 0%, transparent 70%);
     pointer-events: none;
   }
 `;
 
 export const ScoreValue = styled.div`
-  font-size: 64px;
+  font-size: var(--text-6xl);
   font-weight: 800;
   font-family: var(--font-display);
   color: white;
@@ -123,7 +123,7 @@ export const ScoreValue = styled.div`
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 
   span {
-    font-size: 32px;
+    font-size: var(--text-3xl);
     font-weight: 700;
     opacity: 0.8;
   }
@@ -134,9 +134,9 @@ export const FeedbackSection = styled.div<{ isExpanded?: boolean; priorityColor?
   overflow: hidden;
   transition: all var(--transition-base);
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(var(--neutral-0-rgb), 0.95);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(67, 56, 202, 0.15);
+  border: 1px solid rgba(var(--primary-700-rgb), 0.15);
   border-radius: var(--radius-sm);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 `;
@@ -229,7 +229,7 @@ export const FeedbackItem = styled.div<{
 
 export const ConfigGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
   gap: var(--space-4);
 `;
 
@@ -238,41 +238,41 @@ export const ConfigRow = styled.div<{ bgColor?: string; borderColor?: string }>`
   justify-content: space-between;
   align-items: center;
   padding: var(--space-2);
-  background: ${props => props.bgColor || 'rgba(67, 56, 202, 0.03)'};
+  background: ${props => props.bgColor || 'rgba(var(--primary-700-rgb), 0.03)'};
   border-radius: var(--radius-sm);
-  border: 1px solid ${props => props.borderColor || 'rgba(67, 56, 202, 0.1)'};
+  border: 1px solid ${props => props.borderColor || 'rgba(var(--primary-700-rgb), 0.1)'};
 `;
 
 export const ConfigLabel = styled.span`
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--neutral-600);
   font-weight: 500;
 `;
 
 export const ConfigTag = styled.span<{ emphasis?: boolean }>`
   padding: 2px 6px;
-  background: ${props => props.emphasis ? 'rgba(67, 56, 202, 0.15)' : 'rgba(67, 56, 202, 0.1)'};
-  border: 1px solid ${props => props.emphasis ? 'rgba(67, 56, 202, 0.25)' : 'rgba(67, 56, 202, 0.2)'};
+  background: ${props => props.emphasis ? 'rgba(var(--primary-700-rgb), 0.15)' : 'rgba(var(--primary-700-rgb), 0.1)'};
+  border: 1px solid ${props => props.emphasis ? 'rgba(var(--primary-700-rgb), 0.25)' : 'rgba(var(--primary-700-rgb), 0.2)'};
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
-  color: #4338ca;
+  color: var(--primary-700);
   font-family: var(--font-mono);
 `;
 
 export const ToggleBadge = styled.span<{ isOn?: boolean }>`
   padding: 3px 8px;
-  background: ${props => props.isOn ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)'};
-  border: 1px solid ${props => props.isOn ? 'rgba(34, 197, 94, 0.3)' : 'rgba(245, 158, 11, 0.3)'};
+  background: ${props => props.isOn ? 'rgba(var(--accent3-500-rgb), 0.15)' : 'rgba(var(--accent1-500-rgb), 0.15)'};
+  border: 1px solid ${props => props.isOn ? 'rgba(var(--accent3-500-rgb), 0.3)' : 'rgba(var(--accent1-500-rgb), 0.3)'};
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 700;
-  color: ${props => props.isOn ? '#15803d' : '#b45309'};
+  color: ${props => props.isOn ? 'var(--accent3-700)' : 'var(--accent1-700)'};
   letter-spacing: 0.025em;
 `;
 
 export const SectionTitle = styled.h3`
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--neutral-900);
   margin-bottom: var(--space-3);
@@ -281,7 +281,7 @@ export const SectionTitle = styled.h3`
 `;
 
 export const SubsectionTitle = styled.h4<{ color?: string }>`
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--neutral-700);
   margin-bottom: var(--space-2);

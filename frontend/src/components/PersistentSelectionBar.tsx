@@ -34,10 +34,10 @@ export default function PersistentSelectionBar() {
         left: 0,
         right: 0,
         zIndex: 999,
-        background: 'rgba(12, 10, 9, 0.98)',
+        background: 'rgba(var(--neutral-950-rgb), 0.98)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        borderTop: '1px solid rgba(129, 140, 248, 0.3)',
+        borderTop: '1px solid rgba(var(--primary-400-rgb), 0.3)',
         padding: 'var(--space-3) var(--space-4)',
         boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.4)',
       }}
@@ -56,17 +56,17 @@ export default function PersistentSelectionBar() {
           <span
             style={{
               fontFamily: 'var(--font-display)',
-              fontSize: '16px',
+              fontSize: 'var(--text-base)',
               fontWeight: 700,
-              color: '#818cf8',
+              color: 'var(--primary-400)',
             }}
           >
             {selected.length} Selected
           </span>
           <div
             style={{
-              fontSize: '13px',
-              color: '#a8a29e',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--neutral-400)',
               maxWidth: '300px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -81,18 +81,7 @@ export default function PersistentSelectionBar() {
           {selected.length >= 2 && (
             <button
               onClick={handleCompare}
-              className="btn"
-              style={{
-                background: 'var(--primary-600)',
-                color: 'white',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-1)',
-                padding: '8px 16px',
-                fontSize: '14px',
-                fontWeight: 600,
-              }}
+              className="selection-bar-btn selection-bar-btn-primary"
             >
               <Users size={16} />
               Compare
@@ -103,18 +92,7 @@ export default function PersistentSelectionBar() {
             <>
               <button
                 onClick={handleExplainMatch}
-                className="btn"
-                style={{
-                  background: 'var(--accent1-600)',
-                  color: 'white',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-1)',
-                  padding: '8px 16px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                }}
+                className="selection-bar-btn selection-bar-btn-accent1"
               >
                 <Sparkles size={16} />
                 Explain Match
@@ -122,18 +100,7 @@ export default function PersistentSelectionBar() {
 
               <button
                 onClick={handleInterviews}
-                className="btn"
-                style={{
-                  background: 'var(--accent2-600)',
-                  color: 'white',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-1)',
-                  padding: '8px 16px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                }}
+                className="selection-bar-btn selection-bar-btn-accent2"
               >
                 <MessageCircle size={16} />
                 Interview
@@ -143,18 +110,7 @@ export default function PersistentSelectionBar() {
 
           <button
             onClick={clearSelection}
-            className="btn"
-            style={{
-              background: 'transparent',
-              color: '#ffffff',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-1)',
-              padding: '8px 16px',
-              fontSize: '14px',
-              fontWeight: 600,
-            }}
+            className="selection-bar-btn selection-bar-btn-ghost"
           >
             <X size={16} />
             Clear

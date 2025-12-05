@@ -36,7 +36,7 @@ export default function PlantUMLDiagram({ src, alt = "PlantUML Diagram", caption
   if (!imageUrl) {
     return (
       <div style={{
-        border: "1px solid rgba(129, 140, 248, 0.2)",
+        border: "1px solid rgba(var(--primary-400-rgb), 0.2)",
         borderRadius: "var(--radius-sm)",
         padding: "var(--space-4)",
         textAlign: "center",
@@ -50,7 +50,7 @@ export default function PlantUMLDiagram({ src, alt = "PlantUML Diagram", caption
   return (
     <div>
       <div style={{
-        border: "1px solid rgba(129, 140, 248, 0.2)",
+        border: "1px solid rgba(var(--primary-400-rgb), 0.2)",
         borderRadius: "var(--radius-sm)",
         overflow: "hidden",
         display: "flex",

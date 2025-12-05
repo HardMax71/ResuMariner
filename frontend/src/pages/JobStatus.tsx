@@ -37,41 +37,41 @@ const getBadgeStyle = (text: string, category?: string) => {
 
   if (category === "education_status") {
     if (t.includes("ongoing") || t.includes("current")) {
-      return { bg: "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)", color: "#1e40af", border: "#3b82f6" };
+      return { bg: "linear-gradient(135deg, var(--primary-100) 0%, var(--primary-200) 100%)", color: "var(--primary-800)", border: "var(--primary-500)" };
     }
     if (t.includes("completed") || t.includes("graduated")) {
-      return { bg: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)", color: "#065f46", border: "#10b981" };
+      return { bg: "linear-gradient(135deg, var(--accent3-100) 0%, var(--accent3-200) 100%)", color: "var(--accent3-800)", border: "var(--accent3-500)" };
     }
   }
 
   if (category === "employment_type") {
     if (t.includes("full-time") || t.includes("full time") || t.includes("fulltime")) {
-      return { bg: "linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)", color: "#5b21b6", border: "#8b5cf6" };
+      return { bg: "linear-gradient(135deg, var(--primary-200) 0%, var(--primary-300) 100%)", color: "var(--primary-800)", border: "var(--primary-500)" };
     }
     if (t.includes("part-time") || t.includes("part time") || t.includes("parttime")) {
-      return { bg: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)", color: "#92400e", border: "#f59e0b" };
+      return { bg: "linear-gradient(135deg, var(--accent1-100) 0%, var(--accent1-200) 100%)", color: "var(--accent1-800)", border: "var(--accent1-500)" };
     }
     if (t.includes("contract") || t.includes("freelance") || t.includes("consultant")) {
-      return { bg: "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)", color: "#3730a3", border: "#6366f1" };
+      return { bg: "linear-gradient(135deg, var(--primary-100) 0%, var(--primary-200) 100%)", color: "var(--primary-800)", border: "var(--primary-500)" };
     }
     if (t.includes("intern") || t.includes("internship")) {
-      return { bg: "linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)", color: "#9a3412", border: "#f97316" };
+      return { bg: "linear-gradient(135deg, var(--accent1-200) 0%, var(--accent1-300) 100%)", color: "var(--accent1-800)", border: "var(--accent1-500)" };
     }
   }
 
   if (category === "work_mode") {
     if (t.includes("remote")) {
-      return { bg: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)", color: "#065f46", border: "#10b981" };
+      return { bg: "linear-gradient(135deg, var(--accent3-100) 0%, var(--accent3-200) 100%)", color: "var(--accent3-800)", border: "var(--accent3-500)" };
     }
     if (t.includes("hybrid")) {
-      return { bg: "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)", color: "#1e3a8a", border: "#3b82f6" };
+      return { bg: "linear-gradient(135deg, var(--primary-100) 0%, var(--primary-200) 100%)", color: "var(--primary-900)", border: "var(--primary-500)" };
     }
     if (t.includes("on-site") || t.includes("onsite") || t.includes("office")) {
-      return { bg: "linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)", color: "#831843", border: "#ec4899" };
+      return { bg: "linear-gradient(135deg, var(--accent2-100) 0%, var(--accent2-200) 100%)", color: "var(--accent2-800)", border: "var(--accent2-500)" };
     }
   }
 
-  return { bg: "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)", color: "#374151", border: "#9ca3af" };
+  return { bg: "linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-200) 100%)", color: "var(--neutral-700)", border: "var(--neutral-400)" };
 };
 
 interface ResumeSection {
@@ -208,7 +208,7 @@ export default function JobStatus() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "pending":
-        return <Clock size={24} strokeWidth={2} style={{ color: "var(--gray-600)" }} />;
+        return <Clock size={24} strokeWidth={2} style={{ color: "var(--neutral-600)" }} />;
       case "processing":
         return <Loader2 size={24} className="spinner" />;
       case "completed":
@@ -222,11 +222,11 @@ export default function JobStatus() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending": return "var(--gray-600)";
-      case "processing": return "var(--blue-600)";
+      case "pending": return "var(--neutral-600)";
+      case "processing": return "var(--primary-600)";
       case "completed": return "var(--success)";
       case "failed": return "var(--danger)";
-      default: return "var(--gray-600)";
+      default: return "var(--neutral-600)";
     }
   };
 
@@ -264,8 +264,8 @@ export default function JobStatus() {
             <div style={{
               padding: "var(--space-3)",
               textAlign: "center",
-              color: "var(--gray-500)",
-              fontSize: "14px"
+              color: "var(--neutral-500)",
+              fontSize: "var(--text-sm)"
             }}>
               No data available
             </div>
@@ -278,13 +278,13 @@ export default function JobStatus() {
                   width: "48px",
                   height: "48px",
                   borderRadius: "var(--radius-full)",
-                  background: "var(--blue-100)",
+                  background: "var(--primary-100)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "20px",
+                  fontSize: "var(--text-xl)",
                   fontWeight: 600,
-                  color: "var(--blue-600)",
+                  color: "var(--primary-600)",
                   flexShrink: 0
                 }}>
                   {data.name ? data.name.charAt(0).toUpperCase() : "?"}
@@ -298,8 +298,8 @@ export default function JobStatus() {
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
                     {data.email && (
                       <a href={`mailto:${renderValue(data.email)}`} style={{
-                        fontSize: "13px",
-                        color: "var(--blue-600)",
+                        fontSize: "var(--text-sm)",
+                        color: "var(--primary-600)",
                         textDecoration: "none"
                       }}>
                         {renderValue(data.email)}
@@ -307,8 +307,8 @@ export default function JobStatus() {
                     )}
                     {data.phone && (
                       <a href={`tel:${renderValue(data.phone)}`} style={{
-                        fontSize: "13px",
-                        color: "var(--gray-700)",
+                        fontSize: "var(--text-sm)",
+                        color: "var(--neutral-700)",
                         textDecoration: "none",
                         display: "flex",
                         alignItems: "center",
@@ -318,7 +318,7 @@ export default function JobStatus() {
                       </a>
                     )}
                     {data.location && (
-                      <span style={{ fontSize: "13px", color: "var(--gray-600)", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ fontSize: "var(--text-sm)", color: "var(--neutral-600)", display: "flex", alignItems: "center", gap: "4px" }}>
                         <MapPin size={13} strokeWidth={2} /> {renderValue(data.location)}
                       </span>
                     )}
@@ -330,17 +330,17 @@ export default function JobStatus() {
                   <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                     {data.linkedin && (
                       <a href={renderValue(data.linkedin)} target="_blank" rel="noopener noreferrer" title="LinkedIn">
-                        <Linkedin size={18} style={{ color: "var(--gray-600)" }} />
+                        <Linkedin size={18} style={{ color: "var(--neutral-600)" }} />
                       </a>
                     )}
                     {data.github && (
                       <a href={renderValue(data.github)} target="_blank" rel="noopener noreferrer" title="GitHub">
-                        <Github size={18} style={{ color: "var(--gray-600)" }} />
+                        <Github size={18} style={{ color: "var(--neutral-600)" }} />
                       </a>
                     )}
                     {data.website && (
                       <a href={renderValue(data.website)} target="_blank" rel="noopener noreferrer" title="Website">
-                        <Globe size={18} strokeWidth={2} style={{ color: "var(--gray-600)" }} />
+                        <Globe size={18} strokeWidth={2} style={{ color: "var(--neutral-600)" }} />
                       </a>
                     )}
                   </div>
@@ -363,20 +363,19 @@ export default function JobStatus() {
                     key={idx}
                     style={{
                       padding: "14px",
-                      background: "var(--white)",
-                      border: "1px solid var(--gray-200)",
+                      background: "var(--neutral-50)",
                       borderRadius: "var(--radius-sm)",
-                      borderLeft: "3px solid var(--blue-500)"
+                      borderLeft: "3px solid var(--primary-500)"
                     }}
                   >
                     {/* Header row with position and dates */}
                     <div className="flex justify-between items-start" style={{ marginBottom: "8px" }}>
                       <div style={{ flex: 1 }}>
                         <h4 style={{
-                          fontSize: "15px",
+                          fontSize: "var(--text-base)",
                           fontWeight: 600,
                           margin: 0,
-                          color: "var(--gray-900)"
+                          color: "var(--neutral-900)"
                         }}>
                           {renderValue(exp.position)}
                         </h4>
@@ -392,8 +391,8 @@ export default function JobStatus() {
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
-                                fontSize: "14px",
-                                color: exp.company.url ? "var(--blue-600)" : "var(--gray-700)",
+                                fontSize: "var(--text-sm)",
+                                color: exp.company.url ? "var(--primary-600)" : "var(--neutral-700)",
                                 textDecoration: "none",
                                 fontWeight: 500,
                                 cursor: exp.company.url ? "pointer" : "default"
@@ -405,7 +404,7 @@ export default function JobStatus() {
                           )}
                           {exp.employment_type && (
                             <span style={{
-                              fontSize: "11px",
+                              fontSize: "var(--text-xs)",
                               fontWeight: 600,
                               ...(() => {
                                 const style = getBadgeStyle(exp.employment_type, "employment_type");
@@ -414,7 +413,7 @@ export default function JobStatus() {
                                   color: style.color,
                                   border: `1px solid ${style.border}40`,
                                   padding: "3px 8px",
-                                  borderRadius: "12px",
+                                  borderRadius: "var(--radius-lg)",
                                   textTransform: "uppercase" as const,
                                   letterSpacing: "0.02em"
                                 };
@@ -425,7 +424,7 @@ export default function JobStatus() {
                           )}
                           {exp.work_mode && (
                             <span style={{
-                              fontSize: "11px",
+                              fontSize: "var(--text-xs)",
                               fontWeight: 600,
                               ...(() => {
                                 const style = getBadgeStyle(exp.work_mode, "work_mode");
@@ -434,7 +433,7 @@ export default function JobStatus() {
                                   color: style.color,
                                   border: `1px solid ${style.border}40`,
                                   padding: "3px 8px",
-                                  borderRadius: "12px",
+                                  borderRadius: "var(--radius-lg)",
                                   textTransform: "uppercase" as const,
                                   letterSpacing: "0.02em"
                                 };
@@ -449,8 +448,8 @@ export default function JobStatus() {
                       {/* Duration and location */}
                       <div style={{
                         textAlign: "right",
-                        fontSize: "13px",
-                        color: "var(--gray-600)"
+                        fontSize: "var(--text-sm)",
+                        color: "var(--neutral-600)"
                       }}>
                         {exp.duration && (
                           <div style={{ fontWeight: 500 }}>
@@ -458,19 +457,19 @@ export default function JobStatus() {
                           </div>
                         )}
                         {exp.location && [exp.location.city, exp.location.state, exp.location.country].filter(Boolean).length > 0 && (
-                          <div style={{ fontSize: "12px", marginTop: "2px" }}>
+                          <div style={{ fontSize: "var(--text-xs)", marginTop: "2px" }}>
                             <MapPin size={10} style={{
                               marginRight: "4px",
                               verticalAlign: "middle",
-                              color: "var(--gray-500)"
+                              color: "var(--neutral-500)"
                             }} />
                             {[exp.location.city, exp.location.state, exp.location.country].filter(Boolean).join(", ")}
                           </div>
                         )}
                         {exp.duration?.duration_months && (
                           <div style={{
-                            fontSize: "11px",
-                            color: "var(--gray-500)",
+                            fontSize: "var(--text-xs)",
+                            color: "var(--neutral-500)",
                             marginTop: "2px"
                           }}>
                             {Math.floor(exp.duration.duration_months / 12) > 0 &&
@@ -487,8 +486,8 @@ export default function JobStatus() {
                       <ul style={{
                         margin: "10px 0 0 0",
                         paddingLeft: "20px",
-                        fontSize: "13px",
-                        color: "var(--gray-700)",
+                        fontSize: "var(--text-sm)",
+                        color: "var(--neutral-700)",
                         lineHeight: 1.6
                       }}>
                         {exp.key_points.map((point: any, pidx: number) => (
@@ -511,13 +510,13 @@ export default function JobStatus() {
                           <span
                             key={tidx}
                             style={{
-                              fontSize: "11px",
+                              fontSize: "var(--text-xs)",
                               fontWeight: 500,
                               padding: "3px 8px",
-                              background: "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)",
-                              color: "#3730a3",
-                              border: "1px solid #6366f140",
-                              borderRadius: "12px"
+                              background: "linear-gradient(135deg, var(--primary-100) 0%, var(--primary-200) 100%)",
+                              color: "var(--primary-800)",
+                              border: "1px solid rgba(var(--primary-500-rgb), 0.25)",
+                              borderRadius: "var(--radius-lg)"
                             }}
                           >
                             {renderValue(skill.name || skill)}
@@ -537,20 +536,19 @@ export default function JobStatus() {
                     key={idx}
                     style={{
                       padding: "14px",
-                      background: "var(--white)",
-                      border: "1px solid var(--gray-200)",
+                      background: "var(--neutral-50)",
                       borderRadius: "var(--radius-sm)",
-                      borderLeft: "3px solid var(--green-600)"
+                      borderLeft: "3px solid var(--accent3-600)"
                     }}
                   >
                     {/* Header with title and link */}
                     <div className="flex justify-between items-start" style={{ marginBottom: "8px" }}>
                       <div style={{ flex: 1 }}>
                         <h4 style={{
-                          fontSize: "15px",
+                          fontSize: "var(--text-base)",
                           fontWeight: 600,
                           margin: 0,
-                          color: "var(--gray-900)"
+                          color: "var(--neutral-900)"
                         }}>
                           {proj.url ? (
                             <a
@@ -558,7 +556,7 @@ export default function JobStatus() {
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
-                                color: "var(--gray-900)",
+                                color: "var(--neutral-900)",
                                 textDecoration: "none"
                               }}
                               onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
@@ -577,8 +575,8 @@ export default function JobStatus() {
                         </h4>
                         {proj.description && (
                           <div style={{
-                            fontSize: "13px",
-                            color: "var(--gray-600)",
+                            fontSize: "var(--text-sm)",
+                            color: "var(--neutral-600)",
                             marginTop: "4px"
                           }}>
                             {renderValue(proj.description)}
@@ -600,7 +598,7 @@ export default function JobStatus() {
                             borderRadius: "var(--radius-sm)",
                             transition: "background 0.2s"
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-100)"}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--neutral-100)"}
                           onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                           title={(() => {
                             const url = renderValue(proj.url).toLowerCase();
@@ -614,19 +612,19 @@ export default function JobStatus() {
                           {(() => {
                             const url = renderValue(proj.url).toLowerCase();
                             if (url.includes("github")) {
-                              return <Github size={16} style={{ color: "var(--gray-600)" }} />;
+                              return <Github size={16} style={{ color: "var(--neutral-600)" }} />;
                             }
                             if (url.includes("gitlab")) {
-                              return <Code2 size={16} strokeWidth={2} style={{ color: "var(--gray-600)" }} />;
+                              return <Code2 size={16} strokeWidth={2} style={{ color: "var(--neutral-600)" }} />;
                             }
                             if (url.includes("gitea")) {
-                              return <Code2 size={16} strokeWidth={2} style={{ color: "var(--gray-600)" }} />;
+                              return <Code2 size={16} strokeWidth={2} style={{ color: "var(--neutral-600)" }} />;
                             }
                             if (url.includes("bitbucket")) {
-                              return <Code2 size={16} strokeWidth={2} style={{ color: "var(--gray-600)" }} />;
+                              return <Code2 size={16} strokeWidth={2} style={{ color: "var(--neutral-600)" }} />;
                             }
                             // Generic code/link icon for other sites
-                            return <Code2 size={16} strokeWidth={2} style={{ color: "var(--gray-600)" }} />;
+                            return <Code2 size={16} strokeWidth={2} style={{ color: "var(--neutral-600)" }} />;
                           })()}
                         </a>
                       )}
@@ -637,8 +635,8 @@ export default function JobStatus() {
                       <ul style={{
                         margin: "10px 0 0 0",
                         paddingLeft: "20px",
-                        fontSize: "13px",
-                        color: "var(--gray-700)",
+                        fontSize: "var(--text-sm)",
+                        color: "var(--neutral-700)",
                         lineHeight: 1.6
                       }}>
                         {proj.key_points.map((point: any, pidx: number) => (
@@ -661,13 +659,13 @@ export default function JobStatus() {
                           <span
                             key={tidx}
                             style={{
-                              fontSize: "11px",
+                              fontSize: "var(--text-xs)",
                               fontWeight: 500,
                               padding: "3px 8px",
-                              background: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)",
-                              color: "#065f46",
-                              border: "1px solid #10b98140",
-                              borderRadius: "12px"
+                              background: "linear-gradient(135deg, var(--accent3-100) 0%, var(--accent3-200) 100%)",
+                              color: "var(--accent3-800)",
+                              border: "1px solid rgba(var(--accent3-500-rgb), 0.25)",
+                              borderRadius: "var(--radius-lg)"
                             }}
                           >
                             {renderValue(skill.name || skill)}
@@ -687,10 +685,9 @@ export default function JobStatus() {
                     key={idx}
                     style={{
                       padding: "12px 14px",
-                      background: "var(--white)",
-                      border: "1px solid var(--gray-200)",
+                      background: "var(--neutral-50)",
                       borderRadius: "var(--radius-sm)",
-                      borderLeft: "3px solid var(--purple-500)"
+                      borderLeft: "3px solid var(--primary-500)"
                     }}
                   >
                     {/* Header with degree and dates */}
@@ -706,14 +703,14 @@ export default function JobStatus() {
                             fontSize: "var(--text-base)",
                             fontWeight: 600,
                             margin: 0,
-                            color: "var(--gray-900)",
+                            color: "var(--neutral-900)",
                             lineHeight: 1.3
                           }}>
                             {renderValue(edu.qualification)}
                             {edu.field && (
                               <>
-                                <span style={{ fontWeight: 400, color: "var(--gray-600)" }}> in </span>
-                                <span style={{ fontWeight: 400, color: "var(--gray-800)" }}>{renderValue(edu.field)}</span>
+                                <span style={{ fontWeight: 400, color: "var(--neutral-600)" }}> in </span>
+                                <span style={{ fontWeight: 400, color: "var(--neutral-800)" }}>{renderValue(edu.field)}</span>
                               </>
                             )}
                           </h4>
@@ -729,7 +726,7 @@ export default function JobStatus() {
                                   color: style.color,
                                   border: `1px solid ${style.border}40`,
                                   padding: "3px 8px",
-                                  borderRadius: "12px",
+                                  borderRadius: "var(--radius-lg)",
                                   textTransform: "uppercase" as const,
                                   letterSpacing: "0.02em"
                                 };
@@ -741,7 +738,7 @@ export default function JobStatus() {
                         </div>
                         <div style={{
                           fontSize: "var(--text-sm)",
-                          color: "var(--gray-700)"
+                          color: "var(--neutral-700)"
                         }}>
                           {edu.institution && renderValue(edu.institution.name || edu.institution)}
                         </div>
@@ -751,7 +748,7 @@ export default function JobStatus() {
                       <div style={{
                         textAlign: "right",
                         fontSize: "var(--text-sm)",
-                        color: "var(--gray-600)",
+                        color: "var(--neutral-600)",
                         marginLeft: "var(--space-3)",
                         flexShrink: 0
                       }}>
@@ -766,11 +763,11 @@ export default function JobStatus() {
                           </div>
                         )}
                         {edu.location && [edu.location.city, edu.location.state, edu.location.country].filter(Boolean).length > 0 && (
-                          <div style={{ fontSize: "12px", marginTop: "2px" }}>
+                          <div style={{ fontSize: "var(--text-xs)", marginTop: "2px" }}>
                             <MapPin size={10} style={{
                               marginRight: "4px",
                               verticalAlign: "middle",
-                              color: "var(--gray-500)"
+                              color: "var(--neutral-500)"
                             }} />
                             {[edu.location.city, edu.location.state, edu.location.country].filter(Boolean).join(", ")}
                           </div>
@@ -782,9 +779,9 @@ export default function JobStatus() {
                     {edu.coursework && edu.coursework.length > 0 && (
                       <div style={{ marginTop: "8px" }}>
                         <div style={{
-                          fontSize: "11px",
+                          fontSize: "var(--text-xs)",
                           fontWeight: 500,
-                          color: "var(--gray-500)",
+                          color: "var(--neutral-500)",
                           marginBottom: "4px",
                           textTransform: "uppercase",
                           letterSpacing: "0.5px"
@@ -800,13 +797,13 @@ export default function JobStatus() {
                             <span
                               key={cidx}
                               style={{
-                                fontSize: "11px",
+                                fontSize: "var(--text-xs)",
                                 fontWeight: 500,
                                 padding: "3px 8px",
-                                background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
-                                color: "#92400e",
-                                border: "1px solid #f59e0b40",
-                                borderRadius: "12px"
+                                background: "linear-gradient(135deg, var(--accent1-100) 0%, var(--accent1-200) 100%)",
+                                color: "var(--accent1-800)",
+                                border: "1px solid rgba(var(--accent1-500-rgb), 0.25)",
+                                borderRadius: "var(--radius-lg)"
                               }}
                             >
                               {renderValue(course.text || course.name || course)}
@@ -821,8 +818,8 @@ export default function JobStatus() {
                       <ul style={{
                         margin: "8px 0 0 0",
                         paddingLeft: "18px",
-                        fontSize: "12px",
-                        color: "var(--gray-600)",
+                        fontSize: "var(--text-xs)",
+                        color: "var(--neutral-600)",
                         lineHeight: 1.5
                       }}>
                         {edu.extras.map((extra: any, eidx: number) => (
@@ -837,8 +834,8 @@ export default function JobStatus() {
                     {edu.gpa && (
                       <div style={{
                         marginTop: "6px",
-                        fontSize: "12px",
-                        color: "var(--gray-600)"
+                        fontSize: "var(--text-xs)",
+                        color: "var(--neutral-600)"
                       }}>
                         <span style={{ fontWeight: 500 }}>GPA:</span> {renderValue(edu.gpa)}
                       </div>
@@ -861,19 +858,18 @@ export default function JobStatus() {
                       key={idx}
                       style={{
                         padding: "12px 14px",
-                        background: "var(--white)",
-                        border: "1px solid var(--gray-200)",
+                        background: "var(--neutral-50)",
                         borderRadius: "var(--radius-sm)",
-                        borderLeft: "3px solid var(--cyan-600)"
+                        borderLeft: "3px solid var(--primary-600)"
                       }}
                     >
                       <div className="flex justify-between items-center">
                         {/* Language name */}
                         <h4 style={{
-                          fontSize: "15px",
+                          fontSize: "var(--text-base)",
                           fontWeight: 600,
                           margin: 0,
-                          color: "var(--gray-900)"
+                          color: "var(--neutral-900)"
                         }}>
                           {renderValue(langName)}
                         </h4>
@@ -886,13 +882,12 @@ export default function JobStatus() {
                         }}>
                           {selfAssessed && (
                             <span style={{
-                              fontSize: "11px",
+                              fontSize: "var(--text-xs)",
                               fontWeight: 500,
                               padding: "3px 8px",
-                              background: "var(--gray-100)",
-                              color: "var(--gray-700)",
-                              border: "1px solid var(--gray-300)",
-                              borderRadius: "10px",
+                              background: "var(--neutral-100)",
+                              color: "var(--neutral-700)",
+                              borderRadius: "var(--radius-lg)",
                               textTransform: "uppercase",
                               letterSpacing: "0.3px"
                             }}>
@@ -901,12 +896,12 @@ export default function JobStatus() {
                           )}
                           {cefr && (
                             <span style={{
-                              fontSize: "11px",
+                              fontSize: "var(--text-xs)",
                               fontWeight: 600,
                               padding: "3px 8px",
-                              background: "#10b981",
+                              background: "var(--accent3-500)",
                               color: "white",
-                              borderRadius: "10px",
+                              borderRadius: "var(--radius-lg)",
                               textTransform: "uppercase",
                               letterSpacing: "0.3px"
                             }}>
@@ -915,13 +910,12 @@ export default function JobStatus() {
                           )}
                           {!cefr && !selfAssessed && level && (
                             <span style={{
-                              fontSize: "11px",
+                              fontSize: "var(--text-xs)",
                               fontWeight: 500,
                               padding: "3px 8px",
-                              background: "var(--gray-100)",
-                              color: "var(--gray-700)",
-                              border: "1px solid var(--gray-300)",
-                              borderRadius: "10px"
+                              background: "var(--neutral-100)",
+                              color: "var(--neutral-700)",
+                              borderRadius: "var(--radius-lg)"
                             }}>
                               {level}
                             </span>
@@ -941,19 +935,18 @@ export default function JobStatus() {
                     key={idx}
                     style={{
                       padding: "14px",
-                      background: "var(--white)",
-                      border: "1px solid var(--gray-200)",
+                      background: "var(--neutral-50)",
                       borderRadius: "var(--radius-sm)",
-                      borderLeft: "3px solid var(--purple-600)"
+                      borderLeft: "3px solid var(--primary-600)"
                     }}
                   >
                     <div className="flex justify-between items-start" style={{ marginBottom: cert.issue_org ? "6px" : "0" }}>
                       <div style={{ flex: 1 }}>
                         <h4 style={{
-                          fontSize: "15px",
+                          fontSize: "var(--text-base)",
                           fontWeight: 600,
                           margin: 0,
-                          color: "var(--gray-900)"
+                          color: "var(--neutral-900)"
                         }}>
                           {cert.certificate_link ? (
                             <a
@@ -961,7 +954,7 @@ export default function JobStatus() {
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
-                                color: "var(--gray-900)",
+                                color: "var(--neutral-900)",
                                 textDecoration: "none"
                               }}
                               onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
@@ -981,8 +974,8 @@ export default function JobStatus() {
                       </div>
                       {cert.issue_year && (
                         <span style={{
-                          fontSize: "13px",
-                          color: "var(--gray-600)",
+                          fontSize: "var(--text-sm)",
+                          color: "var(--neutral-600)",
                           fontWeight: 500,
                           marginLeft: "12px",
                           flexShrink: 0
@@ -993,8 +986,8 @@ export default function JobStatus() {
                     </div>
                     {cert.issue_org && (
                       <div style={{
-                        fontSize: "12px",
-                        color: "var(--gray-600)",
+                        fontSize: "var(--text-xs)",
+                        color: "var(--neutral-600)",
                         fontWeight: 500
                       }}>
                         {renderValue(cert.issue_org)}
@@ -1012,27 +1005,26 @@ export default function JobStatus() {
                     key={idx}
                     style={{
                       padding: "14px",
-                      background: "var(--white)",
-                      border: "1px solid var(--gray-200)",
+                      background: "var(--neutral-50)",
                       borderRadius: "var(--radius-sm)",
-                      borderLeft: "3px solid var(--orange-600)"
+                      borderLeft: "3px solid var(--accent1-600)"
                     }}
                   >
                     <div className="flex justify-between items-start" style={{ marginBottom: (award.issuer || award.organization || award.description) ? "6px" : "0" }}>
                       <div style={{ flex: 1 }}>
                         <h4 style={{
-                          fontSize: "15px",
+                          fontSize: "var(--text-base)",
                           fontWeight: 600,
                           margin: 0,
-                          color: "var(--gray-900)"
+                          color: "var(--neutral-900)"
                         }}>
                           {renderValue(award.name || award.title)}
                         </h4>
                       </div>
                       {(award.year || award.date) && (
                         <span style={{
-                          fontSize: "13px",
-                          color: "var(--gray-600)",
+                          fontSize: "var(--text-sm)",
+                          color: "var(--neutral-600)",
                           fontWeight: 500,
                           marginLeft: "12px",
                           flexShrink: 0
@@ -1043,8 +1035,8 @@ export default function JobStatus() {
                     </div>
                     {(award.issuer || award.organization) && (
                       <div style={{
-                        fontSize: "12px",
-                        color: "var(--gray-600)",
+                        fontSize: "var(--text-xs)",
+                        color: "var(--neutral-600)",
                         fontWeight: 500,
                         marginBottom: award.description ? "6px" : "0"
                       }}>
@@ -1053,8 +1045,8 @@ export default function JobStatus() {
                     )}
                     {award.description && (
                       <div style={{
-                        fontSize: "13px",
-                        color: "var(--gray-700)",
+                        fontSize: "var(--text-sm)",
+                        color: "var(--neutral-700)",
                         lineHeight: 1.5
                       }}>
                         {renderValue(award.description)}
@@ -1072,19 +1064,18 @@ export default function JobStatus() {
                     key={idx}
                     style={{
                       padding: "14px",
-                      background: "var(--white)",
-                      border: "1px solid var(--gray-200)",
+                      background: "var(--neutral-50)",
                       borderRadius: "var(--radius-sm)",
-                      borderLeft: "3px solid var(--blue-600)"
+                      borderLeft: "3px solid var(--primary-600)"
                     }}
                   >
                     <div className="flex justify-between items-start" style={{ marginBottom: "8px" }}>
                       <div style={{ flex: 1 }}>
                         <h4 style={{
-                          fontSize: "15px",
+                          fontSize: "var(--text-base)",
                           fontWeight: 600,
                           margin: 0,
-                          color: "var(--gray-900)"
+                          color: "var(--neutral-900)"
                         }}>
                           {pub.url ? (
                             <a
@@ -1092,7 +1083,7 @@ export default function JobStatus() {
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
-                                color: "var(--gray-900)",
+                                color: "var(--neutral-900)",
                                 textDecoration: "none"
                               }}
                               onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
@@ -1118,13 +1109,13 @@ export default function JobStatus() {
                         }}>
                           {pub.publication_type && (
                             <span style={{
-                              fontSize: "11px",
+                              fontSize: "var(--text-xs)",
                               fontWeight: 600,
                               padding: "3px 8px",
-                              background: "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)",
-                              color: "#1e40af",
-                              border: "1px solid #3b82f640",
-                              borderRadius: "12px",
+                              background: "linear-gradient(135deg, var(--primary-100) 0%, var(--primary-200) 100%)",
+                              color: "var(--primary-800)",
+                              border: "1px solid rgba(var(--primary-500-rgb), 0.25)",
+                              borderRadius: "var(--radius-lg)",
                               textTransform: "capitalize"
                             }}>
                               {renderValue(pub.publication_type).replace(/_/g, ' ')}
@@ -1132,8 +1123,8 @@ export default function JobStatus() {
                           )}
                           {pub.year && (
                             <span style={{
-                              fontSize: "12px",
-                              color: "var(--gray-600)",
+                              fontSize: "var(--text-xs)",
+                              color: "var(--neutral-600)",
                               fontWeight: 500
                             }}>
                               {pub.year}
@@ -1141,8 +1132,8 @@ export default function JobStatus() {
                           )}
                           {pub.venue && (
                             <span style={{
-                              fontSize: "12px",
-                              color: "var(--gray-600)",
+                              fontSize: "var(--text-xs)",
+                              color: "var(--neutral-600)",
                               fontStyle: "italic"
                             }}>
                               {renderValue(pub.venue)}
@@ -1151,8 +1142,8 @@ export default function JobStatus() {
                         </div>
                         {pub.description && (
                           <div style={{
-                            fontSize: "13px",
-                            color: "var(--gray-600)",
+                            fontSize: "var(--text-sm)",
+                            color: "var(--neutral-600)",
                             marginTop: "8px",
                             lineHeight: 1.5
                           }}>
@@ -1161,8 +1152,8 @@ export default function JobStatus() {
                         )}
                         {pub.doi && (
                           <div style={{
-                            fontSize: "12px",
-                            color: "var(--gray-500)",
+                            fontSize: "var(--text-xs)",
+                            color: "var(--neutral-500)",
                             marginTop: "6px",
                             fontFamily: "var(--font-mono)"
                           }}>
@@ -1183,18 +1174,17 @@ export default function JobStatus() {
                     key={idx}
                     style={{
                       padding: "14px",
-                      background: "var(--white)",
-                      border: "1px solid var(--gray-200)",
+                      background: "var(--neutral-50)",
                       borderRadius: "var(--radius-sm)",
-                      borderLeft: "3px solid var(--indigo-600)"
+                      borderLeft: "3px solid var(--primary-600)"
                     }}
                   >
                     <div className="flex justify-between items-start" style={{ marginBottom: "4px" }}>
                       <h4 style={{
-                        fontSize: "15px",
+                        fontSize: "var(--text-base)",
                         fontWeight: 600,
                         margin: 0,
-                        color: "var(--gray-900)"
+                        color: "var(--neutral-900)"
                       }}>
                         {course.course_url ? (
                           <a
@@ -1202,7 +1192,7 @@ export default function JobStatus() {
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
-                              color: "var(--gray-900)",
+                              color: "var(--neutral-900)",
                               textDecoration: "none"
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.textDecoration = "underline"}
@@ -1221,9 +1211,9 @@ export default function JobStatus() {
                       </h4>
                       {course.year && (
                         <span style={{
-                          fontSize: "12px",
+                          fontSize: "var(--text-xs)",
                           fontWeight: 600,
-                          color: "var(--gray-500)",
+                          color: "var(--neutral-500)",
                           whiteSpace: "nowrap",
                           marginLeft: "12px"
                         }}>
@@ -1233,8 +1223,8 @@ export default function JobStatus() {
                     </div>
                     {course.organization && (
                       <div style={{
-                        fontSize: "13px",
-                        color: "var(--gray-600)",
+                        fontSize: "var(--text-sm)",
+                        color: "var(--neutral-600)",
                         fontWeight: 500,
                         marginTop: "6px"
                       }}>
@@ -1251,8 +1241,8 @@ export default function JobStatus() {
                           alignItems: "center",
                           gap: "4px",
                           marginTop: "8px",
-                          fontSize: "12px",
-                          color: "var(--indigo-600)",
+                          fontSize: "var(--text-xs)",
+                          color: "var(--primary-600)",
                           textDecoration: "none",
                           fontWeight: 500
                         }}
@@ -1279,15 +1269,15 @@ export default function JobStatus() {
                     top: "4px",
                     right: "4px",
                     padding: "4px",
-                    fontSize: "11px",
+                    fontSize: "var(--text-xs)",
                     display: "flex",
                     alignItems: "center",
                     gap: "4px",
-                    background: copiedButtons.has(`section-${key}`) ? "var(--green-50)" : "var(--white)",
-                    border: `1px solid ${copiedButtons.has(`section-${key}`) ? "var(--green-300)" : "var(--gray-300)"}`,
+                    background: copiedButtons.has(`section-${key}`) ? "var(--accent3-50)" : "var(--neutral-0)",
+                    border: `1px solid ${copiedButtons.has(`section-${key}`) ? "var(--accent3-300)" : "var(--neutral-300)"}`,
                     zIndex: 1,
                     transition: "all 0.3s ease",
-                    color: copiedButtons.has(`section-${key}`) ? "var(--green-600)" : "inherit"
+                    color: copiedButtons.has(`section-${key}`) ? "var(--accent3-600)" : "inherit"
                   }}
                   title={copiedButtons.has(`section-${key}`) ? "Copied!" : "Copy to clipboard"}
                 >
@@ -1352,9 +1342,9 @@ export default function JobStatus() {
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: "var(--radius-full)",
-                background: job.status === "completed" ? "rgba(16, 185, 129, 0.1)" :
-                           job.status === "processing" ? "rgba(59, 130, 246, 0.1)" :
-                           job.status === "failed" ? "rgba(239, 68, 68, 0.1)" : "var(--gray-100)"
+                background: job.status === "completed" ? "rgba(var(--accent3-500-rgb), 0.1)" :
+                           job.status === "processing" ? "rgba(var(--primary-500-rgb), 0.1)" :
+                           job.status === "failed" ? "rgba(var(--accent2-500-rgb), 0.1)" : "var(--neutral-100)"
               }}>
                 {getStatusIcon(job.status)}
               </div>
@@ -1380,10 +1370,10 @@ export default function JobStatus() {
                       alignItems: "center",
                       justifyContent: "center",
                       transition: "background var(--transition-fast)",
-                      color: "var(--gray-600)"
+                      color: "var(--neutral-600)"
                     }}
                     title={copiedButtons.has("resume-id") ? "Copied!" : `Resume ID: ${job.uid}`}
-                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-100)"}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--neutral-100)"}
                     onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                   >
                     {copiedButtons.has("resume-id") ? (
@@ -1406,9 +1396,9 @@ export default function JobStatus() {
                     }}
                     style={{
                       padding: "8px",
-                      background: "white",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "6px",
+                      background: "var(--neutral-100)",
+                      borderRadius: "var(--radius-lg)",
+                      border: "none",
                       cursor: "pointer",
                       transition: "all 0.2s ease",
                       display: "flex",
@@ -1418,9 +1408,9 @@ export default function JobStatus() {
                     }}
                   >
                     {copiedButtons.has("copy-link") ? (
-                      <Check size={16} style={{ color: "#10b981" }} />
+                      <Check size={16} style={{ color: "var(--accent3-500)" }} />
                     ) : (
-                      <Copy size={16} style={{ color: "#374151" }} />
+                      <Copy size={16} style={{ color: "var(--neutral-700)" }} />
                     )}
                   </button>
                 </Tooltip>
@@ -1431,9 +1421,8 @@ export default function JobStatus() {
                     rel="noopener noreferrer"
                     style={{
                       padding: "8px",
-                      background: "white",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "6px",
+                      background: "var(--neutral-100)",
+                      borderRadius: "var(--radius-lg)",
                       cursor: "pointer",
                       textDecoration: "none",
                       display: "flex",
@@ -1441,7 +1430,7 @@ export default function JobStatus() {
                       justifyContent: "center"
                     }}
                   >
-                    <Code2 size={16} strokeWidth={2} style={{ color: "#374151" }} />
+                    <Code2 size={16} strokeWidth={2} style={{ color: "var(--neutral-700)" }} />
                   </a>
                 </Tooltip>
                 {result?.review && (
@@ -1449,12 +1438,12 @@ export default function JobStatus() {
                     to={`/resumes/${job.uid}/review`}
                     style={{
                       padding: "6px 12px",
-                      fontSize: "14px",
+                      fontSize: "var(--text-sm)",
                       fontWeight: "600",
-                      background: "#9333ea",
-                      border: "1px solid #9333ea",
-                      borderRadius: "6px",
-                      color: "#ffffff",
+                      background: "var(--primary-600)",
+                      border: "1px solid var(--primary-600)",
+                      borderRadius: "var(--radius-lg)",
+                      color: "var(--neutral-0)",
                       textDecoration: "none",
                       display: "inline-flex",
                       alignItems: "center",
@@ -1465,15 +1454,15 @@ export default function JobStatus() {
                     }}
                     title="View AI Resume Review"
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#7e22ce";
-                      e.currentTarget.style.borderColor = "#7e22ce";
+                      e.currentTarget.style.background = "var(--primary-800)";
+                      e.currentTarget.style.borderColor = "var(--primary-800)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "#9333ea";
-                      e.currentTarget.style.borderColor = "#9333ea";
+                      e.currentTarget.style.background = "var(--primary-600)";
+                      e.currentTarget.style.borderColor = "var(--primary-600)";
                     }}
                   >
-                    <FileText size={14} strokeWidth={2} style={{ color: "#ffffff" }} />
+                    <FileText size={14} strokeWidth={2} style={{ color: "var(--neutral-0)" }} />
                     AI Review
                   </Link>
                 )}
@@ -1484,7 +1473,7 @@ export default function JobStatus() {
           {job.status === "processing" && (
             <div style={{
               padding: "var(--space-2)",
-              background: "var(--blue-50)",
+              background: "var(--primary-50)",
               borderRadius: "var(--radius-sm)",
               marginBottom: "var(--space-2)"
             }}>
@@ -1494,14 +1483,14 @@ export default function JobStatus() {
               </div>
               <div style={{
                 height: "6px",
-                background: "var(--gray-200)",
+                background: "var(--neutral-200)",
                 borderRadius: "var(--radius-full)",
                 overflow: "hidden"
               }}>
                 <div style={{
                   height: "100%",
                   width: "40%",
-                  background: "var(--blue-600)",
+                  background: "var(--primary-600)",
                   borderRadius: "var(--radius-full)",
                   animation: "progress 2s ease-in-out infinite"
                 }}></div>
@@ -1517,7 +1506,6 @@ export default function JobStatus() {
 
           <div className="flex gap-4" style={{
             paddingTop: "var(--space-2)",
-            borderTop: "1px solid var(--gray-100)",
             marginTop: job.status === "processing" ? 0 : "var(--space-2)",
             flexWrap: "wrap",
             alignItems: "center"
@@ -1544,10 +1532,10 @@ export default function JobStatus() {
                       alignItems: "center",
                       gap: "4px",
                       fontSize: "var(--text-sm)",
-                      color: "var(--gray-700)",
+                      color: "var(--neutral-700)",
                       cursor: "help"
                     }}>
-                      <FileText size={14} style={{ color: "var(--blue-600)" }} strokeWidth={2} />
+                      <FileText size={14} style={{ color: "var(--primary-600)" }} strokeWidth={2} />
                       <span>{result.metadata.page_count}</span>
                     </span>
                   </Tooltip>
@@ -1556,7 +1544,7 @@ export default function JobStatus() {
                   <span style={{ cursor: "help", display: "inline-flex", alignItems: "center" }}>
                     <Network
                       size={14}
-                      style={{ color: result.metadata.graph_stored ? "#10b981" : "#ef4444" }}
+                      style={{ color: result.metadata.graph_stored ? "var(--accent3-500)" : "var(--accent2-500)" }}
                       strokeWidth={2}
                     />
                   </span>
@@ -1565,7 +1553,7 @@ export default function JobStatus() {
                   <span style={{ cursor: "help", display: "inline-flex", alignItems: "center" }}>
                     <Database
                       size={14}
-                      style={{ color: result.metadata.vector_stored ? "#10b981" : "#ef4444" }}
+                      style={{ color: result.metadata.vector_stored ? "var(--accent3-500)" : "var(--accent2-500)" }}
                       strokeWidth={2}
                     />
                   </span>
@@ -1615,15 +1603,15 @@ export default function JobStatus() {
                       top: "var(--space-2)",
                       right: "var(--space-2)",
                       padding: "6px",
-                      fontSize: "12px",
+                      fontSize: "var(--text-xs)",
                       display: "flex",
                       alignItems: "center",
                       gap: "6px",
-                      background: copiedButtons.has("metadata-json") ? "var(--green-50)" : "var(--white)",
-                      border: `1px solid ${copiedButtons.has("metadata-json") ? "var(--green-300)" : "var(--gray-300)"}`,
+                      background: copiedButtons.has("metadata-json") ? "var(--accent3-50)" : "var(--neutral-0)",
+                      border: `1px solid ${copiedButtons.has("metadata-json") ? "var(--accent3-300)" : "var(--neutral-300)"}`,
                       zIndex: 1,
                       transition: "all 0.3s ease",
-                      color: copiedButtons.has("metadata-json") ? "var(--green-600)" : "inherit"
+                      color: copiedButtons.has("metadata-json") ? "var(--accent3-600)" : "inherit"
                     }}
                     title={copiedButtons.has("metadata-json") ? "Copied!" : "Copy metadata to clipboard"}
                   >
@@ -1649,15 +1637,15 @@ export default function JobStatus() {
                       top: "var(--space-2)",
                       right: "var(--space-2)",
                       padding: "6px",
-                      fontSize: "12px",
+                      fontSize: "var(--text-xs)",
                       display: "flex",
                       alignItems: "center",
                       gap: "6px",
-                      background: copiedButtons.has("main-json") ? "var(--green-50)" : "var(--white)",
-                      border: `1px solid ${copiedButtons.has("main-json") ? "var(--green-300)" : "var(--gray-300)"}`,
+                      background: copiedButtons.has("main-json") ? "var(--accent3-50)" : "var(--neutral-0)",
+                      border: `1px solid ${copiedButtons.has("main-json") ? "var(--accent3-300)" : "var(--neutral-300)"}`,
                       zIndex: 1,
                       transition: "all 0.3s ease",
-                      color: copiedButtons.has("main-json") ? "var(--green-600)" : "inherit"
+                      color: copiedButtons.has("main-json") ? "var(--accent3-600)" : "inherit"
                     }}
                     title={copiedButtons.has("main-json") ? "Copied!" : "Copy JSON to clipboard"}
                   >
@@ -1717,7 +1705,7 @@ export default function JobStatus() {
                         return (
                           <>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-2)" }}>
-                              <h3 className="title" style={{ margin: 0, fontSize: "var(--text-sm)", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--gray-600)", fontWeight: 600 }}>Personal Information</h3>
+                              <h3 className="title" style={{ margin: 0, fontSize: "var(--text-sm)", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--neutral-600)", fontWeight: 600 }}>Personal Information</h3>
                               {resumeLang && (
                                 <Tooltip text={`Resume Language: ${renderValue(resumeLang)}`}>
                                   <span style={{
@@ -1725,12 +1713,12 @@ export default function JobStatus() {
                                     alignItems: "center",
                                     gap: "4px",
                                     padding: "2px 8px",
-                                    background: "var(--blue-50)",
-                                    border: "1px solid var(--blue-200)",
+                                    background: "var(--primary-50)",
+                                    border: "1px solid var(--primary-200)",
                                     borderRadius: "var(--radius-full)",
-                                    fontSize: "10px",
+                                    fontSize: "var(--text-xs)",
                                     fontWeight: 600,
-                                    color: "var(--blue-700)",
+                                    color: "var(--primary-700)",
                                     textTransform: "uppercase",
                                     letterSpacing: "0.02em",
                                     cursor: "help"
@@ -1749,8 +1737,8 @@ export default function JobStatus() {
                                   {renderValue(personal.name) || "—"}
                                 </h4>
                                 {personal.location && (
-                                  <span style={{ fontSize: "var(--text-xs)", color: "var(--gray-600)", display: "flex", alignItems: "center", gap: "4px" }}>
-                                    <MapPin size={12} style={{ color: "var(--gray-500)", flexShrink: 0 }} />
+                                  <span style={{ fontSize: "var(--text-xs)", color: "var(--neutral-600)", display: "flex", alignItems: "center", gap: "4px" }}>
+                                    <MapPin size={12} style={{ color: "var(--neutral-500)", flexShrink: 0 }} />
                                     {renderValue(personal.location)}
                                   </span>
                                 )}
@@ -1760,7 +1748,7 @@ export default function JobStatus() {
                               {personal.email && (
                                 <a href={`mailto:${renderValue(personal.email)}`} style={{
                                   fontSize: "var(--text-sm)",
-                                  color: "var(--blue-600)",
+                                  color: "var(--primary-600)",
                                   textDecoration: "none",
                                   display: "flex",
                                   alignItems: "center",
@@ -1769,7 +1757,7 @@ export default function JobStatus() {
                                   borderRadius: "var(--radius-sm)",
                                   transition: "background 0.2s"
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = "var(--blue-50)"}
+                                onMouseEnter={(e) => e.currentTarget.style.background = "var(--primary-50)"}
                                 onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
                                   <Mail size={16} strokeWidth={2} style={{ flexShrink: 0 }} />
                                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1781,7 +1769,7 @@ export default function JobStatus() {
                               {personal.phone && (
                                 <a href={`tel:${renderValue(personal.phone)}`} style={{
                                   fontSize: "var(--text-sm)",
-                                  color: "var(--blue-600)",
+                                  color: "var(--primary-600)",
                                   textDecoration: "none",
                                   display: "flex",
                                   alignItems: "center",
@@ -1790,7 +1778,7 @@ export default function JobStatus() {
                                   borderRadius: "var(--radius-sm)",
                                   transition: "background 0.2s"
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = "var(--blue-50)"}
+                                onMouseEnter={(e) => e.currentTarget.style.background = "var(--primary-50)"}
                                 onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
                                   <Phone size={16} strokeWidth={2} style={{ flexShrink: 0 }} />
                                   {renderValue(personal.phone)}
@@ -1802,8 +1790,7 @@ export default function JobStatus() {
                               <div style={{
                                 display: "flex",
                                 gap: "8px",
-                                paddingTop: "var(--space-2)",
-                                borderTop: "1px solid var(--gray-200)"
+                                paddingTop: "var(--space-2)"
                               }}>
                                 {personal.linkedin && (
                                   <a
@@ -1813,22 +1800,22 @@ export default function JobStatus() {
                                     title="LinkedIn"
                                     style={{
                                       padding: "8px",
-                                      background: "var(--gray-100)",
+                                      background: "var(--neutral-100)",
                                       borderRadius: "var(--radius-sm)",
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
                                       transition: "all 0.2s",
                                       cursor: "pointer",
-                                      color: "var(--gray-700)"
+                                      color: "var(--neutral-700)"
                                     }}
                                     onMouseEnter={(e) => {
-                                      e.currentTarget.style.background = "var(--blue-600)";
+                                      e.currentTarget.style.background = "var(--primary-600)";
                                       e.currentTarget.style.color = "white";
                                     }}
                                     onMouseLeave={(e) => {
-                                      e.currentTarget.style.background = "var(--gray-100)";
-                                      e.currentTarget.style.color = "var(--gray-700)";
+                                      e.currentTarget.style.background = "var(--neutral-100)";
+                                      e.currentTarget.style.color = "var(--neutral-700)";
                                     }}
                                   >
                                     <Linkedin size={16} />
@@ -1842,22 +1829,22 @@ export default function JobStatus() {
                                     title="GitHub"
                                     style={{
                                       padding: "8px",
-                                      background: "var(--gray-100)",
+                                      background: "var(--neutral-100)",
                                       borderRadius: "var(--radius-sm)",
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
                                       transition: "all 0.2s",
                                       cursor: "pointer",
-                                      color: "var(--gray-700)"
+                                      color: "var(--neutral-700)"
                                     }}
                                     onMouseEnter={(e) => {
-                                      e.currentTarget.style.background = "var(--gray-900)";
+                                      e.currentTarget.style.background = "var(--neutral-900)";
                                       e.currentTarget.style.color = "white";
                                     }}
                                     onMouseLeave={(e) => {
-                                      e.currentTarget.style.background = "var(--gray-100)";
-                                      e.currentTarget.style.color = "var(--gray-700)";
+                                      e.currentTarget.style.background = "var(--neutral-100)";
+                                      e.currentTarget.style.color = "var(--neutral-700)";
                                     }}
                                   >
                                     <Github size={16} />
@@ -1871,22 +1858,22 @@ export default function JobStatus() {
                                     title="Website"
                                     style={{
                                       padding: "8px",
-                                      background: "var(--gray-100)",
+                                      background: "var(--neutral-100)",
                                       borderRadius: "var(--radius-sm)",
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
                                       transition: "all 0.2s",
                                       cursor: "pointer",
-                                      color: "var(--gray-700)"
+                                      color: "var(--neutral-700)"
                                     }}
                                     onMouseEnter={(e) => {
-                                      e.currentTarget.style.background = "var(--purple-600)";
+                                      e.currentTarget.style.background = "var(--primary-600)";
                                       e.currentTarget.style.color = "white";
                                     }}
                                     onMouseLeave={(e) => {
-                                      e.currentTarget.style.background = "var(--gray-100)";
-                                      e.currentTarget.style.color = "var(--gray-700)";
+                                      e.currentTarget.style.background = "var(--neutral-100)";
+                                      e.currentTarget.style.color = "var(--neutral-700)";
                                     }}
                                   >
                                     <Globe size={16} />
@@ -1898,13 +1885,12 @@ export default function JobStatus() {
                             {workAuth && (workAuth.citizenship || workAuth.work_permit !== null || workAuth.visa_sponsorship_required !== null) && (
                               <div style={{
                                 paddingTop: "var(--space-2)",
-                                borderTop: "1px solid var(--gray-200)",
                                 marginTop: "var(--space-2)"
                               }}>
                                 <div style={{
-                                  fontSize: "11px",
+                                  fontSize: "var(--text-xs)",
                                   fontWeight: 600,
-                                  color: "var(--gray-500)",
+                                  color: "var(--neutral-500)",
                                   textTransform: "uppercase",
                                   letterSpacing: "0.5px",
                                   marginBottom: "6px"
@@ -1921,10 +1907,10 @@ export default function JobStatus() {
                                       display: "flex",
                                       alignItems: "center",
                                       gap: "6px",
-                                      fontSize: "12px",
-                                      color: "var(--gray-700)"
+                                      fontSize: "var(--text-xs)",
+                                      color: "var(--neutral-700)"
                                     }}>
-                                      <Flag size={14} strokeWidth={2} style={{ color: "var(--gray-500)", flexShrink: 0 }} />
+                                      <Flag size={14} strokeWidth={2} style={{ color: "var(--neutral-500)", flexShrink: 0 }} />
                                       <span style={{ fontWeight: 500 }}>Citizenship:</span>
                                       <span>{renderValue(workAuth.citizenship)}</span>
                                     </div>
@@ -1934,13 +1920,13 @@ export default function JobStatus() {
                                       display: "flex",
                                       alignItems: "center",
                                       gap: "6px",
-                                      fontSize: "12px",
-                                      color: "var(--gray-700)"
+                                      fontSize: "var(--text-xs)",
+                                      color: "var(--neutral-700)"
                                     }}>
                                       {workAuth.work_permit ? (
-                                        <CheckCircle2 size={14} strokeWidth={2} style={{ color: "var(--green-600)", flexShrink: 0 }} />
+                                        <CheckCircle2 size={14} strokeWidth={2} style={{ color: "var(--accent3-600)", flexShrink: 0 }} />
                                       ) : (
-                                        <XCircle size={14} strokeWidth={2} style={{ color: "var(--gray-500)", flexShrink: 0 }} />
+                                        <XCircle size={14} strokeWidth={2} style={{ color: "var(--neutral-500)", flexShrink: 0 }} />
                                       )}
                                       <span style={{ fontWeight: 500 }}>Work Permit:</span>
                                       <span>{workAuth.work_permit ? "Yes" : "No"}</span>
@@ -1951,10 +1937,10 @@ export default function JobStatus() {
                                       display: "flex",
                                       alignItems: "center",
                                       gap: "6px",
-                                      fontSize: "12px",
-                                      color: "var(--gray-700)"
+                                      fontSize: "var(--text-xs)",
+                                      color: "var(--neutral-700)"
                                     }}>
-                                      <FileCheck size={14} strokeWidth={2} style={{ color: workAuth.visa_sponsorship_required ? "var(--orange-600)" : "var(--gray-500)", flexShrink: 0 }} />
+                                      <FileCheck size={14} strokeWidth={2} style={{ color: workAuth.visa_sponsorship_required ? "var(--accent1-600)" : "var(--neutral-500)", flexShrink: 0 }} />
                                       <span style={{ fontWeight: 500 }}>Visa Sponsorship:</span>
                                       <span>{workAuth.visa_sponsorship_required ? "Required" : "Not Required"}</span>
                                     </div>
@@ -1989,7 +1975,7 @@ export default function JobStatus() {
                             left: 0,
                             right: 0,
                             height: "40px",
-                            background: "linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95))",
+                            background: "linear-gradient(to bottom, rgba(var(--neutral-0-rgb), 0), rgba(var(--neutral-0-rgb), 0.95))",
                             pointerEvents: "none",
                             borderRadius: "0 0 var(--radius-sm) var(--radius-sm)",
                             opacity: isSkillsAtBottom ? 0 : 1,

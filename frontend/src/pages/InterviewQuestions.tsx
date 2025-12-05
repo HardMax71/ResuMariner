@@ -47,8 +47,8 @@ export default function InterviewQuestions() {
       technical_deep_dive: 'var(--primary-600)',
       behavioral: 'var(--accent1-600)',
       project_architecture: 'var(--accent2-600)',
-      problem_solving: '#10b981',
-      system_design: '#f59e0b'
+      problem_solving: 'var(--accent3-500)',
+      system_design: 'var(--accent1-500)'
     };
     return colors[category] || 'var(--neutral-600)';
   };
@@ -58,7 +58,7 @@ export default function InterviewQuestions() {
       junior: 'var(--accent1-600)',
       mid_level: 'var(--primary-600)',
       senior: 'var(--accent2-600)',
-      staff_plus: '#6366f1'
+      staff_plus: 'var(--primary-500)'
     };
     return colors[level] || 'var(--neutral-600)';
   };
@@ -94,14 +94,14 @@ export default function InterviewQuestions() {
                       onClick={() => setInterviewType(type)}
                       style={{
                         flex: '1 1 auto',
-                        minWidth: 'min(120px, 30%)',
+                        minWidth: 'min(7.5rem, 30%)',
                         textTransform: 'capitalize',
                         backgroundColor: interviewType === type ? 'var(--primary-600)' : 'transparent',
                         color: interviewType === type ? 'white' : 'var(--neutral-700)',
                         border: `1.5px solid ${interviewType === type ? 'var(--primary-600)' : 'var(--neutral-300)'}`,
                         fontWeight: interviewType === type ? '700' : '600',
-                        padding: 'clamp(8px, 2vw, 12px) clamp(12px, 3vw, 16px)',
-                        fontSize: 'clamp(13px, 3vw, 14px)',
+                        padding: 'clamp(0.5rem, 2vw, 0.75rem) clamp(0.75rem, 3vw, 1rem)',
+                        fontSize: 'clamp(var(--text-xs), 3vw, var(--text-sm))',
                         whiteSpace: 'nowrap'
                       }}
                     >
@@ -165,7 +165,7 @@ export default function InterviewQuestions() {
           <FlexColumn gap="var(--space-4)">
             <GlassCard>
               <div className="flex align-center gap-2" style={{ marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: '700', margin: 0, color: 'var(--neutral-900)' }}>
+                <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: '700', margin: 0, color: 'var(--neutral-900)' }}>
                   {result.candidate_name}
                 </h2>
                 <Badge
@@ -178,12 +178,12 @@ export default function InterviewQuestions() {
                   {result.seniority_level.replace('_', ' ')}
                 </Badge>
                 <Badge variant="primary">
-                  <Clock size={14} style={{ marginRight: '4px' }} />
+                  <Clock size={14} style={{ marginRight: 'calc(var(--space-1) / 2)' }} />
                   ~{result.recommended_duration_minutes} min
                 </Badge>
                 <Badge>{result.questions.length} questions</Badge>
               </div>
-              <p style={{ fontSize: '14px', color: 'var(--neutral-700)', marginBottom: 'var(--space-3)' }}>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--neutral-700)', marginBottom: 'var(--space-3)' }}>
                 {result.candidate_summary}
               </p>
               {result.focus_areas.length > 0 && (
@@ -215,9 +215,9 @@ export default function InterviewQuestions() {
               <GlassCard style={{ background: 'var(--primary-50)', border: '1px solid var(--primary-200)' }}>
                 <div className="flex align-center gap-2" style={{ marginBottom: 'var(--space-2)' }}>
                   <MessageCircle size={18} color="var(--primary-600)" />
-                  <h3 style={{ fontSize: '15px', fontWeight: '700' }}>Preparation Notes</h3>
+                  <h3 style={{ fontSize: 'var(--text-base)', fontWeight: '700' }}>Preparation Notes</h3>
                 </div>
-                <p style={{ fontSize: '14px', color: 'var(--neutral-700)' }}>{result.preparation_notes}</p>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--neutral-700)' }}>{result.preparation_notes}</p>
               </GlassCard>
             )}
 
@@ -227,19 +227,19 @@ export default function InterviewQuestions() {
                   <CollapsibleSection
                     title={
                       <div className="flex align-center gap-2" style={{ flex: 1, flexWrap: 'wrap' }}>
-                        <span style={{ flex: '1 1 auto', minWidth: '200px' }}>{q.question}</span>
+                        <span style={{ flex: '1 1 auto', minWidth: '50%' }}>{q.question}</span>
                         <div style={{ display: 'flex', gap: 'var(--space-1)', alignItems: 'center', flexShrink: 0 }}>
                           <Badge
                             style={{
                               backgroundColor: getCategoryColor(q.category),
                               color: 'white',
-                              fontSize: '11px',
+                              fontSize: 'var(--text-xs)',
                               whiteSpace: 'nowrap'
                             }}
                           >
                             {q.category.replace(/_/g, ' ')}
                           </Badge>
-                          <Badge variant="primary" style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>
+                          <Badge variant="primary" style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>
                             {q.time_estimate_minutes}min
                           </Badge>
                         </div>
@@ -247,8 +247,7 @@ export default function InterviewQuestions() {
                     }
                     defaultOpen={idx === 0}
                     headerStyle={{
-                      padding: 'var(--space-3)',
-                      borderBottom: '1px solid var(--neutral-200)'
+                      padding: 'var(--space-3)'
                     }}
                     containerStyle={{
                       background: 'transparent'
@@ -256,7 +255,7 @@ export default function InterviewQuestions() {
                   >
                     <div style={{ padding: 'var(--space-3)' }}>
                       <FlexColumn gap="var(--space-2)">
-                        <div style={{ fontSize: '14px', lineHeight: '1.5' }}>
+                        <div style={{ fontSize: 'var(--text-sm)', lineHeight: '1.5' }}>
                           <span className="muted small">Assesses:</span> <span style={{ color: 'var(--neutral-700)' }}>{q.assesses}</span>
                         </div>
 
@@ -267,11 +266,10 @@ export default function InterviewQuestions() {
                           marginRight: 'calc(-1 * var(--space-3))',
                           padding: 'var(--space-1) var(--space-3)',
                           background: 'var(--neutral-50)',
-                          border: '1px solid var(--neutral-200)',
                           borderRadius: 'var(--radius-sm)'
                         }}
                       >
-                        <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: 'var(--space-1)' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: 'var(--space-1)' }}>
                           Follow-up Questions:
                         </div>
                         <FlexColumn gap="var(--space-1)">
@@ -279,7 +277,7 @@ export default function InterviewQuestions() {
                             <div
                               key={fidx}
                               style={{
-                                fontSize: '13px',
+                                fontSize: 'var(--text-sm)',
                                 color: 'var(--neutral-700)',
                                 lineHeight: '1.5'
                               }}
@@ -291,7 +289,7 @@ export default function InterviewQuestions() {
                       </div>
                     )}
 
-                        <div style={{ display: 'grid', gap: 'var(--space-2)', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+                        <div style={{ display: 'grid', gap: 'var(--space-2)', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 17rem), 1fr))' }}>
                           <div
                             style={{
                               padding: 'var(--space-2)',
@@ -300,15 +298,15 @@ export default function InterviewQuestions() {
                               borderRadius: 'var(--radius-sm)'
                             }}
                           >
-                            <div style={{ fontSize: '12px', lineHeight: '1.5', marginBottom: 'var(--space-1)' }}>
-                              <CheckCircle size={14} color="var(--accent1-600)" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                            <div style={{ fontSize: 'var(--text-xs)', lineHeight: '1.5', marginBottom: 'var(--space-1)' }}>
+                              <CheckCircle size={14} color="var(--accent1-600)" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 'calc(var(--space-1) / 2)' }} />
                               <span style={{ fontWeight: '700', color: 'var(--accent1-700)' }}>
                                 Good Answer Indicators
                               </span>
                             </div>
                             <FlexColumn gap="var(--space-1)">
                               {q.good_answer_indicators.map((indicator, iidx) => (
-                                <div key={iidx} style={{ fontSize: '12px', color: 'var(--neutral-700)' }}>
+                                <div key={iidx} style={{ fontSize: 'var(--text-xs)', color: 'var(--neutral-700)' }}>
                                   • {indicator}
                                 </div>
                               ))}
@@ -323,15 +321,15 @@ export default function InterviewQuestions() {
                               borderRadius: 'var(--radius-sm)'
                             }}
                           >
-                            <div style={{ fontSize: '12px', lineHeight: '1.5', marginBottom: 'var(--space-1)' }}>
-                              <XCircle size={14} color="var(--accent2-600)" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                            <div style={{ fontSize: 'var(--text-xs)', lineHeight: '1.5', marginBottom: 'var(--space-1)' }}>
+                              <XCircle size={14} color="var(--accent2-600)" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 'calc(var(--space-1) / 2)' }} />
                               <span style={{ fontWeight: '700', color: 'var(--accent2-700)' }}>
                                 Red Flags
                               </span>
                             </div>
                             <FlexColumn gap="var(--space-1)">
                               {q.red_flags.map((flag, ridx) => (
-                                <div key={ridx} style={{ fontSize: '12px', color: 'var(--neutral-700)' }}>
+                                <div key={ridx} style={{ fontSize: 'var(--text-xs)', color: 'var(--neutral-700)' }}>
                                   • {flag}
                                 </div>
                               ))}

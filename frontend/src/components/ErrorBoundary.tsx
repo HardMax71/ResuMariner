@@ -7,19 +7,23 @@ const ErrorContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+  background: linear-gradient(135deg, var(--neutral-50) 0%, var(--neutral-200) 50%, var(--neutral-300) 100%);
   padding: var(--space-4);
 `;
 
 const ErrorCard = styled.div`
-  max-width: 600px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.98);
+  max-width: 90%;
+  background: rgba(var(--neutral-0-rgb), 0.98);
   backdrop-filter: blur(20px);
   border: 1px solid var(--accent2-200);
   border-radius: var(--radius-sm);
   padding: var(--space-6);
-  box-shadow: 0 8px 32px rgba(225, 29, 72, 0.12);
+  box-shadow: 0 8px 32px rgba(var(--accent2-600-rgb), 0.12);
+
+  @media (min-width: 768px) {
+    max-width: 50%;
+  }
 `;
 
 const ErrorIcon = styled.div`
@@ -56,7 +60,6 @@ const ErrorDetails = styled.details`
   margin-top: var(--space-3);
   padding: var(--space-3);
   background: var(--neutral-50);
-  border: 1px solid var(--neutral-200);
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -95,8 +98,8 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 24px;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: 600;
@@ -112,7 +115,7 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
     &:hover:not(:disabled) {
       background: var(--primary-700);
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+      box-shadow: 0 4px 12px rgba(var(--primary-600-rgb), 0.3);
     }
   ` : `
     background: white;

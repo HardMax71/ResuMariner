@@ -10,34 +10,34 @@ const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
 const PopupContainer = styled.div`
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--space-1) / 2);
   left: 0;
   z-index: 10;
   background: white;
-  border: 1px solid var(--gray-300);
+  border: 1px solid var(--neutral-300);
   border-radius: var(--radius-sm);
   padding: var(--space-1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: flex;
-  gap: 4px;
-  min-width: 200px;
+  gap: calc(var(--space-1) / 2);
+  min-width: 50%;
 `;
 
 const LevelButton = styled.button<{ selected?: boolean }>`
   flex: 1;
   padding: var(--space-1);
   font-size: var(--text-xs);
-  border: 1px solid ${props => props.selected ? 'var(--blue-600)' : 'var(--gray-300)'};
-  background: ${props => props.selected ? 'var(--blue-50)' : 'white'};
-  color: ${props => props.selected ? 'var(--blue-700)' : 'var(--gray-700)'};
+  border: 1px solid ${props => props.selected ? 'var(--primary-600)' : 'var(--neutral-300)'};
+  background: ${props => props.selected ? 'var(--primary-50)' : 'white'};
+  color: ${props => props.selected ? 'var(--primary-700)' : 'var(--neutral-700)'};
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: ${props => props.selected ? 600 : 400};
   transition: all var(--transition-fast);
 
   &:hover {
-    background: ${props => props.selected ? 'var(--blue-100)' : 'var(--gray-50)'};
-    border-color: ${props => props.selected ? 'var(--blue-700)' : 'var(--gray-400)'};
+    background: ${props => props.selected ? 'var(--primary-100)' : 'var(--neutral-50)'};
+    border-color: ${props => props.selected ? 'var(--primary-700)' : 'var(--neutral-400)'};
   }
 `;
 
@@ -106,7 +106,7 @@ export function LanguagesFilter({ languages, selectedLanguages, onChange }: Prop
                 style={{ fontSize: "var(--text-xs)" }}
               >
                 {selected ? `${langOption.language}: ${selected.min_cefr}+` : langOption.language}
-                <span style={{ opacity: 0.6, marginLeft: "4px" }}>
+                <span style={{ opacity: 0.6, marginLeft: "calc(var(--space-1) / 2)" }}>
                   {langOption.resume_count}
                 </span>
               </Chip>

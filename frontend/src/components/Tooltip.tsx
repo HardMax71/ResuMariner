@@ -15,9 +15,9 @@ const TooltipContent = styled.div<{ visible: boolean }>`
   padding: 6px 10px;
   background: rgba(0, 0, 0, 0.9);
   color: white;
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 500;
-  border-radius: 4px;
+  border-radius: var(--radius-lg);
   white-space: nowrap;
   pointer-events: none;
   opacity: ${props => props.visible ? 1 : 0};

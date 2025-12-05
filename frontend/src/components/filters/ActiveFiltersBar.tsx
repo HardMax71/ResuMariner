@@ -38,8 +38,7 @@ export function ActiveFiltersBar({
       className="flex items-center gap-2"
       style={{
         marginTop: "var(--space-2)",
-        padding: "var(--space-1) 0",
-        borderTop: "1px solid var(--gray-200)",
+        padding: "var(--space-1) 0"
       }}
     >
       <span className="small muted">Active filters:</span>

@@ -88,13 +88,7 @@ export default function Health() {
                 </FlexRow>
                 <FlexRow gap="var(--space-3)">
                   <span className="small muted" style={{ fontFamily: "var(--font-mono)" }}>{data.service}</span>
-                  <div style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    background: isHealthy ? "#22c55e" : "#ef4444",
-                    boxShadow: isHealthy ? "0 0 12px rgba(34, 197, 94, 0.5)" : "0 0 12px rgba(239, 68, 68, 0.5)"
-                  }} />
+                  <div className={`status-dot ${isHealthy ? "status-dot-success" : "status-dot-error"}`} />
                   <StatusBadge variant={isHealthy ? 'success' : 'error'}>
                     {data.status.toUpperCase()}
                   </StatusBadge>
