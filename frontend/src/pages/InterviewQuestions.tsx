@@ -247,8 +247,7 @@ export default function InterviewQuestions() {
                     }
                     defaultOpen={idx === 0}
                     headerStyle={{
-                      padding: 'var(--space-3)',
-                      borderBottom: '1px solid var(--neutral-200)'
+                      padding: 'var(--space-3)'
                     }}
                     containerStyle={{
                       background: 'transparent'
@@ -267,7 +266,6 @@ export default function InterviewQuestions() {
                           marginRight: 'calc(-1 * var(--space-3))',
                           padding: 'var(--space-1) var(--space-3)',
                           background: 'var(--neutral-50)',
-                          border: '1px solid var(--neutral-200)',
                           borderRadius: 'var(--radius-sm)'
                         }}
                       >

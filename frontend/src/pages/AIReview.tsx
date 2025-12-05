@@ -27,16 +27,16 @@ import PageHeader from "../components/PageHeader";
 
 const COLOR_PALETTES = {
   red: {
-    dark: { main: "var(--red-600)", text: "var(--red-800)", bg: "var(--red-200)", bgLight: "rgba(var(--red-500-rgb), 0.15)", border: "var(--red-300)" },
-    medium: { main: "var(--red-500)", text: "var(--accent2-700)", bg: "var(--accent2-100)", bgLight: "rgba(var(--red-500-rgb), 0.1)", border: "var(--accent2-200)" },
-    light: { main: "var(--red-400)", text: "var(--red-600)", bg: "var(--accent2-100)", bgLight: "rgba(var(--red-500-rgb), 0.08)", border: "var(--red-200)" }
+    dark: { main: "var(--accent2-600)", text: "var(--accent2-800)", bg: "var(--accent2-200)", bgLight: "rgba(var(--accent2-500-rgb), 0.15)", border: "var(--accent2-300)" },
+    medium: { main: "var(--accent2-500)", text: "var(--accent2-700)", bg: "var(--accent2-100)", bgLight: "rgba(var(--accent2-500-rgb), 0.1)", border: "var(--accent2-200)" },
+    light: { main: "var(--accent2-400)", text: "var(--accent2-600)", bg: "var(--accent2-100)", bgLight: "rgba(var(--accent2-500-rgb), 0.08)", border: "var(--accent2-200)" }
   },
   orange: {
-    dark: { main: "var(--orange-600)", text: "var(--orange-800)", bg: "var(--orange-200)", bgLight: "rgba(var(--accent1-500-rgb), 0.15)", border: "var(--orange-300)" },
-    light: { main: "var(--orange-500)", text: "var(--accent1-700)", bg: "var(--orange-100)", bgLight: "rgba(var(--accent1-500-rgb), 0.1)", border: "var(--orange-200)" }
+    dark: { main: "var(--accent1-600)", text: "var(--accent1-800)", bg: "var(--accent1-200)", bgLight: "rgba(var(--accent1-500-rgb), 0.15)", border: "var(--accent1-300)" },
+    light: { main: "var(--accent1-500)", text: "var(--accent1-700)", bg: "var(--accent1-100)", bgLight: "rgba(var(--accent1-500-rgb), 0.1)", border: "var(--accent1-200)" }
   },
   blue: {
-    main: "var(--blue-600)", text: "var(--blue-800)", bg: "var(--blue-200)", bgLight: "rgba(var(--blue-500-rgb), 0.15)", border: "var(--blue-300)"
+    main: "var(--primary-600)", text: "var(--primary-800)", bg: "var(--primary-200)", bgLight: "rgba(var(--primary-500-rgb), 0.15)", border: "var(--primary-300)"
   }
 } as const;
 
@@ -357,9 +357,7 @@ export default function AIReview() {
                               <div style={{
                                 display: "grid",
                                 gridTemplateColumns: `${ALIGN_CENTER * 2}px 1fr`,
-                                marginBottom: "var(--space-2)",
-                                paddingBottom: "var(--space-1)",
-                                borderBottom: `2px solid ${color.border}`
+                                marginBottom: "var(--space-2)"
                               }}>
                                 <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
                                   <Icon size={18} color={color.main} strokeWidth={2.5} />

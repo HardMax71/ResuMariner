@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { AlertCircle } from "lucide-react";
 import FileDropzone from "../components/FileDropzone";
 import { useResumeUpload } from "../hooks/useResumeUpload";
 import { PageWrapper, PageContainer } from "../components/styled";
+import { APIError } from "../lib/api";
 
 export default function Upload() {
   const [file, setFile] = useState<File | null>(null);
@@ -63,11 +65,39 @@ export default function Upload() {
                 background: "var(--accent2-50)",
                 border: "1px solid var(--accent2-200)",
                 borderRadius: "var(--radius-sm)",
-                color: "var(--accent2-700)",
-                fontSize: "var(--text-sm)",
-                fontWeight: 600
               }}>
-                {error.message || 'Upload failed'}
+                <div style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "var(--space-2)"
+                }}>
+                  <AlertCircle size={18} style={{ color: "var(--accent2-600)", flexShrink: 0, marginTop: "2px" }} />
+                  <div>
+                    <div style={{
+                      color: "var(--accent2-700)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      marginBottom: "var(--space-1)"
+                    }}>
+                      {error.message || 'Upload failed'}
+                    </div>
+                    {error instanceof APIError && error.statusCode === 400 && (
+                      <div style={{
+                        color: "var(--neutral-600)",
+                        fontSize: "var(--text-xs)",
+                        lineHeight: 1.5
+                      }}>
+                        {error.message.includes("email") ? (
+                          <>Make sure your resume contains a valid email address. The system uses email to identify and deduplicate resumes.</>
+                        ) : error.message.includes("already exists") ? (
+                          <>A resume with this email has already been uploaded. You can search for it or delete it first.</>
+                        ) : (
+                          <>Please check that your file is a valid resume document (PDF, DOCX, DOC, JPG, PNG).</>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 

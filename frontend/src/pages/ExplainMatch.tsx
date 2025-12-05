@@ -119,7 +119,7 @@ export default function ExplainMatch() {
                   justifyContent: 'center'
                 }}>
                   <div style={{
-                    fontSize: '48px',
+                    fontSize: 'var(--text-5xl)',
                     fontWeight: '800',
                     color: getRecommendationColor(result.recommendation),
                     fontFamily: 'var(--font-display)',
@@ -141,7 +141,7 @@ export default function ExplainMatch() {
                       return <Icon size={20} color={getRecommendationColor(result.recommendation)} />;
                     })()}
                     <span style={{
-                      fontSize: '18px',
+                      fontSize: 'var(--text-lg)',
                       fontWeight: '700',
                       color: getRecommendationColor(result.recommendation),
                       textTransform: 'capitalize'
@@ -152,7 +152,7 @@ export default function ExplainMatch() {
                   <div className="muted">Overall Match Score</div>
                 </div>
               </div>
-              <p style={{ fontSize: '15px', lineHeight: '1.6', color: 'var(--gray-700)' }}>
+              <p style={{ fontSize: 'var(--text-base)', lineHeight: '1.6', color: 'var(--neutral-700)' }}>
                 {result.summary}
               </p>
             </GlassCard>
@@ -184,7 +184,7 @@ export default function ExplainMatch() {
                             <Badge style={{
                               backgroundColor: 'var(--accent1-600)',
                               color: 'white',
-                              fontSize: '12px'
+                              fontSize: 'var(--text-xs)'
                             }}>
                               {strength.category}
                             </Badge>
@@ -192,7 +192,7 @@ export default function ExplainMatch() {
                               style={{
                                 marginLeft: 'auto',
                                 color: 'var(--accent1-700)',
-                                fontSize: '12px',
+                                fontSize: 'var(--text-xs)',
                                 fontWeight: '600',
                                 fontFamily: 'var(--font-display)'
                               }}
@@ -200,7 +200,7 @@ export default function ExplainMatch() {
                               {Math.round(strength.relevance_score * 100)}%
                             </span>
                           </div>
-                          <p style={{ fontSize: '14px', color: 'var(--gray-700)', margin: 0, lineHeight: '1.5' }}>{strength.detail}</p>
+                          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--neutral-700)', margin: 0, lineHeight: '1.5' }}>{strength.detail}</p>
                         </div>
                       ))}
                     </FlexColumn>
@@ -227,7 +227,7 @@ export default function ExplainMatch() {
                             <Badge style={{
                               backgroundColor: 'var(--accent2-600)',
                               color: 'white',
-                              fontSize: '12px'
+                              fontSize: 'var(--text-xs)'
                             }}>
                               {concern.category}
                             </Badge>
@@ -235,19 +235,19 @@ export default function ExplainMatch() {
                               style={{
                                 backgroundColor:
                                   concern.severity === 'critical' ? 'var(--accent2-600)' :
-                                  concern.severity === 'moderate' ? 'var(--orange-500)' :
-                                  'var(--gray-500)',
+                                  concern.severity === 'moderate' ? 'var(--accent1-500)' :
+                                  'var(--neutral-500)',
                                 color: 'white',
                                 fontWeight: '600',
-                                fontSize: '11px'
+                                fontSize: 'var(--text-xs)'
                               }}
                             >
                               {concern.severity}
                             </Badge>
                           </div>
                           <p style={{
-                            fontSize: '14px',
-                            color: 'var(--gray-700)',
+                            fontSize: 'var(--text-sm)',
+                            color: 'var(--neutral-700)',
                             margin: 0,
                             marginBottom: concern.mitigation ? 'var(--space-2)' : 0,
                             lineHeight: '1.5'
@@ -258,15 +258,14 @@ export default function ExplainMatch() {
                             <div style={{
                               display: 'flex',
                               gap: 'var(--space-1)',
-                              fontSize: '13px',
-                              color: 'var(--gray-600)',
+                              fontSize: 'var(--text-sm)',
+                              color: 'var(--neutral-600)',
                               padding: 'var(--space-1)',
-                              background: 'var(--gray-50)',
+                              background: 'var(--neutral-50)',
                               borderRadius: 'var(--radius-sm)',
-                              border: '1px solid var(--gray-200)',
                               alignItems: 'flex-start'
                             }}>
-                              <Lightbulb size={14} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--orange-500)' }} />
+                              <Lightbulb size={14} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--accent1-500)' }} />
                               <span style={{ lineHeight: '1.5' }}>{concern.mitigation}</span>
                             </div>
                           )}
@@ -293,8 +292,8 @@ export default function ExplainMatch() {
                         background: 'var(--primary-50)',
                         border: '1px solid var(--primary-200)',
                         borderRadius: 'var(--radius-xs)',
-                        fontSize: '14px',
-                        color: 'var(--gray-700)'
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--neutral-700)'
                       }}
                     >
                       <span style={{ fontWeight: '600', marginRight: 'var(--space-2)' }}>{idx + 1}.</span>

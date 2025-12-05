@@ -60,7 +60,6 @@ const ErrorDetails = styled.details`
   margin-top: var(--space-3);
   padding: var(--space-3);
   background: var(--neutral-50);
-  border: 1px solid var(--neutral-200);
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--text-xs);

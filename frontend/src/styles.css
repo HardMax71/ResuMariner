@@ -197,8 +197,9 @@
   --tracking-wide: 0.025em;
   --tracking-wider: 0.05em;
 
-  /* Border radius - MINIMAL (2-4px max) */
+  /* Border radius - MINIMAL (Sharp geometric aesthetic) */
   --radius-none: 0;
+  --radius-xs: 1px;
   --radius-sm: 2px;
   --radius-md: 3px;
   --radius-lg: 4px;
@@ -444,8 +445,6 @@ a:hover {
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-2);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--neutral-100);
 }
 
 /* Buttons */
@@ -1242,6 +1241,14 @@ textarea {
 .text-right {
   text-align: right;
 }
+
+/* Border radius utilities */
+.rounded-none { border-radius: var(--radius-none); }
+.rounded-xs { border-radius: var(--radius-xs); }
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-full { border-radius: var(--radius-full); }
 
 /* Personal info and skills grid */
 .personal-skills-grid {
@@ -2482,7 +2489,7 @@ details[open] summary .chevron {
   color: var(--neutral-0);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
   cursor: pointer;
   transition: all 0.2s;
@@ -2522,7 +2529,7 @@ details[open] summary .chevron {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(var(--primary-400-rgb), 0.15);
-  border-radius: 4px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   padding: 8px;
   z-index: 1001;
@@ -2538,7 +2545,7 @@ details[open] summary .chevron {
   font-weight: 600;
   color: var(--neutral-0);
   background: transparent;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
   transition: all 0.2s;
 }
@@ -2718,7 +2725,7 @@ details[open] summary .chevron {
   font-size: 11px;
   font-weight: 500;
   padding: 3px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -2777,7 +2784,7 @@ details[open] summary .chevron {
   font-size: 11px;
   font-weight: 500;
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -2871,7 +2878,7 @@ details[open] summary .chevron {
 .code-inline {
   background: rgba(0, 0, 0, 0.05);
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-family: var(--font-mono);
 }
@@ -3003,7 +3010,7 @@ details[open] summary .chevron {
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }

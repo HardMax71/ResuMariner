@@ -53,7 +53,7 @@ export function SkillsFilter({ skills, selectedSkills, onChange }: Props) {
             style={{
               background: "none",
               border: "none",
-              color: "var(--blue-600)",
+              color: "var(--primary-600)",
               cursor: "pointer",
               padding: 0,
               fontSize: "var(--text-sm)",

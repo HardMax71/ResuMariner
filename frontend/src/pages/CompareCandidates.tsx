@@ -167,7 +167,7 @@ export default function CompareCandidates() {
                 <Users size={20} color="var(--primary-600)" />
                 <h3 className="card-title">Executive Summary</h3>
               </div>
-              <p style={{ fontSize: '15px', lineHeight: '1.6', color: 'var(--gray-700)' }}>
+              <p style={{ fontSize: 'var(--text-base)', lineHeight: '1.6', color: 'var(--neutral-700)' }}>
                 {result.executive_summary}
               </p>
             </GlassCard>
@@ -183,17 +183,16 @@ export default function CompareCandidates() {
                     key={score.uid}
                     style={{
                       padding: 'var(--space-3)',
-                      background: 'var(--gray-50)',
-                      border: '1px solid var(--gray-200)',
+                      background: 'var(--neutral-50)',
                       borderRadius: 'var(--radius-xs)'
                     }}
                   >
                     <div className="flex align-center justify-between" style={{ marginBottom: 'var(--space-2)' }}>
-                      <h4 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--gray-900)' }}>
+                      <h4 style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--neutral-900)' }}>
                         {score.name}
                       </h4>
                       <div style={{
-                        fontSize: '24px',
+                        fontSize: 'var(--text-2xl)',
                         fontWeight: '800',
                         color: getScoreColor(score.overall_score),
                         fontFamily: 'var(--font-display)'
@@ -229,7 +228,7 @@ export default function CompareCandidates() {
                       }}
                     >
                       <div className="flex align-center gap-2" style={{ marginBottom: 'var(--space-2)' }}>
-                        <h4 style={{ fontSize: '15px', fontWeight: '700' }}>{dim.dimension}</h4>
+                        <h4 style={{ fontSize: 'var(--text-base)', fontWeight: '700' }}>{dim.dimension}</h4>
                         <Badge variant="success" style={{ marginLeft: 'auto' }}>
                           Winner: {result.scores.find(s => s.uid === dim.winner)?.name || dim.winner}
                         </Badge>
@@ -244,7 +243,7 @@ export default function CompareCandidates() {
                           if (!candidateName) return null;
 
                           return (
-                            <div key={uid} style={{ fontSize: '14px', color: 'var(--gray-700)' }}>
+                            <div key={uid} style={{ fontSize: 'var(--text-sm)', color: 'var(--neutral-700)' }}>
                               <span style={{ fontWeight: '600' }}>
                                 {candidateName}:
                               </span>{' '}
@@ -254,8 +253,8 @@ export default function CompareCandidates() {
                         })}
                       </FlexColumn>
                       <p style={{
-                        fontSize: '13px',
-                        color: 'var(--gray-600)',
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--neutral-600)',
                         marginTop: 'var(--space-2)',
                         fontStyle: 'italic'
                       }}>
@@ -288,11 +287,11 @@ export default function CompareCandidates() {
                         <Badge style={{ backgroundColor: 'var(--accent1-600)', color: 'white' }}>
                           {rec.scenario}
                         </Badge>
-                        <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--accent1-700)' }}>
+                        <span style={{ fontSize: 'var(--text-base)', fontWeight: '700', color: 'var(--accent1-700)' }}>
                           {rec.recommended_name}
                         </span>
                       </div>
-                      <p style={{ fontSize: '14px', color: 'var(--gray-700)' }}>{rec.rationale}</p>
+                      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--neutral-700)' }}>{rec.rationale}</p>
                     </div>
                   ))}
                 </FlexColumn>
@@ -313,8 +312,8 @@ export default function CompareCandidates() {
                         background: 'var(--accent2-50)',
                         border: '1px solid var(--accent2-200)',
                         borderRadius: 'var(--radius-xs)',
-                        fontSize: '14px',
-                        color: 'var(--gray-700)'
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--neutral-700)'
                       }}
                     >
                       <span style={{ fontWeight: '700' }}>
@@ -335,9 +334,9 @@ export default function CompareCandidates() {
 
 function ScoreStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex align-center justify-between" style={{ fontSize: '13px' }}>
+    <div className="flex align-center justify-between" style={{ fontSize: 'var(--text-sm)' }}>
       <span className="muted">{label}</span>
-      <span style={{ fontWeight: '600', color: 'var(--gray-700)' }}>{value.toFixed(1)}/10</span>
+      <span style={{ fontWeight: '600', color: 'var(--neutral-700)' }}>{value.toFixed(1)}/10</span>
     </div>
   );
 }

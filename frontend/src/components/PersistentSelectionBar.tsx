@@ -56,7 +56,7 @@ export default function PersistentSelectionBar() {
           <span
             style={{
               fontFamily: 'var(--font-display)',
-              fontSize: '16px',
+              fontSize: 'var(--text-base)',
               fontWeight: 700,
               color: 'var(--primary-400)',
             }}
@@ -65,7 +65,7 @@ export default function PersistentSelectionBar() {
           </span>
           <div
             style={{
-              fontSize: '13px',
+              fontSize: 'var(--text-sm)',
               color: 'var(--neutral-400)',
               maxWidth: '300px',
               overflow: 'hidden',

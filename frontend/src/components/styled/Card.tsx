@@ -25,7 +25,7 @@ export const MetricCard = styled.div<{ color?: string; bgColor?: string }>`
 `;
 
 export const MetricLabel = styled.div`
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--neutral-700);
   font-weight: 800;
   text-transform: uppercase;
@@ -54,17 +54,17 @@ export const StatusBadge = styled.span<{ variant?: 'success' | 'warning' | 'erro
   padding: 6px 12px;
   background: ${props => {
     switch (props.variant) {
-      case 'success': return 'rgba(var(--green-500-rgb), 0.15)';
+      case 'success': return 'rgba(var(--accent3-500-rgb), 0.15)';
       case 'warning': return 'rgba(var(--accent1-500-rgb), 0.15)';
-      case 'error': return 'rgba(var(--red-500-rgb), 0.15)';
+      case 'error': return 'rgba(var(--accent2-500-rgb), 0.15)';
       default: return 'rgba(var(--primary-700-rgb), 0.15)';
     }
   }};
   border: 1px solid ${props => {
     switch (props.variant) {
-      case 'success': return 'rgba(var(--green-500-rgb), 0.3)';
+      case 'success': return 'rgba(var(--accent3-500-rgb), 0.3)';
       case 'warning': return 'rgba(var(--accent1-500-rgb), 0.3)';
-      case 'error': return 'rgba(var(--red-500-rgb), 0.3)';
+      case 'error': return 'rgba(var(--accent2-500-rgb), 0.3)';
       default: return 'rgba(var(--primary-700-rgb), 0.3)';
     }
   }};
@@ -115,7 +115,7 @@ export const ScoreHero = styled.div`
 `;
 
 export const ScoreValue = styled.div`
-  font-size: 64px;
+  font-size: var(--text-6xl);
   font-weight: 800;
   font-family: var(--font-display);
   color: white;
@@ -123,7 +123,7 @@ export const ScoreValue = styled.div`
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 
   span {
-    font-size: 32px;
+    font-size: var(--text-3xl);
     font-weight: 700;
     opacity: 0.8;
   }
@@ -244,7 +244,7 @@ export const ConfigRow = styled.div<{ bgColor?: string; borderColor?: string }>`
 `;
 
 export const ConfigLabel = styled.span`
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--neutral-600);
   font-weight: 500;
 `;
@@ -254,7 +254,7 @@ export const ConfigTag = styled.span<{ emphasis?: boolean }>`
   background: ${props => props.emphasis ? 'rgba(var(--primary-700-rgb), 0.15)' : 'rgba(var(--primary-700-rgb), 0.1)'};
   border: 1px solid ${props => props.emphasis ? 'rgba(var(--primary-700-rgb), 0.25)' : 'rgba(var(--primary-700-rgb), 0.2)'};
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--primary-700);
   font-family: var(--font-mono);
@@ -262,17 +262,17 @@ export const ConfigTag = styled.span<{ emphasis?: boolean }>`
 
 export const ToggleBadge = styled.span<{ isOn?: boolean }>`
   padding: 3px 8px;
-  background: ${props => props.isOn ? 'rgba(var(--green-500-rgb), 0.15)' : 'rgba(var(--accent1-500-rgb), 0.15)'};
-  border: 1px solid ${props => props.isOn ? 'rgba(var(--green-500-rgb), 0.3)' : 'rgba(var(--accent1-500-rgb), 0.3)'};
+  background: ${props => props.isOn ? 'rgba(var(--accent3-500-rgb), 0.15)' : 'rgba(var(--accent1-500-rgb), 0.15)'};
+  border: 1px solid ${props => props.isOn ? 'rgba(var(--accent3-500-rgb), 0.3)' : 'rgba(var(--accent1-500-rgb), 0.3)'};
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 700;
   color: ${props => props.isOn ? 'var(--accent3-700)' : 'var(--accent1-700)'};
   letter-spacing: 0.025em;
 `;
 
 export const SectionTitle = styled.h3`
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--neutral-900);
   margin-bottom: var(--space-3);
@@ -281,7 +281,7 @@ export const SectionTitle = styled.h3`
 `;
 
 export const SubsectionTitle = styled.h4<{ color?: string }>`
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--neutral-700);
   margin-bottom: var(--space-2);

@@ -14,7 +14,7 @@ const PopupContainer = styled.div`
   left: 0;
   z-index: 10;
   background: white;
-  border: 1px solid var(--gray-300);
+  border: 1px solid var(--neutral-300);
   border-radius: var(--radius-sm);
   padding: var(--space-1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -27,17 +27,17 @@ const LevelButton = styled.button<{ selected?: boolean }>`
   flex: 1;
   padding: var(--space-1);
   font-size: var(--text-xs);
-  border: 1px solid ${props => props.selected ? 'var(--blue-600)' : 'var(--gray-300)'};
-  background: ${props => props.selected ? 'var(--blue-50)' : 'white'};
-  color: ${props => props.selected ? 'var(--blue-700)' : 'var(--gray-700)'};
+  border: 1px solid ${props => props.selected ? 'var(--primary-600)' : 'var(--neutral-300)'};
+  background: ${props => props.selected ? 'var(--primary-50)' : 'white'};
+  color: ${props => props.selected ? 'var(--primary-700)' : 'var(--neutral-700)'};
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: ${props => props.selected ? 600 : 400};
   transition: all var(--transition-fast);
 
   &:hover {
-    background: ${props => props.selected ? 'var(--blue-100)' : 'var(--gray-50)'};
-    border-color: ${props => props.selected ? 'var(--blue-700)' : 'var(--gray-400)'};
+    background: ${props => props.selected ? 'var(--primary-100)' : 'var(--neutral-50)'};
+    border-color: ${props => props.selected ? 'var(--primary-700)' : 'var(--neutral-400)'};
   }
 `;
 

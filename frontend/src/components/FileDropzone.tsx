@@ -46,16 +46,17 @@ export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
     if (!fileConfig) {
       return "Configuration loading, please wait...";
     }
-    if (!acceptedTypes.includes(file.type)) {
+    const fileExt = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
+    if (!acceptedTypes.includes(file.type) && !acceptedExtensions.includes(fileExt)) {
       const allExts = groupedBySize.flatMap(g => g.extensions).join(', ');
       return `Unsupported file type. Allowed: ${allExts}`;
     }
-    const maxMb = maxSizes[file.type] ?? 10;
+    const maxMb = maxSizes[file.type] ?? fileConfig[fileExt]?.max_size_mb ?? 10;
     if (file.size > maxMb * 1024 * 1024) {
       return `File too large. Max ${maxMb}MB for this type.`;
     }
     return null;
-  }, [fileConfig, acceptedTypes, maxSizes, groupedBySize]);
+  }, [fileConfig, acceptedTypes, acceptedExtensions, maxSizes, groupedBySize]);
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -109,7 +110,7 @@ export default function FileDropzone({ onFileSelected, selectedFile }: Props) {
         <div className="dz-content">
           {selectedFile ? (
             <>
-              <div className="dz-file-icon" style={{ fontSize: "48px", marginBottom: "var(--space-2)" }}>
+              <div className="dz-file-icon" style={{ fontSize: "var(--text-5xl)", marginBottom: "var(--space-2)" }}>
                 {selectedFile.type.startsWith("image/") ? "🖼️" : "📄"}
               </div>
               <div className="dz-title">{selectedFile.name}</div>

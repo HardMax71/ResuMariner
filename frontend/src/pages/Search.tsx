@@ -76,8 +76,8 @@ export default function Search() {
               {res.results.length} {res.results.length === 1 ? 'Result' : 'Results'}
             </Badge>
             <Badge variant="primary" style={{
-              backgroundColor: 'var(--gray-100)',
-              color: 'var(--gray-700)',
+              backgroundColor: 'var(--neutral-100)',
+              color: 'var(--neutral-700)',
               fontWeight: '500'
             }}>
               {res.search_type.charAt(0).toUpperCase() + res.search_type.slice(1)} Search
@@ -146,7 +146,6 @@ export default function Search() {
               badge={activeFilterCount > 0 ? activeFilterCount : undefined}
               defaultOpen={activeFilterCount > 0}
               headerStyle={{
-                borderTop: "1px solid var(--gray-200)",
                 marginTop: "var(--space-3)"
               }}
             >
@@ -161,7 +160,6 @@ export default function Search() {
               title="Advanced Options"
               defaultOpen={false}
               headerStyle={{
-                borderTop: "1px solid var(--gray-200)",
                 marginTop: "var(--space-3)"
               }}
             >
@@ -188,7 +186,7 @@ export default function Search() {
                         alignItems: "center",
                         gap: "clamp(6px, 2vw, 10px)",
                         padding: "var(--space-2)",
-                        background: "var(--gray-50)",
+                        background: "var(--neutral-50)",
                         borderRadius: "var(--radius-sm)",
                         border: "1px solid var(--neutral-300)",
                         maxWidth: "100%",
@@ -215,7 +213,7 @@ export default function Search() {
                           className="custom-slider"
                         />
                         <span style={{
-                          fontSize: "14px",
+                          fontSize: "var(--text-sm)",
                           fontWeight: 600,
                           color: "var(--neutral-700)",
                           minWidth: "40px",
@@ -309,7 +307,7 @@ export default function Search() {
               <AlertCircle
                 size={48}
                 strokeWidth={1.5}
-                style={{ margin: "0 auto var(--space-3)", color: "var(--gray-400)" }}
+                style={{ margin: "0 auto var(--space-3)", color: "var(--neutral-400)" }}
               />
               <h3 className="mb-2">No Results Found</h3>
               <p className="muted">

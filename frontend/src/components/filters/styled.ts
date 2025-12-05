@@ -24,7 +24,6 @@ export const DropdownItem = styled.div<{ selected?: boolean; isClear?: boolean }
   background: ${props => props.selected ? 'var(--primary-50)' : 'var(--neutral-0)'};
   color: ${props => props.selected ? 'var(--primary-700)' : props.isClear ? 'var(--neutral-600)' : 'var(--neutral-700)'};
   font-weight: ${props => props.selected ? 600 : props.isClear ? 500 : 400};
-  border-bottom: ${props => props.isClear ? '1px solid var(--neutral-200)' : 'none'};
   transition: background var(--transition-fast);
 
   &:hover {
@@ -51,7 +50,7 @@ export const PopupContainer = styled.div`
   left: 0;
   z-index: 10;
   background: white;
-  border: 1px solid var(--gray-300);
+  border: 1px solid var(--neutral-300);
   border-radius: var(--radius-sm);
   padding: var(--space-2);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
