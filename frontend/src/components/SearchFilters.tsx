@@ -49,7 +49,7 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
         <SearchableDropdown
           label="Role"
           placeholder="Search role..."
-          value={value.role}
+          value={value.role ?? null}
           options={roles}
           onChange={(role) => onChange({ ...value, role })}
         />
@@ -57,7 +57,7 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
         <SearchableDropdown
           label="Company"
           placeholder="Search company..."
-          value={value.company}
+          value={value.company ?? null}
           options={companies}
           onChange={(company) => onChange({ ...value, company })}
         />

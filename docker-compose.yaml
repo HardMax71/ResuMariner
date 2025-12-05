@@ -169,7 +169,9 @@ services:
       - "traefik.http.routers.backend-80.entrypoints=web"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      target: ${FRONTEND_TARGET:-dev}
     ports:
       - "5173:5173"
     volumes:

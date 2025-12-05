@@ -335,7 +335,7 @@ export default function ResultCard({ result }: Props) {
             maxWidth: "100%",
             overflow: "hidden"
           }}>
-            {(expanded ? result.skills : topSkills).map((skill, idx) => (
+            {(expanded ? result.skills || [] : topSkills || []).map((skill, idx) => (
               <Chip key={idx} style={{
                 fontSize: "11px",
                 padding: "3px 8px",
@@ -478,14 +478,14 @@ export default function ResultCard({ result }: Props) {
                         paddingLeft: "12px",
                         listStyleType: "none"
                       }}>
-                        {exp.key_points.map((point, pidx) => (
+                        {exp.key_points.map((point, pidx, arr) => (
                           <li key={pidx} style={{
                             fontSize: "12px",
                             color: "var(--gray-600)",
                             lineHeight: "1.5",
-                            marginBottom: pidx < exp.key_points.length - 1 ? "4px" : "0"
+                            marginBottom: pidx < arr.length - 1 ? "4px" : "0"
                           }}>
-                            - {typeof point === 'string' ? point : point.text || point.description}
+                            - {point}
                           </li>
                         ))}
                       </ul>

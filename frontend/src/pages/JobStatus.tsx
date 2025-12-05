@@ -2000,7 +2000,7 @@ export default function JobStatus() {
                     </div>
                   </div>
                   {RESUME_SECTIONS.map(section => {
-                    const data = section.paths.reduce((found, path) => {
+                    const data: any = section.paths.reduce((found, path) => {
                       return found || result.resume[path];
                     }, null);
 
