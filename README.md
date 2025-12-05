@@ -18,6 +18,13 @@
   <a href="https://github.com/HardMax71/ResuMariner">
     <img src="https://img.shields.io/badge/django-5.1-green" alt="Django Version" />
   </a>
+  <br/>
+  <a href="https://github.com/HardMax71/ResuMariner/pkgs/container/resumariner-backend">
+    <img src="https://ghcr-badge.egpl.dev/hardmax71/resumariner-backend/latest_tag?label=backend" alt="Backend Version" />
+  </a>
+  <a href="https://github.com/HardMax71/ResuMariner/pkgs/container/resumariner-frontend">
+    <img src="https://ghcr-badge.egpl.dev/hardmax71/resumariner-frontend/latest_tag?label=frontend" alt="Frontend Version" />
+  </a>
 </p>
 
 
