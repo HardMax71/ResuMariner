@@ -45,10 +45,11 @@ function parseError(error: any): ErrorDetails {
   }
 
   if (error instanceof Error) {
+    const e = error as Error;
     return {
-      message: error.message,
-      stack: error.stack,
-      statusText: error.name,
+      message: e.message,
+      stack: e.stack,
+      statusText: e.name,
       timestamp
     };
   }

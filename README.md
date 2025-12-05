@@ -31,6 +31,8 @@ This project started after one of those meetings where "simple resume parsing" e
 
 The system handles CV uploads (PDF, DOCX, JPG formats), parses them into structured data, and makes them searchable. You can throw natural language queries at it ("find someone who's built payment systems") or search by specific criteria (5+ years Python, knows Docker, lives in Berlin). There's also a hybrid mode that combines both approaches when you need the flexibility of semantic search with the precision of structured filters.
 
+The frontend is a React + TypeScript app (Vite) with pages for CV upload, job status tracking, search across all three modes, health monitoring, and admin cleanup.
+
 ## Architecture
 
 V1 was microservices. Spent more time coordinating services than building features, plus the "single source of truth" problem for shared domain objects (Resume, AIReview) had no good solution - shared libs and copypasting both were bad. V2 is a Django monolith with clean separation through apps.
@@ -53,7 +55,7 @@ Then run:
 docker-compose up --build
 ```
 
-The backend API will be at http://localhost:8000 and the Traefik dashboard at http://localhost:8080. Frontend will be at http://localhost:5173. 
+The backend API will be at http://localhost:8000 and the frontend at http://localhost:5173. 
 
 ## How the API works
 

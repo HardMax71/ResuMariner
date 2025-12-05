@@ -38,7 +38,7 @@ export const Button = styled.button<{ variant?: 'primary' | 'ghost'; disabled?: 
   }
 `;
 
-export const IconButton = styled.button<{ disabled?: boolean }>`
+export const IconButton = styled.button<{ disabled?: boolean; href?: string; target?: string; rel?: string; title?: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
