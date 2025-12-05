@@ -43,17 +43,17 @@ export const IconButton = styled.button<{ disabled?: boolean; href?: string; tar
   align-items: center;
   justify-content: center;
   padding: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(67, 56, 202, 0.15);
+  background: rgba(var(--neutral-0-rgb), 0.9);
+  border: 1px solid rgba(var(--primary-700-rgb), 0.15);
   border-radius: var(--radius-sm);
-  color: #4338ca;
+  color: var(--primary-700);
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   opacity: ${props => props.disabled ? 0.5 : 1};
 
   &:hover:not(:disabled) {
-    background: rgba(67, 56, 202, 0.1);
+    background: rgba(var(--primary-700-rgb), 0.1);
     transform: translateY(-2px);
   }
 

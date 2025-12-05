@@ -177,7 +177,7 @@ export default function CompareCandidates() {
                 <TrendingUp size={20} color="var(--primary-600)" />
                 <h3 className="card-title">Overall Scores</h3>
               </div>
-              <div style={{ display: 'grid', gap: 'var(--space-3)', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+              <div style={{ display: 'grid', gap: 'var(--space-3)', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 17rem), 1fr))' }}>
                 {result.scores.map((score) => (
                   <div
                     key={score.uid}

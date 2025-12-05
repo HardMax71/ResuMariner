@@ -27,16 +27,16 @@ import PageHeader from "../components/PageHeader";
 
 const COLOR_PALETTES = {
   red: {
-    dark: { main: "#dc2626", text: "#991b1b", bg: "#fecaca", bgLight: "rgba(254, 226, 226, 0.5)", border: "#fca5a5" },
-    medium: { main: "#ef4444", text: "#b91c1c", bg: "#fed7d7", bgLight: "rgba(254, 242, 242, 0.5)", border: "#fbb6b6" },
-    light: { main: "#f87171", text: "#dc2626", bg: "#fee2e2", bgLight: "rgba(254, 245, 245, 0.5)", border: "#fecaca" }
+    dark: { main: "var(--red-600)", text: "var(--red-800)", bg: "var(--red-200)", bgLight: "rgba(var(--red-500-rgb), 0.15)", border: "var(--red-300)" },
+    medium: { main: "var(--red-500)", text: "var(--accent2-700)", bg: "var(--accent2-100)", bgLight: "rgba(var(--red-500-rgb), 0.1)", border: "var(--accent2-200)" },
+    light: { main: "var(--red-400)", text: "var(--red-600)", bg: "var(--accent2-100)", bgLight: "rgba(var(--red-500-rgb), 0.08)", border: "var(--red-200)" }
   },
   orange: {
-    dark: { main: "#ea580c", text: "#9a3412", bg: "#fed7aa", bgLight: "rgba(255, 237, 213, 0.5)", border: "#fdba74" },
-    light: { main: "#f97316", text: "#c2410c", bg: "#ffedd5", bgLight: "rgba(255, 247, 237, 0.5)", border: "#fed7aa" }
+    dark: { main: "var(--orange-600)", text: "var(--orange-800)", bg: "var(--orange-200)", bgLight: "rgba(var(--accent1-500-rgb), 0.15)", border: "var(--orange-300)" },
+    light: { main: "var(--orange-500)", text: "var(--accent1-700)", bg: "var(--orange-100)", bgLight: "rgba(var(--accent1-500-rgb), 0.1)", border: "var(--orange-200)" }
   },
   blue: {
-    main: "#2563eb", text: "#1e40af", bg: "#bfdbfe", bgLight: "rgba(219, 234, 254, 0.5)", border: "#93c5fd"
+    main: "var(--blue-600)", text: "var(--blue-800)", bg: "var(--blue-200)", bgLight: "rgba(var(--blue-500-rgb), 0.15)", border: "var(--blue-300)"
   }
 } as const;
 
@@ -114,10 +114,10 @@ export default function AIReview() {
             <IconWrapper style={{ width: "64px", height: "64px", margin: "0 auto var(--space-3)", background: "var(--neutral-100)", border: "none" }}>
               <FileText size={32} style={{ color: "var(--neutral-400)" }} />
             </IconWrapper>
-            <h3 style={{ marginBottom: "8px" }}>
+            <h3 style={{ marginBottom: "var(--space-1)" }}>
               No Review Available
             </h3>
-            <p className="small muted" style={{ marginBottom: "var(--space-4)", maxWidth: "400px", margin: "0 auto var(--space-4)" }}>
+            <p className="small muted" style={{ marginBottom: "var(--space-4)", maxWidth: "80%", margin: "0 auto var(--space-4)" }}>
               AI analysis has not been generated for this resume yet. Reviews are typically available a few minutes after upload.
             </p>
             <Link to={`/resumes/${uid}`} className="btn">View Resume Status</Link>
@@ -153,7 +153,7 @@ export default function AIReview() {
                   <p style={{
                     fontSize: "var(--text-sm)",
                     fontWeight: 600,
-                    color: "rgba(255, 255, 255, 0.8)",
+                    color: "rgba(var(--neutral-0-rgb), 0.8)",
                     textTransform: "uppercase",
                     letterSpacing: "var(--tracking-wide)",
                     marginBottom: "4px"
@@ -162,7 +162,7 @@ export default function AIReview() {
                   </p>
                   <p style={{
                     fontSize: "var(--text-base)",
-                    color: "rgba(255, 255, 255, 0.9)",
+                    color: "rgba(var(--neutral-0-rgb), 0.9)",
                     margin: 0,
                     lineHeight: "var(--leading-relaxed)"
                   }}>
@@ -177,11 +177,11 @@ export default function AIReview() {
 
               {result.review.summary && (
                 <div style={{
-                  background: "rgba(255, 255, 255, 0.15)",
+                  background: "rgba(var(--neutral-0-rgb), 0.15)",
                   backdropFilter: "blur(10px)",
                   borderRadius: "var(--radius-sm)",
                   padding: "var(--space-3)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)"
+                  border: "1px solid rgba(var(--neutral-0-rgb), 0.2)"
                 }}>
                   <p style={{
                     fontSize: "var(--text-base)",
@@ -322,7 +322,7 @@ export default function AIReview() {
                           alignItems: "center",
                           justifyContent: "center",
                           borderRadius: "50%",
-                          background: "rgba(255, 255, 255, 0.8)",
+                          background: "rgba(var(--neutral-0-rgb), 0.8)",
                           transition: "transform var(--transition-base)",
                           transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)"
                         }}>

@@ -81,11 +81,11 @@ export function LocationsFilter({ locations, selectedLocations, onChange }: Prop
 
               {isExpanded && (
                 <PopupContainer
-                  style={{ minWidth: "250px", maxWidth: "350px" }}
+                  style={{ minWidth: "50%", maxWidth: "80%" }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <PopupTitle>Select cities in {countryOption.country}</PopupTitle>
-                  <CheckboxList style={{ maxHeight: "200px" }}>
+                  <CheckboxList style={{ maxHeight: "50vh" }}>
                     <CheckboxLabel>
                       <input
                         type="checkbox"

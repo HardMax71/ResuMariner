@@ -160,7 +160,7 @@ export default function ExplainMatch() {
             {(result.strengths.length > 0 || result.concerns.length > 0) && (
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 18rem), 1fr))',
                 gap: 'var(--space-4)',
                 alignItems: 'stretch'
               }}>

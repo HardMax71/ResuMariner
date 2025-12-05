@@ -7,7 +7,7 @@ const PageHeaderIcon = styled(IconWrapper)`
   width: 48px;
   height: 48px;
   background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
-  box-shadow: 0 4px 12px rgba(67, 56, 202, 0.25);
+  box-shadow: 0 4px 12px rgba(var(--primary-700-rgb), 0.25);
 `;
 
 const PageHeaderTitle = styled.h1`

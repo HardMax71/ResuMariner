@@ -43,7 +43,7 @@ export default function Upload() {
             fontSize: "var(--text-xl)",
             color: "var(--neutral-600)",
             lineHeight: 1.6,
-            maxWidth: "620px",
+            maxWidth: "90%",
             margin: "0 auto"
           }}>
             Upload your CV and extract structured data instantly with LLM-powered parsing
@@ -97,18 +97,18 @@ export default function Upload() {
                   transition: "all 0.3s",
                   boxShadow: isPending || !file
                     ? "none"
-                    : "0 8px 24px rgba(67, 56, 202, 0.4)"
+                    : "0 8px 24px rgba(var(--primary-700-rgb), 0.4)"
                 }}
                 onMouseEnter={(e) => {
                   if (!isPending && file) {
                     e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow = "0 12px 32px rgba(67, 56, 202, 0.5)";
+                    e.currentTarget.style.boxShadow = "0 12px 32px rgba(var(--primary-700-rgb), 0.5)";
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isPending && file) {
                     e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "0 8px 24px rgba(67, 56, 202, 0.4)";
+                    e.currentTarget.style.boxShadow = "0 8px 24px rgba(var(--primary-700-rgb), 0.4)";
                   }
                 }}
               >

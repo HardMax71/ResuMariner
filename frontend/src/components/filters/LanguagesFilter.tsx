@@ -10,7 +10,7 @@ const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
 const PopupContainer = styled.div`
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--space-1) / 2);
   left: 0;
   z-index: 10;
   background: white;
@@ -19,8 +19,8 @@ const PopupContainer = styled.div`
   padding: var(--space-1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: flex;
-  gap: 4px;
-  min-width: 200px;
+  gap: calc(var(--space-1) / 2);
+  min-width: 50%;
 `;
 
 const LevelButton = styled.button<{ selected?: boolean }>`
@@ -106,7 +106,7 @@ export function LanguagesFilter({ languages, selectedLanguages, onChange }: Prop
                 style={{ fontSize: "var(--text-xs)" }}
               >
                 {selected ? `${langOption.language}: ${selected.min_cefr}+` : langOption.language}
-                <span style={{ opacity: 0.6, marginLeft: "4px" }}>
+                <span style={{ opacity: 0.6, marginLeft: "calc(var(--space-1) / 2)" }}>
                   {langOption.resume_count}
                 </span>
               </Chip>

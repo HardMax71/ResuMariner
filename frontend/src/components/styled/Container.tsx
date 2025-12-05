@@ -6,7 +6,7 @@ export const PageWrapper = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+  background: linear-gradient(135deg, var(--neutral-50) 0%, var(--neutral-200) 50%, var(--neutral-300) 100%);
   background-attachment: fixed;
   padding-top: 40px;
   padding-bottom: var(--space-6);
@@ -23,10 +23,10 @@ export const PageContainer = styled.div`
 `;
 
 export const GlassCard = styled.div`
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(var(--neutral-0-rgb), 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(67, 56, 202, 0.15);
+  border: 1px solid rgba(var(--primary-700-rgb), 0.15);
   border-radius: var(--radius-sm);
   padding: var(--space-4);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
@@ -65,8 +65,8 @@ export const DecorativeBlur = styled.div<{ position?: 'top-right' | 'bottom-left
   width: ${props => props.position === 'bottom-left' ? '400px' : '500px'};
   height: ${props => props.position === 'bottom-left' ? '400px' : '500px'};
   background: ${props => props.position === 'bottom-left'
-    ? 'radial-gradient(circle, rgba(245, 158, 11, 0.06) 0%, transparent 70%)'
-    : 'radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%)'};
+    ? 'radial-gradient(circle, rgba(var(--accent1-500-rgb), 0.06) 0%, transparent 70%)'
+    : 'radial-gradient(circle, rgba(var(--primary-500-rgb), 0.08) 0%, transparent 70%)'};
   border-radius: 50%;
   filter: blur(60px);
   pointer-events: none;

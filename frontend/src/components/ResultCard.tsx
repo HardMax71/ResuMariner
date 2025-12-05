@@ -331,20 +331,20 @@ export default function ResultCard({ result }: Props) {
           <div style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: "4px",
+            gap: "calc(var(--space-1) / 2)",
             maxWidth: "100%",
             overflow: "hidden"
           }}>
             {(expanded ? result.skills || [] : topSkills || []).map((skill, idx) => (
               <Chip key={idx} style={{
-                fontSize: "11px",
-                padding: "3px 8px",
+                fontSize: "var(--text-xs)",
+                padding: "calc(var(--space-1) * 0.4) var(--space-1)",
                 background: "var(--gray-100)",
                 color: "var(--gray-700)",
                 border: "1px solid var(--gray-200)",
                 display: "inline-block",
                 flexShrink: 0,
-                maxWidth: "200px",
+                maxWidth: "50%",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap"

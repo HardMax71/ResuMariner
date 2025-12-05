@@ -37,41 +37,41 @@ const getBadgeStyle = (text: string, category?: string) => {
 
   if (category === "education_status") {
     if (t.includes("ongoing") || t.includes("current")) {
-      return { bg: "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)", color: "#1e40af", border: "#3b82f6" };
+      return { bg: "linear-gradient(135deg, var(--blue-100) 0%, var(--blue-200) 100%)", color: "var(--blue-800)", border: "var(--blue-500)" };
     }
     if (t.includes("completed") || t.includes("graduated")) {
-      return { bg: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)", color: "#065f46", border: "#10b981" };
+      return { bg: "linear-gradient(135deg, var(--accent3-100) 0%, var(--accent3-200) 100%)", color: "var(--accent3-800)", border: "var(--accent3-500)" };
     }
   }
 
   if (category === "employment_type") {
     if (t.includes("full-time") || t.includes("full time") || t.includes("fulltime")) {
-      return { bg: "linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)", color: "#5b21b6", border: "#8b5cf6" };
+      return { bg: "linear-gradient(135deg, var(--violet-200) 0%, var(--violet-300) 100%)", color: "var(--violet-800)", border: "var(--violet-500)" };
     }
     if (t.includes("part-time") || t.includes("part time") || t.includes("parttime")) {
-      return { bg: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)", color: "#92400e", border: "#f59e0b" };
+      return { bg: "linear-gradient(135deg, var(--accent1-100) 0%, var(--accent1-200) 100%)", color: "var(--accent1-800)", border: "var(--accent1-500)" };
     }
     if (t.includes("contract") || t.includes("freelance") || t.includes("consultant")) {
-      return { bg: "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)", color: "#3730a3", border: "#6366f1" };
+      return { bg: "linear-gradient(135deg, var(--primary-100) 0%, var(--primary-200) 100%)", color: "var(--primary-800)", border: "var(--primary-500)" };
     }
     if (t.includes("intern") || t.includes("internship")) {
-      return { bg: "linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)", color: "#9a3412", border: "#f97316" };
+      return { bg: "linear-gradient(135deg, var(--orange-200) 0%, var(--orange-300) 100%)", color: "var(--orange-800)", border: "var(--orange-500)" };
     }
   }
 
   if (category === "work_mode") {
     if (t.includes("remote")) {
-      return { bg: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)", color: "#065f46", border: "#10b981" };
+      return { bg: "linear-gradient(135deg, var(--accent3-100) 0%, var(--accent3-200) 100%)", color: "var(--accent3-800)", border: "var(--accent3-500)" };
     }
     if (t.includes("hybrid")) {
-      return { bg: "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)", color: "#1e3a8a", border: "#3b82f6" };
+      return { bg: "linear-gradient(135deg, var(--blue-100) 0%, var(--blue-200) 100%)", color: "var(--blue-900)", border: "var(--blue-500)" };
     }
     if (t.includes("on-site") || t.includes("onsite") || t.includes("office")) {
-      return { bg: "linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)", color: "#831843", border: "#ec4899" };
+      return { bg: "linear-gradient(135deg, var(--pink-100) 0%, var(--pink-200) 100%)", color: "var(--pink-800)", border: "var(--pink-500)" };
     }
   }
 
-  return { bg: "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)", color: "#374151", border: "#9ca3af" };
+  return { bg: "linear-gradient(135deg, var(--gray-100) 0%, var(--gray-200) 100%)", color: "var(--gray-700)", border: "var(--gray-400)" };
 };
 
 interface ResumeSection {
@@ -514,9 +514,9 @@ export default function JobStatus() {
                               fontSize: "11px",
                               fontWeight: 500,
                               padding: "3px 8px",
-                              background: "linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)",
-                              color: "#3730a3",
-                              border: "1px solid #6366f140",
+                              background: "linear-gradient(135deg, var(--primary-100) 0%, var(--primary-200) 100%)",
+                              color: "var(--primary-800)",
+                              border: "1px solid rgba(var(--primary-500-rgb), 0.25)",
                               borderRadius: "12px"
                             }}
                           >
@@ -664,9 +664,9 @@ export default function JobStatus() {
                               fontSize: "11px",
                               fontWeight: 500,
                               padding: "3px 8px",
-                              background: "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)",
-                              color: "#065f46",
-                              border: "1px solid #10b98140",
+                              background: "linear-gradient(135deg, var(--accent3-100) 0%, var(--accent3-200) 100%)",
+                              color: "var(--accent3-800)",
+                              border: "1px solid rgba(var(--accent3-500-rgb), 0.25)",
                               borderRadius: "12px"
                             }}
                           >
@@ -803,9 +803,9 @@ export default function JobStatus() {
                                 fontSize: "11px",
                                 fontWeight: 500,
                                 padding: "3px 8px",
-                                background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
-                                color: "#92400e",
-                                border: "1px solid #f59e0b40",
+                                background: "linear-gradient(135deg, var(--accent1-100) 0%, var(--accent1-200) 100%)",
+                                color: "var(--accent1-800)",
+                                border: "1px solid rgba(var(--accent1-500-rgb), 0.25)",
                                 borderRadius: "12px"
                               }}
                             >
@@ -904,7 +904,7 @@ export default function JobStatus() {
                               fontSize: "11px",
                               fontWeight: 600,
                               padding: "3px 8px",
-                              background: "#10b981",
+                              background: "var(--accent3-500)",
                               color: "white",
                               borderRadius: "10px",
                               textTransform: "uppercase",
@@ -1121,9 +1121,9 @@ export default function JobStatus() {
                               fontSize: "11px",
                               fontWeight: 600,
                               padding: "3px 8px",
-                              background: "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)",
-                              color: "#1e40af",
-                              border: "1px solid #3b82f640",
+                              background: "linear-gradient(135deg, var(--blue-100) 0%, var(--blue-200) 100%)",
+                              color: "var(--blue-800)",
+                              border: "1px solid rgba(var(--blue-500-rgb), 0.25)",
                               borderRadius: "12px",
                               textTransform: "capitalize"
                             }}>
@@ -1352,9 +1352,9 @@ export default function JobStatus() {
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: "var(--radius-full)",
-                background: job.status === "completed" ? "rgba(16, 185, 129, 0.1)" :
-                           job.status === "processing" ? "rgba(59, 130, 246, 0.1)" :
-                           job.status === "failed" ? "rgba(239, 68, 68, 0.1)" : "var(--gray-100)"
+                background: job.status === "completed" ? "rgba(var(--accent3-500-rgb), 0.1)" :
+                           job.status === "processing" ? "rgba(var(--blue-500-rgb), 0.1)" :
+                           job.status === "failed" ? "rgba(var(--red-500-rgb), 0.1)" : "var(--gray-100)"
               }}>
                 {getStatusIcon(job.status)}
               </div>
@@ -1407,7 +1407,7 @@ export default function JobStatus() {
                     style={{
                       padding: "8px",
                       background: "white",
-                      border: "1px solid #d1d5db",
+                      border: "1px solid var(--gray-300)",
                       borderRadius: "6px",
                       cursor: "pointer",
                       transition: "all 0.2s ease",
@@ -1418,9 +1418,9 @@ export default function JobStatus() {
                     }}
                   >
                     {copiedButtons.has("copy-link") ? (
-                      <Check size={16} style={{ color: "#10b981" }} />
+                      <Check size={16} style={{ color: "var(--accent3-500)" }} />
                     ) : (
-                      <Copy size={16} style={{ color: "#374151" }} />
+                      <Copy size={16} style={{ color: "var(--gray-700)" }} />
                     )}
                   </button>
                 </Tooltip>
@@ -1432,7 +1432,7 @@ export default function JobStatus() {
                     style={{
                       padding: "8px",
                       background: "white",
-                      border: "1px solid #d1d5db",
+                      border: "1px solid var(--gray-300)",
                       borderRadius: "6px",
                       cursor: "pointer",
                       textDecoration: "none",
@@ -1441,7 +1441,7 @@ export default function JobStatus() {
                       justifyContent: "center"
                     }}
                   >
-                    <Code2 size={16} strokeWidth={2} style={{ color: "#374151" }} />
+                    <Code2 size={16} strokeWidth={2} style={{ color: "var(--gray-700)" }} />
                   </a>
                 </Tooltip>
                 {result?.review && (
@@ -1451,10 +1451,10 @@ export default function JobStatus() {
                       padding: "6px 12px",
                       fontSize: "14px",
                       fontWeight: "600",
-                      background: "#9333ea",
-                      border: "1px solid #9333ea",
+                      background: "var(--violet-600)",
+                      border: "1px solid var(--violet-600)",
                       borderRadius: "6px",
-                      color: "#ffffff",
+                      color: "var(--neutral-0)",
                       textDecoration: "none",
                       display: "inline-flex",
                       alignItems: "center",
@@ -1465,15 +1465,15 @@ export default function JobStatus() {
                     }}
                     title="View AI Resume Review"
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#7e22ce";
-                      e.currentTarget.style.borderColor = "#7e22ce";
+                      e.currentTarget.style.background = "var(--violet-800)";
+                      e.currentTarget.style.borderColor = "var(--violet-800)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "#9333ea";
-                      e.currentTarget.style.borderColor = "#9333ea";
+                      e.currentTarget.style.background = "var(--violet-600)";
+                      e.currentTarget.style.borderColor = "var(--violet-600)";
                     }}
                   >
-                    <FileText size={14} strokeWidth={2} style={{ color: "#ffffff" }} />
+                    <FileText size={14} strokeWidth={2} style={{ color: "var(--neutral-0)" }} />
                     AI Review
                   </Link>
                 )}
@@ -1556,7 +1556,7 @@ export default function JobStatus() {
                   <span style={{ cursor: "help", display: "inline-flex", alignItems: "center" }}>
                     <Network
                       size={14}
-                      style={{ color: result.metadata.graph_stored ? "#10b981" : "#ef4444" }}
+                      style={{ color: result.metadata.graph_stored ? "var(--accent3-500)" : "var(--red-500)" }}
                       strokeWidth={2}
                     />
                   </span>
@@ -1565,7 +1565,7 @@ export default function JobStatus() {
                   <span style={{ cursor: "help", display: "inline-flex", alignItems: "center" }}>
                     <Database
                       size={14}
-                      style={{ color: result.metadata.vector_stored ? "#10b981" : "#ef4444" }}
+                      style={{ color: result.metadata.vector_stored ? "var(--accent3-500)" : "var(--red-500)" }}
                       strokeWidth={2}
                     />
                   </span>
@@ -1989,7 +1989,7 @@ export default function JobStatus() {
                             left: 0,
                             right: 0,
                             height: "40px",
-                            background: "linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95))",
+                            background: "linear-gradient(to bottom, rgba(var(--neutral-0-rgb), 0), rgba(var(--neutral-0-rgb), 0.95))",
                             pointerEvents: "none",
                             borderRadius: "0 0 var(--radius-sm) var(--radius-sm)",
                             opacity: isSkillsAtBottom ? 0 : 1,

@@ -13,22 +13,22 @@ export default function Footer() {
         left: 0,
         right: 0,
         zIndex: 100,
-        background: "rgba(12, 10, 9, 0.95)",
+        background: "rgba(var(--neutral-950-rgb), 0.95)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
-        borderTop: "1px solid rgba(129, 140, 248, 0.15)",
-        padding: "10px 16px",
+        borderTop: "1px solid rgba(var(--primary-400-rgb), 0.15)",
+        padding: "var(--space-1) var(--space-2)",
       }}
     >
       <div
         className="footer-content"
         style={{
-          maxWidth: "1280px",
+          maxWidth: "var(--container-max-width)",
           margin: "0 auto",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: "16px",
+          gap: "var(--space-2)",
         }}
       >
         {/* Left: Copyright */}
@@ -38,13 +38,13 @@ export default function Footer() {
             alignItems: "center",
             gap: "6px",
             fontSize: "var(--text-xs)",
-            color: "#78716c",
+            color: "var(--neutral-500)",
             fontFamily: "var(--font-body)",
             fontWeight: 500,
             whiteSpace: "nowrap",
           }}
         >
-          <span style={{ color: "#818cf8", fontWeight: 700 }}>ResuMariner</span>
+          <span style={{ color: "var(--primary-400)", fontWeight: 700 }}>ResuMariner</span>
           <span>© {currentYear}</span>
         </div>
 
@@ -58,65 +58,24 @@ export default function Footer() {
             fontFamily: "var(--font-body)",
           }}
         >
-          <Link
-            to="/privacy"
-            style={{
-              color: "#d6d3d1",
-              textDecoration: "none",
-              fontWeight: 500,
-              transition: "color 0.2s",
-              whiteSpace: "nowrap",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#818cf8")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#d6d3d1")}
-          >
+          <Link to="/privacy" className="footer-link">
             Privacy
           </Link>
-          <span style={{ color: "#57534e" }}>·</span>
-          <Link
-            to="/terms"
-            style={{
-              color: "#d6d3d1",
-              textDecoration: "none",
-              fontWeight: 500,
-              transition: "color 0.2s",
-              whiteSpace: "nowrap",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#818cf8")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#d6d3d1")}
-          >
+          <span className="footer-separator">·</span>
+          <Link to="/terms" className="footer-link">
             Terms
           </Link>
-          <span style={{ color: "#57534e" }}>·</span>
-          <Link
-            to="/data-policy"
-            style={{
-              color: "#d6d3d1",
-              textDecoration: "none",
-              fontWeight: 500,
-              transition: "color 0.2s",
-              whiteSpace: "nowrap",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#818cf8")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#d6d3d1")}
-          >
+          <span className="footer-separator">·</span>
+          <Link to="/data-policy" className="footer-link">
             Data
           </Link>
-          <span style={{ color: "#57534e" }}>·</span>
+          <span className="footer-separator">·</span>
           <a
             href="https://github.com/HardMax71/ResuMariner"
             target="_blank"
             rel="noopener noreferrer"
-            style={{
-              color: "#d6d3d1",
-              textDecoration: "none",
-              fontWeight: 500,
-              display: "inline-flex",
-              alignItems: "center",
-              transition: "color 0.2s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#818cf8")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#d6d3d1")}
+            className="footer-link"
+            style={{ display: "inline-flex", alignItems: "center" }}
           >
             <Github size={14} />
           </a>
