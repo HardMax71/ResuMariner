@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { LocationRequirement } from '../../lib/api';
+import type { LocationRequirement } from '../../api/client';
 import Badge from '../Badge';
 import Chip from '../Chip';
 import { useClickOutside } from '../../hooks/useClickOutside';

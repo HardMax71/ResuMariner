@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from '@emotion/styled';
-import type { LanguageRequirement } from '../../lib/api';
+import type { LanguageRequirement } from '../../api/client';
 import Badge from '../Badge';
 import Chip from '../Chip';
 import { useClickOutside } from '../../hooks/useClickOutside';

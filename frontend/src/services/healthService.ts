@@ -1,4 +1,4 @@
-import { apiGet } from '../lib/api';
+import { v1HealthRetrieve } from '../api/client';
 
 export interface QueueMetrics {
   stream_length: number;
@@ -25,5 +25,7 @@ export interface HealthData {
 }
 
 export async function getHealth(): Promise<HealthData> {
-  return apiGet<HealthData>('/api/v1/health/');
+  const { data, error } = await v1HealthRetrieve();
+  if (error) throw new Error(String(error));
+  return data as HealthData;
 }

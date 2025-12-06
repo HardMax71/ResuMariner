@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import time
-from dataclasses import asdict
 
 from django.conf import settings
 from neomodel import adb
@@ -94,11 +93,7 @@ class ProcessingWorker(BaseWorker):
                 file_path=file_path, uid=job_uid, parsed_doc=parsed_doc
             )
 
-            result_dict = {
-                "resume": result.resume.model_dump(),
-                "review": result.review.model_dump() if result.review else None,
-                "metadata": asdict(result.metadata),
-            }
+            result_dict = result.model_dump()
 
             await self.job_service.mark_execution_completed(execution_id, job_uid, result_dict)
 

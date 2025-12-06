@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle, ChevronDown, ChevronUp, ArrowLeft, FileText, Sparkles, AlertTriangle, Info, Lightbulb } from "lucide-react";
 import { useResumeStatus } from "../hooks/useJobStatus";
+import type { ProcessingResult, SectionFeedback } from "../api/client";
 import {
   PageWrapper,
   PageContainer,
@@ -44,7 +45,7 @@ export default function AIReview() {
   const { uid = "" } = useParams();
   const { data: job, isLoading: loading, error: queryError } = useResumeStatus(uid);
   const error = queryError ? (queryError as Error).message : null;
-  const result = job?.status === "completed" ? job.result : null;
+  const result = job?.status === "completed" ? (job.result as ProcessingResult) : null;
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (section: string) => {
@@ -145,7 +146,7 @@ export default function AIReview() {
           }
         />
 
-        {result.review.overall_score !== undefined && (
+        {result.review.overall_score != null && (
           <ScoreHero>
             <div style={{ position: "relative", zIndex: 1 }}>
               <FlexRow justify="space-between" style={{ marginBottom: "var(--space-4)" }}>
@@ -197,19 +198,20 @@ export default function AIReview() {
           </ScoreHero>
         )}
 
-        {typeof result.review === "object" && (
+        {result.review && (
           <FlexColumn gap="var(--space-3)">
             {Object.entries(result.review)
-              .filter(([key, value]) =>
-                key !== "overall_score" &&
-                key !== "summary" &&
-                value !== null &&
-                typeof value === "object"
-              )
-              .map(([section, feedback]: [string, any]) => {
-                const mustCount = feedback.must?.length || 0;
-                const shouldCount = feedback.should?.length || 0;
-                const adviseCount = feedback.advise?.length || 0;
+              .filter(([key, value]) => {
+                if (key === "overall_score" || key === "summary" || value === null || value === undefined) return false;
+                // Check if it's a ReviewFeedback object by looking for feedback properties
+                const asFeedback = value as SectionFeedback;
+                return asFeedback.must !== undefined || asFeedback.should !== undefined || asFeedback.advise !== undefined;
+              })
+              .map(([section, value]) => {
+                const feedback = value as SectionFeedback;
+                const mustCount = feedback.must?.length ?? 0;
+                const shouldCount = feedback.should?.length ?? 0;
+                const adviseCount = feedback.advise?.length ?? 0;
                 const totalCount = mustCount + shouldCount + adviseCount;
 
                 if (totalCount === 0) return null;
@@ -407,20 +409,7 @@ export default function AIReview() {
           </FlexColumn>
         )}
 
-        {typeof result.review === "string" && (
-          <div className="glass-card-lg">
-            <p style={{
-              margin: 0,
-              fontSize: "var(--text-base)",
-              color: "var(--neutral-700)",
-              lineHeight: "var(--leading-relaxed)"
-            }}>
-              {result.review}
-            </p>
-          </div>
-        )}
-
-        {typeof result.review === "object" &&
+        {result.review &&
          !Object.entries(result.review).some(([key, value]) =>
            key !== "overall_score" && key !== "summary" && value !== null) && (
           <EmptyStateCard>

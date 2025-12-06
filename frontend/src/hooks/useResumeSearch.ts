@@ -4,10 +4,12 @@ import {
   searchStructured,
   searchHybrid,
   getFilterOptions,
-  type SemanticSearchParams,
-  type StructuredSearchParams,
-  type HybridSearchParams,
 } from '../services/resumeService';
+import type {
+  VectorSearchQuerySchema,
+  GraphSearchQuerySchema,
+  HybridSearchQuerySchema,
+} from '../api/client';
 
 export function useFilterOptions() {
   return useQuery({
@@ -18,9 +20,9 @@ export function useFilterOptions() {
 }
 
 type UnifiedSearchParams =
-  | ({ type: "semantic" } & SemanticSearchParams)
-  | ({ type: "structured" } & StructuredSearchParams)
-  | ({ type: "hybrid" } & HybridSearchParams);
+  | ({ type: "semantic" } & VectorSearchQuerySchema)
+  | ({ type: "structured" } & GraphSearchQuerySchema)
+  | ({ type: "hybrid" } & HybridSearchQuerySchema);
 
 export function useSearch() {
   return useMutation({

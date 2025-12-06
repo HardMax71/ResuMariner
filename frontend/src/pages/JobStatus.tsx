@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useResumeStatus } from "../hooks/useJobStatus";
-import { API_BASE_URL } from "../lib/api";
+import { API_BASE_URL } from "../api/client";
+import type { Resume, Skill, EmploymentHistoryItem, Project, EducationItem, LanguageProficiency, Certification, Award, ScientificContribution, Course, ProcessingResult } from "../api/client";
 import {
   Copy, Check, Hash, FileText, Network, Database,
   Clock, Loader2, CheckCircle2, XCircle, RefreshCw,
@@ -13,23 +14,44 @@ import { PageWrapper, PageContainer } from "../components/styled";
 import PageHeader from "../components/PageHeader";
 import Tooltip from "../components/Tooltip";
 
-const renderValue = (value: any): string => {
+// Type-safe value renderer - handles common resume data structures
+interface RenderableObject {
+  city?: string;
+  country?: string;
+  name?: string;
+  title?: string;
+  value?: string;
+  text?: string;
+}
+
+const renderValue = (value: unknown): string => {
   if (value === null || value === undefined) return "—";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return String(value);
+
+  // Primitives - use String() which handles all primitives
+  const primitiveResult = String(value);
+  if (primitiveResult !== "[object Object]" && !primitiveResult.startsWith("[object")) {
+    return primitiveResult;
   }
-  if (typeof value === "object") {
-    // Handle common nested structures
-    if (value.city || value.country) return [value.city, value.country].filter(Boolean).join(", ");
-    if (value.name) return value.name;
-    if (value.title) return value.title;
-    if (value.value) return value.value;
-    // For arrays, join them
-    if (Array.isArray(value)) return value.map(renderValue).join(", ");
-    // Otherwise stringify
-    return JSON.stringify(value);
+
+  // Object handling via type assertion
+  const obj = value as RenderableObject | unknown[];
+
+  // Array handling - check for length property and numeric indexing
+  const asArray = obj as unknown[];
+  if (asArray.length !== undefined && asArray[0] !== undefined || (obj as unknown[]).length === 0) {
+    return (obj as unknown[]).map(renderValue).join(", ");
   }
-  return String(value);
+
+  // Object with known properties
+  const asObj = obj as RenderableObject;
+  if (asObj.city || asObj.country) return [asObj.city, asObj.country].filter(Boolean).join(", ");
+  if (asObj.name) return asObj.name;
+  if (asObj.title) return asObj.title;
+  if (asObj.text) return asObj.text;
+  if (asObj.value) return asObj.value;
+
+  // Fallback to JSON
+  return JSON.stringify(value);
 };
 
 const getBadgeStyle = (text: string, category?: string) => {
@@ -144,7 +166,7 @@ export default function JobStatus() {
 
   const { data: job, error: jobError } = useResumeStatus(uid);
 
-  const result = job?.status === "completed" ? job.result : null;
+  const result = job?.status === "completed" ? (job.result as ProcessingResult) : null;
   const error = jobError;
 
   useEffect(() => {
@@ -244,10 +266,26 @@ export default function JobStatus() {
     return `${seconds}s`;
   };
 
-  const renderResumeSection = (title: string, key: string, data: any) => {
+  // Personal data interface for section rendering
+  interface PersonalData {
+    name?: string;
+    email?: string;
+    phone?: string;
+    location?: unknown;
+    linkedin?: string;
+    github?: string;
+    website?: string;
+  }
+
+  // Section data types - union of all possible section data shapes
+  type SectionData = EmploymentHistoryItem[] | EducationItem[] | Project[] | LanguageProficiency[] | Certification[] | Award[] | ScientificContribution[] | Course[] | Skill[] | PersonalData | null;
+
+  const renderResumeSection = (title: string, key: string, data: SectionData) => {
+    const asArray = data as unknown[];
+    const asRecord = data as Record<string, unknown>;
     const isEmpty = !data ||
-                   (Array.isArray(data) && data.length === 0) ||
-                   (typeof data === "object" && !Array.isArray(data) && Object.keys(data).length === 0);
+                   (asArray.length !== undefined && asArray.length === 0) ||
+                   (asRecord && Object.keys(asRecord).length === 0 && asArray.length === undefined);
 
     const isExpanded = expandedSections.has(key);
 
@@ -271,7 +309,9 @@ export default function JobStatus() {
             </div>
           ) : (
             <>
-            {key === "personal" && typeof data === "object" && (
+            {key === "personal" && data && (() => {
+              const personal = data as PersonalData;
+              return (
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
                 {/* Avatar */}
                 <div style={{
@@ -287,26 +327,26 @@ export default function JobStatus() {
                   color: "var(--primary-600)",
                   flexShrink: 0
                 }}>
-                  {data.name ? data.name.charAt(0).toUpperCase() : "?"}
+                  {personal.name ? personal.name.charAt(0).toUpperCase() : "?"}
                 </div>
 
                 {/* Info */}
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
                   <h4 style={{ fontSize: "var(--text-lg)", fontWeight: 600, margin: 0 }}>
-                    {renderValue(data.name) || "—"}
+                    {renderValue(personal.name) || "—"}
                   </h4>
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-                    {data.email && (
-                      <a href={`mailto:${renderValue(data.email)}`} style={{
+                    {personal.email && (
+                      <a href={`mailto:${renderValue(personal.email)}`} style={{
                         fontSize: "var(--text-sm)",
                         color: "var(--primary-600)",
                         textDecoration: "none"
                       }}>
-                        {renderValue(data.email)}
+                        {renderValue(personal.email)}
                       </a>
                     )}
-                    {data.phone && (
-                      <a href={`tel:${renderValue(data.phone)}`} style={{
+                    {personal.phone && (
+                      <a href={`tel:${renderValue(personal.phone)}`} style={{
                         fontSize: "var(--text-sm)",
                         color: "var(--neutral-700)",
                         textDecoration: "none",
@@ -314,51 +354,51 @@ export default function JobStatus() {
                         alignItems: "center",
                         gap: "4px"
                       }}>
-                        <Phone size={13} strokeWidth={2} /> {renderValue(data.phone)}
+                        <Phone size={13} strokeWidth={2} /> {renderValue(personal.phone)}
                       </a>
                     )}
-                    {data.location && (
+                    {personal.location ? (
                       <span style={{ fontSize: "var(--text-sm)", color: "var(--neutral-600)", display: "flex", alignItems: "center", gap: "4px" }}>
-                        <MapPin size={13} strokeWidth={2} /> {renderValue(data.location)}
+                        <MapPin size={13} strokeWidth={2} /> {renderValue(personal.location)}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
                 {/* Social Links */}
-                {(data.linkedin || data.github || data.website) && (
+                {(personal.linkedin || personal.github || personal.website) && (
                   <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                    {data.linkedin && (
-                      <a href={renderValue(data.linkedin)} target="_blank" rel="noopener noreferrer" title="LinkedIn">
+                    {personal.linkedin && (
+                      <a href={renderValue(personal.linkedin)} target="_blank" rel="noopener noreferrer" title="LinkedIn">
                         <Linkedin size={18} style={{ color: "var(--neutral-600)" }} />
                       </a>
                     )}
-                    {data.github && (
-                      <a href={renderValue(data.github)} target="_blank" rel="noopener noreferrer" title="GitHub">
+                    {personal.github && (
+                      <a href={renderValue(personal.github)} target="_blank" rel="noopener noreferrer" title="GitHub">
                         <Github size={18} style={{ color: "var(--neutral-600)" }} />
                       </a>
                     )}
-                    {data.website && (
-                      <a href={renderValue(data.website)} target="_blank" rel="noopener noreferrer" title="Website">
+                    {personal.website && (
+                      <a href={renderValue(personal.website)} target="_blank" rel="noopener noreferrer" title="Website">
                         <Globe size={18} strokeWidth={2} style={{ color: "var(--neutral-600)" }} />
                       </a>
                     )}
                   </div>
                 )}
               </div>
-            )}
+            );})()}
 
-            {key === "skills" && Array.isArray(data) && (
+            {key === "skills" && data && (
               <div className="chips">
-                {data.map((skill: any, idx: number) => (
+                {(data as Skill[]).map((skill, idx) => (
                   <span key={idx} className="chip">{renderValue(skill)}</span>
                 ))}
               </div>
             )}
 
-            {key === "experience" && Array.isArray(data) && (
+            {key === "experience" && data && (
               <div className="flex flex-col gap-3">
-                {data.map((exp: any, idx: number) => (
+                {(data as EmploymentHistoryItem[]).map((exp, idx) => (
                   <div
                     key={idx}
                     style={{
@@ -529,9 +569,9 @@ export default function JobStatus() {
               </div>
             )}
 
-            {key === "projects" && Array.isArray(data) && (
+            {key === "projects" && data && (
               <div className="flex flex-col gap-3">
-                {data.map((proj: any, idx: number) => (
+                {(data as Project[]).map((proj, idx) => (
                   <div
                     key={idx}
                     style={{
@@ -678,9 +718,9 @@ export default function JobStatus() {
               </div>
             )}
 
-            {key === "education" && Array.isArray(data) && (
+            {key === "education" && data && (
               <div className="flex flex-col gap-3">
-                {data.map((edu: any, idx: number) => (
+                {(data as EducationItem[]).map((edu, idx) => (
                   <div
                     key={idx}
                     style={{
@@ -845,9 +885,9 @@ export default function JobStatus() {
               </div>
             )}
 
-            {key === "languages" && Array.isArray(data) && (
+            {key === "languages" && data && (
               <div className="flex flex-col gap-3">
-                {data.map((lang: any, idx: number) => {
+                {(data as LanguageProficiency[]).map((lang, idx) => {
                   const langName = lang.language?.name || lang.name || lang;
                   const cefr = lang.cefr;
                   const selfAssessed = lang.self_assessed;
@@ -928,9 +968,9 @@ export default function JobStatus() {
               </div>
             )}
 
-            {key === "certifications" && Array.isArray(data) && (
+            {key === "certifications" && data && (
               <div className="flex flex-col gap-3">
-                {data.map((cert: any, idx: number) => (
+                {(data as Certification[]).map((cert, idx) => (
                   <div
                     key={idx}
                     style={{
@@ -998,9 +1038,9 @@ export default function JobStatus() {
               </div>
             )}
 
-            {key === "awards" && Array.isArray(data) && (
+            {key === "awards" && data && (
               <div className="flex flex-col gap-3">
-                {data.map((award: any, idx: number) => (
+                {(data as Award[]).map((award, idx) => (
                   <div
                     key={idx}
                     style={{
@@ -1057,9 +1097,9 @@ export default function JobStatus() {
               </div>
             )}
 
-            {(key === "publications" || key === "scientific_contributions") && Array.isArray(data) && (
+            {(key === "publications" || key === "scientific_contributions") && data && (
               <div className="flex flex-col gap-3">
-                {data.map((pub: any, idx: number) => (
+                {(data as ScientificContribution[]).map((pub, idx) => (
                   <div
                     key={idx}
                     style={{
@@ -1167,9 +1207,9 @@ export default function JobStatus() {
               </div>
             )}
 
-            {key === "courses" && Array.isArray(data) && (
+            {key === "courses" && data && (
               <div className="flex flex-col gap-3">
-                {data.map((course: any, idx: number) => (
+                {(data as Course[]).map((course, idx) => (
                   <div
                     key={idx}
                     style={{
@@ -1314,7 +1354,7 @@ export default function JobStatus() {
 
       {error && (
         <div className="error mb-3">
-          <strong>Error loading job:</strong> {error instanceof Error ? error.message : String(error)}
+          <strong>Error loading job:</strong> {(error as Error).message}
         </div>
       )}
 
@@ -1958,8 +1998,8 @@ export default function JobStatus() {
                       <h3 className="title" style={{ marginBottom: "var(--space-2)" }}>Skills</h3>
                       <div style={{ position: "relative" }}>
                         <div ref={skillsContainerRef} className="chips" style={{ maxHeight: "min(400px, 50vh)", overflowY: "auto", paddingBottom: "var(--space-2)" }}>
-                          {result.resume.skills && Array.isArray(result.resume.skills) ? (
-                            result.resume.skills.map((skill: any, idx: number) => (
+                          {result.resume.skills?.length ? (
+                            (result.resume.skills as Skill[]).map((skill, idx) => (
                               <span key={idx} className="chip" style={{ fontSize: "var(--text-xs)" }}>
                                 {renderValue(skill)}
                               </span>
@@ -1986,13 +2026,15 @@ export default function JobStatus() {
                     </div>
                   </div>
                   {RESUME_SECTIONS.map(section => {
-                    const data: any = section.paths.reduce((found, path) => {
-                      return found || result.resume[path];
+                    const data = section.paths.reduce<SectionData>((found, path) => {
+                      return found || (result.resume as Record<string, SectionData>)[path];
                     }, null);
 
+                    const asArray = data as unknown[];
+                    const asRecord = data as Record<string, unknown>;
                     const isEmpty = !data ||
-                                   (Array.isArray(data) && data.length === 0) ||
-                                   (typeof data === 'object' && Object.keys(data).length === 0);
+                                   (asArray.length !== undefined && asArray.length === 0) ||
+                                   (asRecord && Object.keys(asRecord).length === 0 && asArray.length === undefined);
 
                     if (isEmpty && !section.alwaysShow) {
                       return null;

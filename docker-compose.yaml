@@ -172,6 +172,7 @@ services:
     build:
       context: ./frontend
       target: ${FRONTEND_TARGET:-dev}
+    command: sh -c "until wget -qO- http://backend:8000/api/schema/ >/dev/null 2>&1; do sleep 2; done && OPENAPI_URL=http://backend:8000/api/schema/ npm run generate:api && npm run dev"
     ports:
       - "5173:5173"
     volumes:

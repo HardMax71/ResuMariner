@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { SearchResult } from "../lib/api";
+import type { SearchResult } from "../api/client";
 import Chip from "./Chip";
 import { Mail, MapPin, Briefcase, GraduationCap, Target, Globe, ChevronDown, Copy, Check, Sparkles, MessageCircle, Users } from "lucide-react";
 import { useSelection } from "../contexts/SelectionContext";

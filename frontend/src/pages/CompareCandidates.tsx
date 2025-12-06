@@ -149,7 +149,7 @@ export default function CompareCandidates() {
           <ErrorCard>
             <div className="flex align-center gap-2">
               <AlertCircle size={20} />
-              <span>{error instanceof Error ? error.message : 'Failed to compare candidates'}</span>
+              <span>{(error as Error).message}</span>
             </div>
           </ErrorCard>
         )}

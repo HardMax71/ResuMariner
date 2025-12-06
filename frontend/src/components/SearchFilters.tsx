@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { SearchFilters } from "../lib/api";
+import type { SearchFiltersSchema } from "../api/client";
 import { useFilterOptions } from "../hooks/useResumeSearch";
 import { SearchableDropdown } from "./filters/SearchableDropdown";
 import { SkillsFilter } from "./filters/SkillsFilter";
@@ -10,8 +10,8 @@ import { ActiveFiltersBar } from "./filters/ActiveFiltersBar";
 import { FilterGrid } from "./filters/styled";
 
 type Props = {
-  value: SearchFilters;
-  onChange: (v: SearchFilters) => void;
+  value: SearchFiltersSchema;
+  onChange: (v: SearchFiltersSchema) => void;
 };
 
 export default function SearchFiltersComp({ value, onChange }: Props) {

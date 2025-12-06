@@ -150,7 +150,7 @@ export default function InterviewQuestions() {
           <ErrorCard>
             <div className="flex align-center gap-2">
               <AlertCircle size={20} />
-              <span>{error instanceof Error ? error.message : 'Failed to generate questions'}</span>
+              <span>{(error as Error).message}</span>
             </div>
           </ErrorCard>
         )}

@@ -4,7 +4,7 @@ import ResultCard from "../components/ResultCard";
 import CollapsibleSection from "../components/CollapsibleSection";
 import Badge from "../components/Badge";
 import { useSearch } from "../hooks/useResumeSearch";
-import type { SearchFilters } from "../lib/api";
+import type { SearchFiltersSchema } from "../api/client";
 import { PageWrapper, PageContainer } from "../components/styled";
 import PageHeader from "../components/PageHeader";
 import { Search as SearchIcon, AlertCircle } from "lucide-react";
@@ -14,7 +14,7 @@ type Tab = "semantic" | "structured" | "hybrid";
 export default function Search() {
   const [tab, setTab] = useState<Tab>("semantic");
   const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState<SearchFilters>({});
+  const [filters, setFilters] = useState<SearchFiltersSchema>({});
   const [limit, setLimit] = useState(10);
   const [minScore, setMinScore] = useState(0.3);
   const [maxMatches, setMaxMatches] = useState(5);
@@ -62,9 +62,12 @@ export default function Search() {
     setMaxMatches(5);
   };
 
-  const activeFilterCount = Object.values(filters).filter(v =>
-    v !== null && v !== undefined && (Array.isArray(v) ? v.length > 0 : true)
-  ).length;
+  const activeFilterCount = Object.values(filters).filter(v => {
+    if (v === null || v === undefined) return false;
+    const asArray = v as { length?: number };
+    if (asArray.length !== undefined) return asArray.length > 0;
+    return true;
+  }).length;
 
   return (
     <PageWrapper>
@@ -83,7 +86,7 @@ export default function Search() {
               {res.search_type.charAt(0).toUpperCase() + res.search_type.slice(1)} Search
             </Badge>
             <span className="muted small" style={{ marginLeft: 'auto' }}>
-              Search completed in {res.execution_time ? `${res.execution_time.toFixed(2)}s` : '<1s'}
+              Search completed in {(res as { execution_time?: number }).execution_time ? `${(res as { execution_time?: number }).execution_time!.toFixed(2)}s` : '<1s'}
             </span>
           </div>
       )}

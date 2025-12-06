@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { EducationRequirement } from '../../lib/api';
+import type { EducationRequirement, StatusesEnum } from '../../api/client';
 import Badge from '../Badge';
 import Chip from '../Chip';
 import { useClickOutside } from '../../hooks/useClickOutside';
@@ -24,6 +24,7 @@ export function EducationFilter({ educationLevels, selectedEducation, onChange }
 
   const toggleEducationLevel = (level: string, statuses: string[]) => {
     const existing = selectedEducation.find(e => e.level === level);
+    const typedStatuses = statuses as StatusesEnum[];
 
     if (existing) {
       const sameStatusesSelected = JSON.stringify(existing.statuses?.sort()) === JSON.stringify(statuses.sort());
@@ -32,12 +33,12 @@ export function EducationFilter({ educationLevels, selectedEducation, onChange }
       } else {
         onChange(
           selectedEducation.map(e =>
-            e.level === level ? { ...e, statuses: statuses.length === 0 ? null : statuses } : e
+            e.level === level ? { ...e, statuses: typedStatuses.length === 0 ? null : typedStatuses } : e
           )
         );
       }
     } else {
-      onChange([...selectedEducation, { level, statuses: statuses.length === 0 ? null : statuses }]);
+      onChange([...selectedEducation, { level, statuses: typedStatuses.length === 0 ? null : typedStatuses }]);
     }
     setExpandedLevel(null);
   };
@@ -93,7 +94,7 @@ export function EducationFilter({ educationLevels, selectedEducation, onChange }
                     </CheckboxLabel>
                     {levelOption.statuses.map(status => {
                       const currentStatuses = selected?.statuses ?? [];
-                      const isChecked = currentStatuses.includes(status);
+                      const isChecked = currentStatuses.includes(status as StatusesEnum);
 
                       return (
                         <CheckboxLabel key={status}>

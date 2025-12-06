@@ -4,7 +4,6 @@ import { AlertCircle } from "lucide-react";
 import FileDropzone from "../components/FileDropzone";
 import { useResumeUpload } from "../hooks/useResumeUpload";
 import { PageWrapper, PageContainer } from "../components/styled";
-import { APIError } from "../lib/api";
 
 export default function Upload() {
   const [file, setFile] = useState<File | null>(null);
@@ -81,7 +80,7 @@ export default function Upload() {
                     }}>
                       {error.message || 'Upload failed'}
                     </div>
-                    {error instanceof APIError && error.statusCode === 400 && (
+                    {error.message && (
                       <div style={{
                         color: "var(--neutral-600)",
                         fontSize: "var(--text-xs)",
