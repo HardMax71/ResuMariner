@@ -6,6 +6,7 @@ import PageHeader from "../components/PageHeader";
 import Badge from "../components/Badge";
 import { AlertCircle, Users, TrendingUp, Award, X } from "lucide-react";
 import { compareCandidates } from "../services/ragService";
+import type { AppError } from "../lib/api";
 
 export default function CompareCandidates() {
   const [searchParams] = useSearchParams();
@@ -149,7 +150,7 @@ export default function CompareCandidates() {
           <ErrorCard>
             <div className="flex align-center gap-2">
               <AlertCircle size={20} />
-              <span>{error instanceof Error ? error.message : 'Failed to compare candidates'}</span>
+              <span>{(error as AppError).message}</span>
             </div>
           </ErrorCard>
         )}

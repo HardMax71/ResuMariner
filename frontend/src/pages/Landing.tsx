@@ -37,7 +37,16 @@ const STATS = [
   { value: 'Semantic', label: 'Matching' },
   { value: 'MIT', label: 'License' }
 ] as const;
-const FEATURES = [
+
+interface Feature {
+  title: string;
+  description: string;
+  wide?: boolean;
+  tall?: boolean;
+  small?: boolean;
+}
+
+const FEATURES: Feature[] = [
   {
     title: 'Vector Search',
     description: 'Qdrant-powered semantic search. Find candidates by meaning, not keywords. 768-dimensional embeddings capture context.',
@@ -68,7 +77,7 @@ const FEATURES = [
     description: 'MIT licensed. Inspect, modify, contribute. Zero vendor lock-in.',
     small: true
   }
-] as const;
+];
 
 export default function Landing() {
   const [visibleSections, setVisibleSections] = useState(new Set<string>());

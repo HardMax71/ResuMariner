@@ -62,9 +62,12 @@ export default function Search() {
     setMaxMatches(5);
   };
 
-  const activeFilterCount = Object.values(filters).filter(v =>
-    v !== null && v !== undefined && (Array.isArray(v) ? v.length > 0 : true)
-  ).length;
+  const activeFilterCount = Object.values(filters).filter(v => {
+    if (v === null || v === undefined) return false;
+    const asArray = v as { length?: number };
+    if (asArray.length !== undefined) return asArray.length > 0;
+    return true;
+  }).length;
 
   return (
     <PageWrapper>

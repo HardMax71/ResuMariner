@@ -1,21 +1,20 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-export class APIError extends Error {
-  constructor(
-    message: string,
-    public statusCode: number,
-    public response?: any
-  ) {
-    super(message);
-    this.name = 'APIError';
-  }
+// Single error interface for entire app - all thrown errors conform to this
+export interface AppError {
+  message: string;
+  statusCode?: number;
+  response?: unknown;
 }
 
-export class NetworkError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'NetworkError';
-  }
+// Helper to convert any caught error to AppError shape
+function toAppError(error: unknown, defaultMessage: string): AppError {
+  const e = error as Partial<AppError>;
+  return {
+    message: e?.message ?? defaultMessage,
+    statusCode: e?.statusCode,
+    response: e?.response
+  };
 }
 
 interface RequestOptions extends RequestInit {
@@ -39,19 +38,21 @@ async function fetchWithTimeout(
 
     clearTimeout(timeoutId);
     return response;
-  } catch (error: any) {
+  } catch (error) {
     clearTimeout(timeoutId);
-
-    if (error.name === 'AbortError') {
-      throw new NetworkError('Request timeout');
-    }
-
-    if (error instanceof TypeError) {
-      throw new NetworkError('Network error - please check your connection');
-    }
-
-    throw error;
+    // All fetch errors become AppError with no statusCode (network-level failure)
+    throw toAppError(error, 'Network error - please check your connection');
   }
+}
+
+// Helper to create API error response
+async function createApiError(response: Response): Promise<AppError> {
+  const body = await response.json().catch(() => ({})) as { detail?: string; message?: string };
+  return {
+    message: body.detail ?? body.message ?? `HTTP ${response.status}: ${response.statusText}`,
+    statusCode: response.status,
+    response: body
+  };
 }
 
 export async function apiGet<T>(endpoint: string, options?: RequestOptions): Promise<T> {
@@ -64,12 +65,7 @@ export async function apiGet<T>(endpoint: string, options?: RequestOptions): Pro
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new APIError(
-      error.detail || error.message || `HTTP ${response.status}: ${response.statusText}`,
-      response.status,
-      error
-    );
+    throw await createApiError(response);
   }
 
   return response.json();
@@ -77,7 +73,7 @@ export async function apiGet<T>(endpoint: string, options?: RequestOptions): Pro
 
 export async function apiPost<T>(
   endpoint: string,
-  body?: any,
+  body?: unknown,
   options?: RequestOptions
 ): Promise<T> {
   const response = await fetchWithTimeout(`${API_BASE_URL}${endpoint}`, {
@@ -90,12 +86,7 @@ export async function apiPost<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new APIError(
-      error.detail || error.message || `HTTP ${response.status}: ${response.statusText}`,
-      response.status,
-      error
-    );
+    throw await createApiError(response);
   }
 
   return response.json();
@@ -113,12 +104,7 @@ export async function apiUpload<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new APIError(
-      error.detail || error.message || `HTTP ${response.status}: ${response.statusText}`,
-      response.status,
-      error
-    );
+    throw await createApiError(response);
   }
 
   return response.json();
@@ -126,15 +112,214 @@ export async function apiUpload<T>(
 
 export type ResumeStatus = "pending" | "processing" | "completed" | "failed";
 
+// Resume data types (matching backend domain/resume.py)
+export interface Location {
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
+export interface ContactLinks {
+  telegram?: string;
+  linkedin?: string;
+  github?: string;
+  other_links?: Record<string, string>;
+}
+
+export interface Contact {
+  email: string;
+  phone?: string;
+  links?: ContactLinks;
+}
+
+export interface WorkAuthorization {
+  citizenship?: string;
+  work_permit?: boolean;
+  visa_sponsorship_required?: boolean;
+}
+
+export interface Demographics {
+  current_location?: Location;
+  work_authorization?: WorkAuthorization;
+}
+
+export interface PersonalInfo {
+  name: string;
+  resume_lang: string;
+  contact: Contact;
+  demographics?: Demographics;
+}
+
+export interface Skill {
+  name: string;
+}
+
+export interface KeyPoint {
+  text: string;
+}
+
+export interface CompanyInfo {
+  name: string;
+  url?: string;
+}
+
+export interface EmploymentDuration {
+  start: string;
+  end?: string;
+  duration_months: number;
+}
+
+export interface EmploymentHistoryItem {
+  position: string;
+  employment_type?: string;
+  work_mode?: string;
+  company?: CompanyInfo;
+  duration: EmploymentDuration;
+  location?: Location;
+  key_points: KeyPoint[];
+  skills: Skill[];
+}
+
+export interface Project {
+  title: string;
+  url?: string;
+  description?: string;
+  skills: Skill[];
+  key_points: KeyPoint[];
+}
+
+export interface InstitutionInfo {
+  name: string;
+}
+
+export interface Coursework {
+  text: string;
+}
+
+export interface EducationExtra {
+  text: string;
+}
+
+export interface EducationItem {
+  qualification?: string;
+  field: string;
+  institution: InstitutionInfo;
+  location?: Location;
+  start?: string;
+  end?: string;
+  year?: number;
+  status: string;
+  gpa?: string | number;
+  coursework: Coursework[];
+  extras: EducationExtra[];
+}
+
+export interface Course {
+  name: string;
+  organization: string;
+  year?: number;
+  course_url?: string;
+  certificate_url?: string;
+}
+
+export interface Certification {
+  name: string;
+  issue_org?: string;
+  issue_year?: number;
+  certificate_link?: string;
+}
+
+export interface Language {
+  name: string;
+}
+
+export interface LanguageProficiency {
+  language: Language;
+  self_assessed: string;
+  cefr: string;
+  // Legacy/alternative data shapes
+  name?: string;
+  level?: string;
+}
+
+export interface Award {
+  name: string;
+  award_type: string;
+  organization: string;
+  year?: number;
+  position?: string;
+  description?: string;
+  url?: string;
+  // Legacy/alternative data shapes
+  title?: string;
+  issuer?: string;
+  date?: string;
+}
+
+export interface ScientificContribution {
+  title: string;
+  publication_type: string;
+  year?: number;
+  venue?: string;
+  doi?: string;
+  url?: string;
+  description?: string;
+}
+
+export interface Preferences {
+  role: string;
+  employment_types: string[];
+  work_modes: string[];
+  salary?: string;
+}
+
+export interface ProfessionalProfile {
+  summary?: string;
+  preferences?: Preferences;
+}
+
+export interface Resume {
+  uid: string;
+  personal_info: PersonalInfo;
+  professional_profile?: ProfessionalProfile;
+  skills: Skill[];
+  employment_history: EmploymentHistoryItem[];
+  projects: Project[];
+  education: EducationItem[];
+  courses: Course[];
+  certifications: Certification[];
+  language_proficiency: LanguageProficiency[];
+  awards: Award[];
+  scientific_contributions: ScientificContribution[];
+}
+
+// Review feedback types
+export interface ReviewFeedback {
+  must?: string[];
+  should?: string[];
+  advise?: string[];
+}
+
+export interface ReviewData {
+  overall_score?: number;
+  summary?: string;
+  [section: string]: number | string | ReviewFeedback | undefined;
+}
+
+export interface ResumeMetadata {
+  processing_time?: number;
+  [key: string]: unknown;
+}
+
 export interface ResumeResponse {
   uid: string;
   status: ResumeStatus;
   created_at: string;
   updated_at: string;
   data?: {
-    resume: Record<string, any>;
-    review: Record<string, any> | null;
-    metadata: Record<string, any>;
+    resume: Resume;
+    review: ReviewData | null;
+    metadata: ResumeMetadata;
   };
   error?: string | null;
 }
