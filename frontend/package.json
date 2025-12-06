@@ -7,9 +7,11 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "typecheck": "tsc -b --pretty"
+    "typecheck": "tsc -b --pretty",
+    "generate:api": "openapi-ts"
   },
   "dependencies": {
+    "@hey-api/client-fetch": "^0.6.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "6.26.2",
@@ -22,6 +24,7 @@
     "pako": "^2.1.0"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.61.2",
     "@types/pako": "^2.0.3",
     "@vitejs/plugin-react": "4.3.2",
     "@types/react": "18.3.7",

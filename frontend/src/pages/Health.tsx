@@ -1,5 +1,5 @@
 import { useHealth } from "../hooks/useHealth";
-import { API_BASE_URL } from "../lib/api";
+import { API_BASE_URL } from "../api/client";
 import { RefreshCw, Code2, BarChart3 } from "lucide-react";
 import {
   PageWrapper,

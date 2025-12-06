@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useResumeStatus } from "../hooks/useJobStatus";
-import { API_BASE_URL, type AppError, type Resume, type Skill, type EmploymentHistoryItem, type Project, type EducationItem, type LanguageProficiency, type Certification, type Award, type ScientificContribution, type Course } from "../lib/api";
+import { API_BASE_URL } from "../api/client";
+import type { Resume, Skill, EmploymentHistoryItem, Project, EducationItem, LanguageProficiency, Certification, Award, ScientificContribution, Course, ProcessingResult } from "../api/client";
 import {
   Copy, Check, Hash, FileText, Network, Database,
   Clock, Loader2, CheckCircle2, XCircle, RefreshCw,
@@ -165,7 +166,7 @@ export default function JobStatus() {
 
   const { data: job, error: jobError } = useResumeStatus(uid);
 
-  const result = job?.status === "completed" ? job.result : null;
+  const result = job?.status === "completed" ? (job.result as ProcessingResult) : null;
   const error = jobError;
 
   useEffect(() => {
@@ -1353,7 +1354,7 @@ export default function JobStatus() {
 
       {error && (
         <div className="error mb-3">
-          <strong>Error loading job:</strong> {(error as AppError).message}
+          <strong>Error loading job:</strong> {(error as Error).message}
         </div>
       )}
 

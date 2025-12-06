@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 from django.db.models import TextChoices
 from rest_framework import serializers
@@ -64,48 +63,3 @@ class FileUploadSerializer(serializers.Serializer):
         # Reset file pointer for later use
         file.seek(0)
         return file
-
-
-class JobCreateSerializer(serializers.Serializer):
-    file_path = serializers.CharField(min_length=1)
-
-    def validate_file_path_not_empty(self, value):
-        if not value or not value.strip():
-            raise ValidationError("File path cannot be empty")
-        return value.strip()
-
-
-class JobUpdateSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=JobStatus.choices, required=False)
-    result = serializers.JSONField(required=False)
-    error = serializers.CharField(required=False, allow_blank=True)
-    completed_at = serializers.DateTimeField(required=False)
-
-
-class JobSerializer(serializers.Serializer):
-    uid = serializers.CharField()
-    status = serializers.ChoiceField(choices=JobStatus.choices, default=JobStatus.PENDING)
-    file_path = serializers.CharField()
-    created_at = serializers.DateTimeField(default=datetime.now)
-    updated_at = serializers.DateTimeField(default=datetime.now)
-    result = serializers.JSONField(required=False, allow_null=True)
-    error = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    completed_at = serializers.DateTimeField(required=False, allow_null=True)
-    error_message = serializers.CharField(required=False, allow_null=True)
-
-
-class ResumeResponseSerializer(serializers.Serializer):
-    uid = serializers.CharField(help_text="Resume unique identifier")
-    status = serializers.ChoiceField(choices=JobStatus.choices, help_text="Processing status")
-    created_at = serializers.DateTimeField()
-    updated_at = serializers.DateTimeField()
-    completed_at = serializers.DateTimeField(required=False, allow_null=True)
-    result = serializers.JSONField(required=False, allow_null=True)
-    error = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-
-
-class ResumeListResponseSerializer(serializers.Serializer):
-    count = serializers.IntegerField(help_text="Total number of resumes")
-    next = serializers.URLField(required=False, allow_null=True, help_text="Next page URL")
-    previous = serializers.URLField(required=False, allow_null=True, help_text="Previous page URL")
-    results = ResumeResponseSerializer(many=True, help_text="Resumes for current page")

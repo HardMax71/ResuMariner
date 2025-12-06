@@ -6,7 +6,6 @@ import PageHeader from "../components/PageHeader";
 import Badge from "../components/Badge";
 import { AlertCircle, CheckCircle, AlertTriangle, TrendingUp, MessageCircle, Lightbulb, XCircle } from "lucide-react";
 import { explainMatch, type JobMatchExplanation } from "../services/ragService";
-import type { AppError } from "../lib/api";
 
 export default function ExplainMatch() {
   const [searchParams] = useSearchParams();
@@ -98,7 +97,7 @@ export default function ExplainMatch() {
           <ErrorCard>
             <div className="flex align-center gap-2">
               <AlertCircle size={20} />
-              <span>{(error as AppError).message}</span>
+              <span>{(error as Error).message}</span>
             </div>
           </ErrorCard>
         )}

@@ -1,70 +1,61 @@
-import { apiGet, apiPost, apiUpload, SearchFilters, SearchResult, FilterOptions } from '../lib/api';
+import {
+  API_BASE_URL,
+  v1ResumesRetrieve2,
+  v1SearchSemanticCreate,
+  v1SearchStructuredCreate,
+  v1SearchHybridCreate,
+  v1FiltersRetrieve,
+  type ResumeResponse,
+  type SearchResponse,
+  type FilterOptions,
+  type VectorSearchQuerySchema,
+  type GraphSearchQuerySchema,
+  type HybridSearchQuerySchema,
+} from '../api/client';
 
-export interface UploadResult {
-  uid: string;
-  status: string;
-}
-
-export interface ResumeStatusResult {
-  uid: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  created_at: string;
-  updated_at: string;
-  completed_at?: string;
-  result?: any;
-  error?: string;
-}
-
-export async function uploadResume(file: File): Promise<UploadResult> {
+export async function uploadResume(file: File): Promise<ResumeResponse> {
   const formData = new FormData();
   formData.append('file', file);
 
-  return apiUpload<UploadResult>('/api/v1/resumes/', formData);
+  const response = await fetch(`${API_BASE_URL}/api/v1/resumes/`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({})) as { detail?: string; message?: string };
+    throw new Error(body.detail ?? body.message ?? `HTTP ${response.status}`);
+  }
+
+  return response.json();
 }
 
-export async function getResumeStatus(uid: string): Promise<ResumeStatusResult> {
-  return apiGet<ResumeStatusResult>(`/api/v1/resumes/${uid}/`);
+export async function getResumeStatus(uid: string): Promise<ResumeResponse> {
+  const { data, error } = await v1ResumesRetrieve2({ path: { uid } });
+  if (error) throw new Error(String(error));
+  return data as ResumeResponse;
 }
 
-export interface SearchResponse {
-  results: SearchResult[];
-  search_type: string;
-  execution_time?: number;
+export async function searchSemantic(params: VectorSearchQuerySchema): Promise<SearchResponse> {
+  const { data, error } = await v1SearchSemanticCreate({ body: params });
+  if (error) throw new Error(String(error));
+  return data as SearchResponse;
 }
 
-export interface SemanticSearchParams {
-  query: string;
-  limit?: number;
-  min_score?: number;
-  max_matches_per_result?: number;
-  filters?: SearchFilters;
+export async function searchStructured(params: GraphSearchQuerySchema): Promise<SearchResponse> {
+  const { data, error } = await v1SearchStructuredCreate({ body: params });
+  if (error) throw new Error(String(error));
+  return data as SearchResponse;
 }
 
-export interface StructuredSearchParams {
-  query: string;
-  filters: SearchFilters;
-  limit?: number;
-}
-
-export interface HybridSearchParams {
-  query: string;
-  filters?: SearchFilters;
-  limit?: number;
-  max_matches_per_result?: number;
-}
-
-export async function searchSemantic(params: SemanticSearchParams): Promise<SearchResponse> {
-  return apiPost<SearchResponse>('/api/v1/search/semantic/', params);
-}
-
-export async function searchStructured(params: StructuredSearchParams): Promise<SearchResponse> {
-  return apiPost<SearchResponse>('/api/v1/search/structured/', params);
-}
-
-export async function searchHybrid(params: HybridSearchParams): Promise<SearchResponse> {
-  return apiPost<SearchResponse>('/api/v1/search/hybrid/', params);
+export async function searchHybrid(params: HybridSearchQuerySchema): Promise<SearchResponse> {
+  const { data, error } = await v1SearchHybridCreate({ body: params });
+  if (error) throw new Error(String(error));
+  return data as SearchResponse;
 }
 
 export async function getFilterOptions(): Promise<FilterOptions> {
-  return apiGet<FilterOptions>('/api/v1/filters/');
+  const { data, error } = await v1FiltersRetrieve();
+  if (error) throw new Error(String(error));
+  return data as FilterOptions;
 }

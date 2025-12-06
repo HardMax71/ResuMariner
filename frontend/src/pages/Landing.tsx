@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { API_BASE_URL } from "../lib/api";
+import { API_BASE_URL } from "../api/client";
 import { ArrowRight } from 'lucide-react';
 import AnimatedTerminal from '../components/AnimatedTerminal';
 

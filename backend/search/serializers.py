@@ -31,6 +31,36 @@ class JobExperienceSerializer(serializers.Serializer):
     )
 
 
+class EducationEntrySerializer(serializers.Serializer):
+    """Education entry in search results."""
+
+    qualification = serializers.CharField(
+        required=False, allow_null=True, help_text="Degree type (Bachelor, Master, PhD)"
+    )
+    field = serializers.CharField(required=False, allow_null=True, help_text="Field of study")
+    institution = serializers.CharField(required=False, allow_null=True, help_text="Institution name")
+    status = serializers.CharField(required=False, allow_null=True, help_text="Education status (completed, ongoing)")
+    year = serializers.IntegerField(required=False, allow_null=True, help_text="Graduation year")
+    start = serializers.CharField(required=False, allow_null=True, help_text="Start date (YYYY.MM)")
+    end = serializers.CharField(required=False, allow_null=True, help_text="End date (YYYY.MM)")
+
+
+class LanguageEntrySerializer(serializers.Serializer):
+    """Language proficiency entry in search results."""
+
+    language = serializers.CharField(help_text="Language name")
+    cefr = serializers.CharField(required=False, allow_null=True, help_text="CEFR proficiency level (A1-C2)")
+    self_assessed = serializers.CharField(required=False, allow_null=True, help_text="Self-assessed proficiency")
+
+
+class LocationEntrySerializer(serializers.Serializer):
+    """Location entry in search results."""
+
+    city = serializers.CharField(required=False, allow_null=True, help_text="City name")
+    state = serializers.CharField(required=False, allow_null=True, help_text="State/province")
+    country = serializers.CharField(required=False, allow_null=True, help_text="Country name")
+
+
 class SearchResultSerializer(serializers.Serializer):
     uid = serializers.CharField(help_text="Resume identifier")
     name = serializers.CharField(help_text="Person name")
@@ -42,16 +72,14 @@ class SearchResultSerializer(serializers.Serializer):
         child=serializers.CharField(), required=False, allow_null=True, help_text="List of skills"
     )
     experiences = JobExperienceSerializer(many=True, required=False, allow_null=True, help_text="List of experiences")
-    education = serializers.ListField(
-        child=serializers.DictField(), required=False, allow_null=True, help_text="List of education"
-    )
+    education = EducationEntrySerializer(many=True, required=False, allow_null=True, help_text="List of education")
     years_experience = serializers.IntegerField(
         required=False, allow_null=True, validators=[MinValueValidator(0)], help_text="Years of experience"
     )
-    location = serializers.DictField(required=False, allow_null=True, help_text="Location information")
+    location = LocationEntrySerializer(required=False, allow_null=True, help_text="Location information")
     desired_role = serializers.CharField(required=False, allow_null=True, help_text="Desired role")
-    languages = serializers.ListField(
-        child=serializers.DictField(), required=False, allow_null=True, help_text="Languages with CEFR levels"
+    languages = LanguageEntrySerializer(
+        many=True, required=False, allow_null=True, help_text="Languages with CEFR levels"
     )
 
 

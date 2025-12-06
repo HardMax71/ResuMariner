@@ -7,7 +7,6 @@ import Badge from "../components/Badge";
 import CollapsibleSection from "../components/CollapsibleSection";
 import { AlertCircle, MessageCircle, Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { generateInterviewQuestions } from "../services/ragService";
-import type { AppError } from "../lib/api";
 
 export default function InterviewQuestions() {
   const [searchParams] = useSearchParams();
@@ -151,7 +150,7 @@ export default function InterviewQuestions() {
           <ErrorCard>
             <div className="flex align-center gap-2">
               <AlertCircle size={20} />
-              <span>{(error as AppError).message}</span>
+              <span>{(error as Error).message}</span>
             </div>
           </ErrorCard>
         )}

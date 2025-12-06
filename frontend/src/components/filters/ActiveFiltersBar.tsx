@@ -1,8 +1,8 @@
-import type { SearchFilters } from '../../lib/api';
+import type { SearchFiltersSchema } from '../../api/client';
 import Chip from '../Chip';
 
 interface Props {
-  filters: SearchFilters;
+  filters: SearchFiltersSchema;
   onRemoveRole: () => void;
   onRemoveCompany: () => void;
   onRemoveLocation: (country: string) => void;

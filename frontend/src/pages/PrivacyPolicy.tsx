@@ -1,7 +1,7 @@
 import { PageWrapper, PageContainer } from "../components/styled";
 import PageHeader from "../components/PageHeader";
 import { AlertTriangle } from "lucide-react";
-import { API_BASE_URL } from "../lib/api";
+import { API_BASE_URL } from "../api/client";
 import { POLICY_LAST_UPDATED } from "../constants";
 
 export default function PrivacyPolicy() {

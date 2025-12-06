@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from adrf.views import APIView
 from django.conf import settings
@@ -6,19 +7,30 @@ from django.core.cache import cache as django_cache
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from pydantic import BaseModel, Field
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from core.domain.processing import ResumeResponse
 from core.file_types import FILE_TYPE_REGISTRY
 
-from .serializers import FileUploadSerializer, ResumeListResponseSerializer, ResumeResponseSerializer
+from .serializers import FileUploadSerializer
 
 logger = logging.getLogger(__name__)
 
 THROTTLE_RATES: dict[str, str] = settings.REST_FRAMEWORK.get("DEFAULT_THROTTLE_RATES", {})  # type: ignore[assignment]
+
+
+class ResumeListResponse(BaseModel):
+    """Paginated list of resumes."""
+
+    count: int = Field(description="Total number of resumes")
+    next: str | None = Field(default=None, description="Next page URL")
+    previous: str | None = Field(default=None, description="Previous page URL")
+    results: list[ResumeResponse] = Field(description="Resumes for current page")
 
 
 class ResumeCollectionView(APIView):
@@ -32,7 +44,7 @@ class ResumeCollectionView(APIView):
             OpenApiParameter(name="limit", type=int, description="Number of results per page", required=False),
             OpenApiParameter(name="offset", type=int, description="Starting index", required=False),
         ],
-        responses={200: ResumeListResponseSerializer},
+        responses={200: ResumeListResponse},
         description="List all resumes with pagination.",
     )
     async def get(self, request: Request) -> Response:
@@ -55,7 +67,7 @@ class ResumeCollectionView(APIView):
     @extend_schema(
         request=FileUploadSerializer,
         responses={
-            202: ResumeResponseSerializer,
+            202: ResumeResponse,
             400: OpenApiResponse(description="Invalid file or resume already exists"),
             429: OpenApiResponse(description=f"Rate limit exceeded ({THROTTLE_RATES.get('upload', 'N/A')})"),
         },
@@ -78,7 +90,7 @@ class ResumeDetailView(APIView):
 
     @extend_schema(
         responses={
-            200: ResumeResponseSerializer,
+            200: ResumeResponse,
             400: OpenApiResponse(description="Resume not found"),
         },
         description="Get resume by ID. Returns status and full data if completed.",
@@ -151,7 +163,7 @@ class FileConfigView(APIView):
         description="Get file upload configuration. Returns allowed extensions, MIME types, max sizes, and categories.",
     )
     @method_decorator(cache_page(60 * 60 * 24))
-    def get(self, request):
+    def get(self, request: Any) -> Response:
         cache_key = "file_config_v1"
         cached = django_cache.get(cache_key)
         if cached:

@@ -1,4 +1,4 @@
-import { apiGet } from '../lib/api';
+import { v1ConfigFileTypesRetrieve } from '../api/client';
 
 export interface FileTypeConfig {
   media_type: string;
@@ -12,5 +12,7 @@ export interface FileConfigResponse {
 }
 
 export async function getFileConfig(): Promise<FileConfigResponse> {
-  return apiGet<FileConfigResponse>('/api/v1/config/file-types/');
+  const { data, error } = await v1ConfigFileTypesRetrieve();
+  if (error) throw new Error(String(error));
+  return data as FileConfigResponse;
 }
