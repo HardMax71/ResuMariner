@@ -36,7 +36,7 @@ export function SkillsFilter({ skills, selectedSkills, onChange }: Props) {
   return (
     <div className="mb-3">
       <div className="flex justify-between items-center mb-2">
-        <FilterLabel className="label small">
+        <FilterLabel>
           Skills
           {selectedSkills.length > 0 && (
             <Badge style={{ marginLeft: "var(--space-1)" }}>

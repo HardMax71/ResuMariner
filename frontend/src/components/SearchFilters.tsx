@@ -7,7 +7,7 @@ import { LocationsFilter } from "./filters/LocationsFilter";
 import { EducationFilter } from "./filters/EducationFilter";
 import { LanguagesFilter } from "./filters/LanguagesFilter";
 import { ActiveFiltersBar } from "./filters/ActiveFiltersBar";
-import { FilterGrid } from "./filters/styled";
+import { FilterGrid, FilterInputWrapper, FilterLabel } from "./filters/styled";
 
 type Props = {
   value: SearchFiltersSchema;
@@ -62,8 +62,8 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
           onChange={(company) => onChange({ ...value, company })}
         />
 
-        <div>
-          <label className="label small">Min Experience (years)</label>
+        <FilterInputWrapper>
+          <FilterLabel>Min Experience (years)</FilterLabel>
           <input
             type="number"
             min={0}
@@ -79,7 +79,7 @@ export default function SearchFiltersComp({ value, onChange }: Props) {
             }}
             onWheel={(e) => e.currentTarget.blur()}
           />
-        </div>
+        </FilterInputWrapper>
       </FilterGrid>
 
       {/* Location Filter */}

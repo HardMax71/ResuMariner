@@ -46,7 +46,7 @@ export function LocationsFilter({ locations, selectedLocations, onChange }: Prop
 
   return (
     <div className="mb-3" ref={ref}>
-      <FilterLabel className="label small">
+      <FilterLabel>
         Location
         {selectedLocations.length > 0 && (
           <Badge style={{ marginLeft: "var(--space-1)" }}>
@@ -81,7 +81,7 @@ export function LocationsFilter({ locations, selectedLocations, onChange }: Prop
 
               {isExpanded && (
                 <PopupContainer
-                  style={{ minWidth: "50%", maxWidth: "80%" }}
+                  style={{ minWidth: "min(15rem, 50vw)", width: "max-content", maxWidth: "min(20rem, 80vw)" }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <PopupTitle>Select cities in {countryOption.country}</PopupTitle>

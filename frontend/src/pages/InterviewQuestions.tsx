@@ -5,7 +5,7 @@ import { PageWrapper, PageContainer, GlassCard, FlexColumn, ErrorCard, Spinner }
 import PageHeader from "../components/PageHeader";
 import Badge from "../components/Badge";
 import CollapsibleSection from "../components/CollapsibleSection";
-import { AlertCircle, MessageCircle, Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { AlertCircle, MessageCircle, Clock, CheckCircle, XCircle } from "lucide-react";
 import { generateInterviewQuestions } from "../services/ragService";
 
 export default function InterviewQuestions() {

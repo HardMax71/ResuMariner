@@ -36,10 +36,9 @@ const renderValue = (value: unknown): string => {
   // Object handling via type assertion
   const obj = value as RenderableObject | unknown[];
 
-  // Array handling - check for length property and numeric indexing
-  const asArray = obj as unknown[];
-  if (asArray.length !== undefined && asArray[0] !== undefined || (obj as unknown[]).length === 0) {
-    return (obj as unknown[]).map(renderValue).join(", ");
+  // Array handling - use proper Array.isArray check
+  if (Array.isArray(obj)) {
+    return obj.map(renderValue).join(", ");
   }
 
   // Object with known properties

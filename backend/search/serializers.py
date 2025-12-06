@@ -234,6 +234,7 @@ class SearchResponseSerializer(serializers.Serializer):
     results = SearchResultSerializer(many=True, help_text="Search results")
     query = serializers.CharField(required=False, allow_null=True, allow_blank=True, help_text="Original query")
     search_type = serializers.CharField(help_text="Type of search performed")
+    total_found = serializers.IntegerField(help_text="Total number of matching results found")
 
 
 class FilterOptionSerializer(serializers.Serializer):

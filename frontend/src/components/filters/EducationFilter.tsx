@@ -47,7 +47,7 @@ export function EducationFilter({ educationLevels, selectedEducation, onChange }
 
   return (
     <div className="mb-3" ref={ref}>
-      <FilterLabel className="label small">
+      <FilterLabel>
         Education
         {selectedEducation.length > 0 && (
           <Badge style={{ marginLeft: "var(--space-1)" }}>

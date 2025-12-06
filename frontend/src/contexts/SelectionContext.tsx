@@ -7,10 +7,11 @@ interface SelectedCandidate {
 
 interface SelectionContextType {
   selected: SelectedCandidate[];
-  toggleSelection: (uid: string, name: string) => void;
+  toggleSelection: (uid: string, name: string) => boolean;
   clearSelection: () => void;
   isSelected: (uid: string) => boolean;
   getSelectedUids: () => string[];
+  maxReached: boolean;
 }
 
 const SelectionContext = createContext<SelectionContextType | undefined>(undefined);
@@ -25,19 +26,20 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('selectedCandidates', JSON.stringify(selected));
   }, [selected]);
 
-  const toggleSelection = (uid: string, name: string) => {
-    setSelected(prev => {
-      const exists = prev.find(c => c.uid === uid);
-      if (exists) {
-        return prev.filter(c => c.uid !== uid);
-      } else {
-        if (prev.length >= 5) {
-          return prev;
-        }
-        return [...prev, { uid, name }];
-      }
-    });
+  const toggleSelection = (uid: string, name: string): boolean => {
+    const exists = selected.find(c => c.uid === uid);
+    if (exists) {
+      setSelected(prev => prev.filter(c => c.uid !== uid));
+      return true;
+    }
+    if (selected.length >= 5) {
+      return false;
+    }
+    setSelected(prev => [...prev, { uid, name }]);
+    return true;
   };
+
+  const maxReached = selected.length >= 5;
 
   const clearSelection = () => {
     setSelected([]);
@@ -53,7 +55,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SelectionContext.Provider value={{ selected, toggleSelection, clearSelection, isSelected, getSelectedUids }}>
+    <SelectionContext.Provider value={{ selected, toggleSelection, clearSelection, isSelected, getSelectedUids, maxReached }}>
       {children}
     </SelectionContext.Provider>
   );

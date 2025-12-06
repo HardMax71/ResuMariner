@@ -53,7 +53,7 @@ export function SearchableDropdown({ label, placeholder, value, options, onChang
 
   return (
     <FilterInputWrapper ref={ref}>
-      <FilterLabel className="label small">{label}</FilterLabel>
+      <FilterLabel>{label}</FilterLabel>
       <input
         type="text"
         placeholder={placeholder || `Search ${label.toLowerCase()}...`}

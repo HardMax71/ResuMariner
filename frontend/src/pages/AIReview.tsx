@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { AlertCircle, ChevronDown, ChevronUp, ArrowLeft, FileText, Sparkles, AlertTriangle, Info, Lightbulb } from "lucide-react";
+import { AlertCircle, ChevronDown, ArrowLeft, FileText, Sparkles, AlertTriangle, Info, Lightbulb } from "lucide-react";
 import { useResumeStatus } from "../hooks/useJobStatus";
 import type { ProcessingResult, SectionFeedback } from "../api/client";
 import {

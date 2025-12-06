@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { SearchResult } from "../api/client";
 import Chip from "./Chip";
-import { Mail, MapPin, Briefcase, GraduationCap, Target, Globe, ChevronDown, Copy, Check, Sparkles, MessageCircle, Users } from "lucide-react";
+import { Mail, MapPin, Briefcase, GraduationCap, Target, Globe, ChevronDown, Copy, Check, Sparkles, MessageCircle } from "lucide-react";
 import { useSelection } from "../contexts/SelectionContext";
 
 type Props = {
@@ -36,6 +36,13 @@ export default function ResultCard({ result }: Props) {
     return "var(--neutral-500)";
   };
 
+  const getScoreBgColor = (score: number) => {
+    if (score >= 0.8) return "var(--accent3-50)";
+    if (score >= 0.6) return "var(--primary-50)";
+    if (score >= 0.4) return "var(--accent1-50)";
+    return "var(--neutral-50)";
+  };
+
   const getSourceColor = (source?: string) => {
     switch (source?.toLowerCase()) {
       case "skill":
@@ -53,6 +60,26 @@ export default function ResultCard({ result }: Props) {
         return "var(--primary-600)";
       default:
         return "var(--neutral-500)";
+    }
+  };
+
+  const getSourceBgColor = (source?: string) => {
+    switch (source?.toLowerCase()) {
+      case "skill":
+      case "skills":
+        return "var(--primary-50)";
+      case "summary":
+        return "var(--primary-100)";
+      case "employment":
+      case "experience":
+        return "var(--accent3-50)";
+      case "education":
+        return "var(--accent1-50)";
+      case "project":
+      case "projects":
+        return "var(--primary-50)";
+      default:
+        return "var(--neutral-50)";
     }
   };
 
@@ -169,7 +196,7 @@ export default function ResultCard({ result }: Props) {
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
-              background: `${getScoreColor(result.score)}15`,
+              background: getScoreBgColor(result.score),
               padding: "6px 12px",
               borderRadius: "var(--radius-lg)",
               border: `2px solid ${getScoreColor(result.score)}`
@@ -568,7 +595,7 @@ export default function ResultCard({ result }: Props) {
                     <span style={{
                       fontSize: "var(--text-xs)",
                       padding: "2px 6px",
-                      background: `${getSourceColor(match.source)}22`,
+                      background: getSourceBgColor(match.source),
                       color: getSourceColor(match.source),
                       borderRadius: "var(--radius-lg)",
                       fontWeight: 600,

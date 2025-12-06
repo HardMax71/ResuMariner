@@ -235,7 +235,9 @@ export default function CompareCandidates() {
                       </div>
                       <FlexColumn gap="var(--space-2)">
                         {Object.entries(dim.candidates).map(([key, value]) => {
-                          const isValueUid = value.length === 36 && value.includes('-');
+                          // Use proper UUID v4 regex for detection
+                          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                          const isValueUid = uuidRegex.test(value);
                           const uid = isValueUid ? value : key;
                           const assessment = isValueUid ? key : value;
                           const candidateName = result.scores.find(s => s.uid === uid)?.name;

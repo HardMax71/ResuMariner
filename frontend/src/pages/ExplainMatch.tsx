@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { PageWrapper, PageContainer, GlassCard, FlexColumn, ErrorCard, Spinner } from "../components/styled";
 import PageHeader from "../components/PageHeader";
 import Badge from "../components/Badge";
-import { AlertCircle, CheckCircle, AlertTriangle, TrendingUp, MessageCircle, Lightbulb, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, AlertTriangle, TrendingUp, MessageCircle, Lightbulb } from "lucide-react";
 import { explainMatch, type JobMatchExplanation } from "../services/ragService";
 
 export default function ExplainMatch() {

@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from core.domain.rag import CandidateComparison, InterviewQuestionSet, JobMatchExplanation
 from core.metrics import RAG_GENERATION_COUNT, RAG_GENERATION_DURATION
 
 from .serializers import (
@@ -23,7 +24,7 @@ class ExplainMatchView(APIView):
     @extend_schema(
         request=ExplainMatchRequestSerializer,
         responses={
-            200: OpenApiResponse(description="Structured match explanation"),
+            200: JobMatchExplanation,
             404: OpenApiResponse(description="Resume not found"),
         },
         description="Generate AI-powered explanation of candidate-job fit with structured strengths, concerns, and recommendations.",
@@ -53,7 +54,7 @@ class CompareCandidatesView(APIView):
     @extend_schema(
         request=CompareCandidatesRequestSerializer,
         responses={
-            200: OpenApiResponse(description="Structured candidate comparison"),
+            200: CandidateComparison,
             400: OpenApiResponse(description="Invalid request"),
             404: OpenApiResponse(description="One or more resumes not found"),
         },
@@ -85,7 +86,7 @@ class InterviewQuestionsView(APIView):
     @extend_schema(
         request=InterviewQuestionsRequestSerializer,
         responses={
-            200: OpenApiResponse(description="Structured interview question set"),
+            200: InterviewQuestionSet,
             404: OpenApiResponse(description="Resume not found"),
         },
         description="Generate 6-12 interview questions tailored to candidate's background, with follow-ups and assessment criteria.",

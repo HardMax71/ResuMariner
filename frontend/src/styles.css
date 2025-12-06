@@ -2575,6 +2575,7 @@ details[open] summary .chevron {
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid rgba(var(--neutral-700-rgb), 0.3);
   padding: 8px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
 }
 
 .header-nav-mobile-grid {
@@ -2898,6 +2899,28 @@ details[open] summary .chevron {
 
 .footer-separator {
   color: var(--neutral-600);
+}
+
+/* Selection bar container */
+.selection-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  background: rgba(var(--neutral-950-rgb), 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(var(--primary-400-rgb), 0.3);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 767px) {
+  .selection-bar {
+    bottom: 56px;
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* Selection bar buttons */
