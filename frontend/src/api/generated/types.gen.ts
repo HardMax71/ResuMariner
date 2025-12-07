@@ -8,9 +8,6 @@ export type Award = {
     position?: (string | null);
     description?: (string | null);
     url?: (string | null);
-    title?: (string | null);
-    issuer?: (string | null);
-    date?: (string | null);
 };
 
 export type AwardType = 'hackathon' | 'competition' | 'recognition' | 'scholarship' | 'other';
@@ -99,9 +96,6 @@ export type Contact = {
     email: string;
     phone?: (string | null);
     links?: (ContactLinks | null);
-    linkedin?: (string | null);
-    github?: (string | null);
-    website?: (string | null);
 };
 
 export type ContactLinks = {
@@ -226,7 +220,7 @@ export type EducationLevelOption = {
     /**
      * Education statuses for this level
      */
-    statuses: Array<(string)>;
+    statuses: Array<StatusesEnum>;
     /**
      * Number of resumes with this level
      */
@@ -271,6 +265,32 @@ export type EmploymentType = 'full-time' | 'part-time' | 'contract';
 export type ExplainMatchRequest = {
     resume_uid: string;
     job_description: string;
+};
+
+export type FileConfigResponse = {
+    [key: string]: FileTypeConfig;
+};
+
+/**
+ * Configuration for a single file type.
+ */
+export type FileTypeConfig = {
+    /**
+     * MIME type
+     */
+    media_type: string;
+    /**
+     * File category (document, image, etc)
+     */
+    category: string;
+    /**
+     * Maximum file size in MB
+     */
+    max_size_mb: number;
+    /**
+     * Parser used for this file type
+     */
+    parser: string;
 };
 
 export type FileUpload = {
@@ -328,6 +348,19 @@ export type GraphSearchQuerySchema = {
      * Maximum number of results to return
      */
     limit?: number;
+};
+
+export type HealthResponse = {
+    /**
+     * Service status: ok, degraded, or down
+     */
+    status: string;
+    /**
+     * Service name
+     */
+    service: string;
+    queue: QueueMetrics;
+    processing_config: ProcessingConfig;
 };
 
 export type HybridSearchQuerySchema = {
@@ -517,8 +550,6 @@ export type LanguageProficiency = {
     language: Language;
     self_assessed: string;
     cefr: string;
-    name?: (string | null);
-    level?: (string | null);
 };
 
 /**
@@ -623,6 +654,33 @@ export type Preferences = {
     salary?: (string | null);
 };
 
+export type ProcessingConfig = {
+    /**
+     * LLM provider for text extraction
+     */
+    text_llm_provider: string;
+    /**
+     * LLM model for text extraction
+     */
+    text_llm_model: string;
+    /**
+     * LLM provider for OCR
+     */
+    ocr_llm_provider: string;
+    /**
+     * LLM model for OCR
+     */
+    ocr_llm_model: string;
+    /**
+     * Whether AI review is enabled
+     */
+    generate_review: boolean;
+    /**
+     * Whether to store in database
+     */
+    store_in_db: boolean;
+};
+
 /**
  * Metadata about the processing job.
  */
@@ -666,6 +724,29 @@ export type PublicationType = 'journal_article' | 'conference_paper' | 'patent' 
 
 export type QuestionCategory = 'technical_deep_dive' | 'behavioral' | 'project_architecture' | 'problem_solving' | 'system_design';
 
+export type QueueMetrics = {
+    /**
+     * Total items in Redis stream
+     */
+    stream_length: number;
+    /**
+     * Pending items in queue
+     */
+    queue_length: number;
+    /**
+     * Items scheduled for retry
+     */
+    scheduled_retries: number;
+    /**
+     * Currently processing jobs
+     */
+    active_jobs: number;
+    /**
+     * Redis memory usage in bytes
+     */
+    redis_memory_usage: number;
+};
+
 export type Resume = {
     uid: string;
     personal_info: PersonalInfo;
@@ -679,19 +760,8 @@ export type Resume = {
     language_proficiency?: Array<LanguageProficiency>;
     awards?: Array<Award>;
     scientific_contributions?: Array<ScientificContribution>;
-    name?: (string | null);
-    email?: (string | null);
-    phone?: (string | null);
-    location?: (Location | null);
-    linkedin?: (string | null);
-    github?: (string | null);
-    website?: (string | null);
-    resume_lang?: (string | null);
 };
 
-/**
- * Paginated list of resumes.
- */
 export type ResumeListResponse = {
     /**
      * Total number of resumes
@@ -700,15 +770,15 @@ export type ResumeListResponse = {
     /**
      * Next page URL
      */
-    next?: (string | null);
+    next: (string) | null;
     /**
      * Previous page URL
      */
-    previous?: (string | null);
+    previous: (string) | null;
     /**
      * Resumes for current page
      */
-    results: Array<ResumeResponse>;
+    results: Array<unknown>;
 };
 
 /**
@@ -958,7 +1028,7 @@ export type WorkAuthorization = {
 
 export type WorkMode = 'onsite' | 'hybrid' | 'remote';
 
-export type V1ConfigFileTypesRetrieveResponse = (unknown);
+export type V1ConfigFileTypesRetrieveResponse = (FileConfigResponse);
 
 export type V1ConfigFileTypesRetrieveError = unknown;
 
@@ -966,7 +1036,7 @@ export type V1FiltersRetrieveResponse = (FilterOptions);
 
 export type V1FiltersRetrieveError = unknown;
 
-export type V1HealthRetrieveResponse = (unknown);
+export type V1HealthRetrieveResponse = (HealthResponse);
 
 export type V1HealthRetrieveError = unknown;
 

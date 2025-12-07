@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useResumeStatus } from "../hooks/useJobStatus";
 import { API_BASE_URL } from "../api/client";
-import type { Resume, Skill, EmploymentHistoryItem, Project, EducationItem, LanguageProficiency, Certification, Award, ScientificContribution, Course, ProcessingResult } from "../api/client";
+import type { Resume, Skill, EmploymentHistoryItem, Project, EducationItem, LanguageProficiency, Certification, Award, ScientificContribution, Course, ProcessingResult, KeyPoint, Coursework, EducationExtra, Location, WorkAuthorization } from "../api/client";
+import { getErrorMessage } from "../utils/error";
 import {
   Copy, Check, Hash, FileText, Network, Database,
   Clock, Loader2, CheckCircle2, XCircle, RefreshCw,
@@ -153,6 +154,24 @@ const RESUME_SECTIONS: ResumeSection[] = [
   }
 ];
 
+// Section data types - union of all possible section data shapes
+type SectionData = EmploymentHistoryItem[] | EducationItem[] | Project[] | LanguageProficiency[] | Certification[] | Award[] | ScientificContribution[] | Course[] | Skill[] | null;
+
+// Type-safe section data accessor - avoids `as unknown as Record<>` cast
+function getResumeSectionData(resume: Resume, key: string): SectionData {
+  switch (key) {
+    case "experience": return resume.employment_history ?? null;
+    case "education": return resume.education ?? null;
+    case "projects": return resume.projects ?? null;
+    case "languages": return resume.language_proficiency ?? null;
+    case "certifications": return resume.certifications ?? null;
+    case "awards": return resume.awards ?? null;
+    case "publications": return resume.scientific_contributions ?? null;
+    case "courses": return resume.courses ?? null;
+    default: return null;
+  }
+}
+
 export default function JobStatus() {
   const { uid = "" } = useParams();
   const [showRawJson, setShowRawJson] = useState(false);
@@ -265,26 +284,8 @@ export default function JobStatus() {
     return `${seconds}s`;
   };
 
-  // Personal data interface for section rendering
-  interface PersonalData {
-    name?: string;
-    email?: string;
-    phone?: string;
-    location?: unknown;
-    linkedin?: string;
-    github?: string;
-    website?: string;
-  }
-
-  // Section data types - union of all possible section data shapes
-  type SectionData = EmploymentHistoryItem[] | EducationItem[] | Project[] | LanguageProficiency[] | Certification[] | Award[] | ScientificContribution[] | Course[] | Skill[] | PersonalData | null;
-
   const renderResumeSection = (title: string, key: string, data: SectionData) => {
-    const asArray = data as unknown[];
-    const asRecord = data as Record<string, unknown>;
-    const isEmpty = !data ||
-                   (asArray.length !== undefined && asArray.length === 0) ||
-                   (asRecord && Object.keys(asRecord).length === 0 && asArray.length === undefined);
+    const isEmpty = !data || data.length === 0;
 
     const isExpanded = expandedSections.has(key);
 
@@ -308,85 +309,6 @@ export default function JobStatus() {
             </div>
           ) : (
             <>
-            {key === "personal" && data && (() => {
-              const personal = data as PersonalData;
-              return (
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
-                {/* Avatar */}
-                <div style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "var(--radius-full)",
-                  background: "var(--primary-100)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "var(--text-xl)",
-                  fontWeight: 600,
-                  color: "var(--primary-600)",
-                  flexShrink: 0
-                }}>
-                  {personal.name ? personal.name.charAt(0).toUpperCase() : "?"}
-                </div>
-
-                {/* Info */}
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <h4 style={{ fontSize: "var(--text-lg)", fontWeight: 600, margin: 0 }}>
-                    {renderValue(personal.name) || "—"}
-                  </h4>
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-                    {personal.email && (
-                      <a href={`mailto:${renderValue(personal.email)}`} style={{
-                        fontSize: "var(--text-sm)",
-                        color: "var(--primary-600)",
-                        textDecoration: "none"
-                      }}>
-                        {renderValue(personal.email)}
-                      </a>
-                    )}
-                    {personal.phone && (
-                      <a href={`tel:${renderValue(personal.phone)}`} style={{
-                        fontSize: "var(--text-sm)",
-                        color: "var(--neutral-700)",
-                        textDecoration: "none",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px"
-                      }}>
-                        <Phone size={13} strokeWidth={2} /> {renderValue(personal.phone)}
-                      </a>
-                    )}
-                    {personal.location ? (
-                      <span style={{ fontSize: "var(--text-sm)", color: "var(--neutral-600)", display: "flex", alignItems: "center", gap: "4px" }}>
-                        <MapPin size={13} strokeWidth={2} /> {renderValue(personal.location)}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-
-                {/* Social Links */}
-                {(personal.linkedin || personal.github || personal.website) && (
-                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                    {personal.linkedin && (
-                      <a href={renderValue(personal.linkedin)} target="_blank" rel="noopener noreferrer" title="LinkedIn">
-                        <Linkedin size={18} style={{ color: "var(--neutral-600)" }} />
-                      </a>
-                    )}
-                    {personal.github && (
-                      <a href={renderValue(personal.github)} target="_blank" rel="noopener noreferrer" title="GitHub">
-                        <Github size={18} style={{ color: "var(--neutral-600)" }} />
-                      </a>
-                    )}
-                    {personal.website && (
-                      <a href={renderValue(personal.website)} target="_blank" rel="noopener noreferrer" title="Website">
-                        <Globe size={18} strokeWidth={2} style={{ color: "var(--neutral-600)" }} />
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            );})()}
-
             {key === "skills" && data && (
               <div className="chips">
                 {(data as Skill[]).map((skill, idx) => (
@@ -529,7 +451,7 @@ export default function JobStatus() {
                         color: "var(--neutral-700)",
                         lineHeight: 1.6
                       }}>
-                        {exp.key_points.map((point: any, pidx: number) => (
+                        {exp.key_points.map((point: KeyPoint, pidx: number) => (
                           <li key={pidx} style={{ marginBottom: "4px" }}>
                             {renderValue(point.text || point)}
                           </li>
@@ -545,7 +467,7 @@ export default function JobStatus() {
                         flexWrap: "wrap",
                         gap: "6px"
                       }}>
-                        {exp.skills.map((skill: any, tidx: number) => (
+                        {exp.skills.map((skill: Skill, tidx: number) => (
                           <span
                             key={tidx}
                             style={{
@@ -678,7 +600,7 @@ export default function JobStatus() {
                         color: "var(--neutral-700)",
                         lineHeight: 1.6
                       }}>
-                        {proj.key_points.map((point: any, pidx: number) => (
+                        {proj.key_points.map((point: KeyPoint, pidx: number) => (
                           <li key={pidx} style={{ marginBottom: "4px" }}>
                             {renderValue(point.text || point)}
                           </li>
@@ -694,7 +616,7 @@ export default function JobStatus() {
                         flexWrap: "wrap",
                         gap: "6px"
                       }}>
-                        {proj.skills.map((skill: any, tidx: number) => (
+                        {proj.skills.map((skill: Skill, tidx: number) => (
                           <span
                             key={tidx}
                             style={{
@@ -832,7 +754,7 @@ export default function JobStatus() {
                           flexWrap: "wrap",
                           gap: "5px"
                         }}>
-                          {edu.coursework.map((course: any, cidx: number) => (
+                          {edu.coursework.map((course: Coursework, cidx: number) => (
                             <span
                               key={cidx}
                               style={{
@@ -845,7 +767,7 @@ export default function JobStatus() {
                                 borderRadius: "var(--radius-lg)"
                               }}
                             >
-                              {renderValue(course.text || course.name || course)}
+                              {renderValue(course.text)}
                             </span>
                           ))}
                         </div>
@@ -861,7 +783,7 @@ export default function JobStatus() {
                         color: "var(--neutral-600)",
                         lineHeight: 1.5
                       }}>
-                        {edu.extras.map((extra: any, eidx: number) => (
+                        {edu.extras.map((extra: EducationExtra, eidx: number) => (
                           <li key={eidx} style={{ marginBottom: "2px" }}>
                             {renderValue(extra)}
                           </li>
@@ -887,10 +809,9 @@ export default function JobStatus() {
             {key === "languages" && data && (
               <div className="flex flex-col gap-3">
                 {(data as LanguageProficiency[]).map((lang, idx) => {
-                  const langName = lang.language?.name || lang.name || lang;
+                  const langName = lang.language.name;
                   const cefr = lang.cefr;
                   const selfAssessed = lang.self_assessed;
-                  const level = lang.level;
 
                   return (
                     <div
@@ -945,18 +866,6 @@ export default function JobStatus() {
                               letterSpacing: "0.3px"
                             }}>
                               CEFR: {cefr}
-                            </span>
-                          )}
-                          {!cefr && !selfAssessed && level && (
-                            <span style={{
-                              fontSize: "var(--text-xs)",
-                              fontWeight: 500,
-                              padding: "3px 8px",
-                              background: "var(--neutral-100)",
-                              color: "var(--neutral-700)",
-                              borderRadius: "var(--radius-lg)"
-                            }}>
-                              {level}
                             </span>
                           )}
                         </div>
@@ -1049,7 +958,7 @@ export default function JobStatus() {
                       borderLeft: "3px solid var(--accent1-600)"
                     }}
                   >
-                    <div className="flex justify-between items-start" style={{ marginBottom: (award.issuer || award.organization || award.description) ? "6px" : "0" }}>
+                    <div className="flex justify-between items-start" style={{ marginBottom: (award.organization || award.description) ? "6px" : "0" }}>
                       <div style={{ flex: 1 }}>
                         <h4 style={{
                           fontSize: "var(--text-base)",
@@ -1057,10 +966,10 @@ export default function JobStatus() {
                           margin: 0,
                           color: "var(--neutral-900)"
                         }}>
-                          {renderValue(award.name || award.title)}
+                          {renderValue(award.name)}
                         </h4>
                       </div>
-                      {(award.year || award.date) && (
+                      {award.year && (
                         <span style={{
                           fontSize: "var(--text-sm)",
                           color: "var(--neutral-600)",
@@ -1068,18 +977,18 @@ export default function JobStatus() {
                           marginLeft: "12px",
                           flexShrink: 0
                         }}>
-                          {renderValue(award.year || award.date)}
+                          {renderValue(award.year)}
                         </span>
                       )}
                     </div>
-                    {(award.issuer || award.organization) && (
+                    {award.organization && (
                       <div style={{
                         fontSize: "var(--text-xs)",
                         color: "var(--neutral-600)",
                         fontWeight: 500,
                         marginBottom: award.description ? "6px" : "0"
                       }}>
-                        {renderValue(award.issuer || award.organization)}
+                        {renderValue(award.organization)}
                       </div>
                     )}
                     {award.description && (
@@ -1353,7 +1262,7 @@ export default function JobStatus() {
 
       {error && (
         <div className="error mb-3">
-          <strong>Error loading job:</strong> {(error as Error).message}
+          <strong>Error loading job:</strong> {getErrorMessage(error)}
         </div>
       )}
 
@@ -1704,49 +1613,17 @@ export default function JobStatus() {
                     {/* Personal Info Card */}
                     <div className="glass-card">
                       {(() => {
-                        // Extract personal info from nested structure
-                        const r = result.resume;
-                        const personal: any = {};
-
-                        // Try different paths for personal info
-                        let workAuth: any = null;
-                        if (r.personal_info) {
-                          personal.name = r.personal_info.name;
-                          if (r.personal_info.contact) {
-                            personal.email = r.personal_info.contact.email;
-                            personal.phone = r.personal_info.contact.phone;
-                            personal.linkedin = r.personal_info.contact.linkedin;
-                            personal.github = r.personal_info.contact.github;
-                            personal.website = r.personal_info.contact.website;
-                          }
-                          if (r.personal_info.demographics?.current_location) {
-                            personal.location = r.personal_info.demographics.current_location;
-                          }
-                          if (r.personal_info.demographics?.work_authorization) {
-                            workAuth = r.personal_info.demographics.work_authorization;
-                          }
-                        } else {
-                          personal.name = r.name;
-                          personal.email = r.email;
-                          personal.phone = r.phone;
-                          personal.location = r.location;
-                          personal.linkedin = r.linkedin;
-                          personal.github = r.github;
-                          personal.website = r.website;
-                        }
-
-                        const filteredPersonal = Object.fromEntries(
-                          Object.entries(personal).filter(([_, v]) => v !== null && v !== undefined)
-                        );
-
-                        const resumeLang = r.personal_info?.resume_lang || r.resume_lang;
+                        const { personal_info } = result.resume;
+                        const { contact, demographics } = personal_info;
+                        const location = demographics?.current_location;
+                        const workAuth = demographics?.work_authorization;
 
                         return (
                           <>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-2)" }}>
                               <h3 className="title" style={{ margin: 0, fontSize: "var(--text-sm)", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--neutral-600)", fontWeight: 600 }}>Personal Information</h3>
-                              {resumeLang && (
-                                <Tooltip text={`Resume Language: ${renderValue(resumeLang)}`}>
+                              {personal_info.resume_lang && (
+                                <Tooltip text={`Resume Language: ${renderValue(personal_info.resume_lang)}`}>
                                   <span style={{
                                     display: "inline-flex",
                                     alignItems: "center",
@@ -1763,7 +1640,7 @@ export default function JobStatus() {
                                     cursor: "help"
                                   }}>
                                     <FileText size={10} strokeWidth={2.5} style={{ flexShrink: 0 }} />
-                                    {renderValue(resumeLang)}
+                                    {renderValue(personal_info.resume_lang)}
                                   </span>
                                 </Tooltip>
                               )}
@@ -1773,19 +1650,19 @@ export default function JobStatus() {
                               {/* Name */}
                               <div>
                                 <h4 style={{ fontSize: "var(--text-xl)", fontWeight: 700, margin: 0, lineHeight: 1.2, marginBottom: "4px", color: "var(--neutral-900)" }}>
-                                  {renderValue(personal.name) || "—"}
+                                  {personal_info.name}
                                 </h4>
-                                {personal.location && (
+                                {location && (
                                   <span style={{ fontSize: "var(--text-xs)", color: "var(--neutral-600)", display: "flex", alignItems: "center", gap: "4px" }}>
                                     <MapPin size={12} style={{ color: "var(--neutral-500)", flexShrink: 0 }} />
-                                    {renderValue(personal.location)}
+                                    {renderValue(location)}
                                   </span>
                                 )}
                               </div>
 
                             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                              {personal.email && (
-                                <a href={`mailto:${renderValue(personal.email)}`} style={{
+                              {contact.email && (
+                                <a href={`mailto:${contact.email}`} style={{
                                   fontSize: "var(--text-sm)",
                                   color: "var(--primary-600)",
                                   textDecoration: "none",
@@ -1800,13 +1677,13 @@ export default function JobStatus() {
                                 onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
                                   <Mail size={16} strokeWidth={2} style={{ flexShrink: 0 }} />
                                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {renderValue(personal.email)}
+                                    {contact.email}
                                   </span>
                                 </a>
                               )}
 
-                              {personal.phone && (
-                                <a href={`tel:${renderValue(personal.phone)}`} style={{
+                              {contact.phone && (
+                                <a href={`tel:${contact.phone}`} style={{
                                   fontSize: "var(--text-sm)",
                                   color: "var(--primary-600)",
                                   textDecoration: "none",
@@ -1820,20 +1697,20 @@ export default function JobStatus() {
                                 onMouseEnter={(e) => e.currentTarget.style.background = "var(--primary-50)"}
                                 onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
                                   <Phone size={16} strokeWidth={2} style={{ flexShrink: 0 }} />
-                                  {renderValue(personal.phone)}
+                                  {contact.phone}
                                 </a>
                               )}
                             </div>
 
-                            {(personal.linkedin || personal.github || personal.website) && (
+                            {contact.links && (contact.links.linkedin || contact.links.github || contact.links.telegram) && (
                               <div style={{
                                 display: "flex",
                                 gap: "8px",
                                 paddingTop: "var(--space-2)"
                               }}>
-                                {personal.linkedin && (
+                                {contact.links.linkedin && (
                                   <a
-                                    href={renderValue(personal.linkedin)}
+                                    href={renderValue(contact.links.linkedin)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     title="LinkedIn"
@@ -1860,9 +1737,9 @@ export default function JobStatus() {
                                     <Linkedin size={16} />
                                   </a>
                                 )}
-                                {personal.github && (
+                                {contact.links.github && (
                                   <a
-                                    href={renderValue(personal.github)}
+                                    href={renderValue(contact.links.github)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     title="GitHub"
@@ -1889,12 +1766,12 @@ export default function JobStatus() {
                                     <Github size={16} />
                                   </a>
                                 )}
-                                {personal.website && (
+                                {contact.links.telegram && (
                                   <a
-                                    href={renderValue(personal.website)}
+                                    href={renderValue(contact.links.telegram)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    title="Website"
+                                    title="Telegram"
                                     style={{
                                       padding: "8px",
                                       background: "var(--neutral-100)",
@@ -1998,7 +1875,7 @@ export default function JobStatus() {
                       <div style={{ position: "relative" }}>
                         <div ref={skillsContainerRef} className="chips" style={{ maxHeight: "min(400px, 50vh)", overflowY: "auto", paddingBottom: "var(--space-2)" }}>
                           {result.resume.skills?.length ? (
-                            (result.resume.skills as Skill[]).map((skill, idx) => (
+                            result.resume.skills.map((skill, idx) => (
                               <span key={idx} className="chip" style={{ fontSize: "var(--text-xs)" }}>
                                 {renderValue(skill)}
                               </span>
@@ -2025,19 +1902,10 @@ export default function JobStatus() {
                     </div>
                   </div>
                   {RESUME_SECTIONS.map(section => {
-                    const data = section.paths.reduce<SectionData>((found, path) => {
-                      return found || (result.resume as Record<string, SectionData>)[path];
-                    }, null);
+                    const data = getResumeSectionData(result.resume, section.key);
+                    const isEmpty = !data || data.length === 0;
 
-                    const asArray = data as unknown[];
-                    const asRecord = data as Record<string, unknown>;
-                    const isEmpty = !data ||
-                                   (asArray.length !== undefined && asArray.length === 0) ||
-                                   (asRecord && Object.keys(asRecord).length === 0 && asArray.length === undefined);
-
-                    if (isEmpty && !section.alwaysShow) {
-                      return null;
-                    }
+                    if (isEmpty && !section.alwaysShow) return null;
 
                     return (
                       <div key={section.key}>

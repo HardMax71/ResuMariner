@@ -18,8 +18,12 @@ const SelectionContext = createContext<SelectionContextType | undefined>(undefin
 
 export function SelectionProvider({ children }: { children: ReactNode }) {
   const [selected, setSelected] = useState<SelectedCandidate[]>(() => {
-    const saved = localStorage.getItem('selectedCandidates');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('selectedCandidates');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   useEffect(() => {

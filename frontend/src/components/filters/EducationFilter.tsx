@@ -1,20 +1,22 @@
 import { useState } from 'react';
-import type { EducationRequirement, StatusesEnum } from '../../api/client';
+import type { EducationRequirement, EducationLevelOption, StatusesEnum } from '../../api/client';
 import Badge from '../Badge';
 import Chip from '../Chip';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { PopupContainer, PopupTitle, CheckboxList, CheckboxLabel, FilterLabel } from './styled';
 
-interface EducationOption {
-  level: string;
-  statuses: string[];
-  resume_count: number;
-}
-
 interface Props {
-  educationLevels: EducationOption[];
+  educationLevels: EducationLevelOption[];
   selectedEducation: EducationRequirement[];
   onChange: (education: EducationRequirement[]) => void;
+}
+
+function arraysEqual(a: string[] | null | undefined, b: string[]): boolean {
+  if (!a || a.length === 0) return b.length === 0;
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((val, idx) => val === sortedB[idx]);
 }
 
 export function EducationFilter({ educationLevels, selectedEducation, onChange }: Props) {
@@ -22,23 +24,21 @@ export function EducationFilter({ educationLevels, selectedEducation, onChange }
 
   const ref = useClickOutside<HTMLDivElement>(() => setExpandedLevel(null), !!expandedLevel);
 
-  const toggleEducationLevel = (level: string, statuses: string[]) => {
+  const toggleEducationLevel = (level: string, statuses: StatusesEnum[]) => {
     const existing = selectedEducation.find(e => e.level === level);
-    const typedStatuses = statuses as StatusesEnum[];
 
     if (existing) {
-      const sameStatusesSelected = JSON.stringify(existing.statuses?.sort()) === JSON.stringify(statuses.sort());
-      if (sameStatusesSelected) {
+      if (arraysEqual(existing.statuses, statuses)) {
         onChange(selectedEducation.filter(e => e.level !== level));
       } else {
         onChange(
           selectedEducation.map(e =>
-            e.level === level ? { ...e, statuses: typedStatuses.length === 0 ? null : typedStatuses } : e
+            e.level === level ? { ...e, statuses: statuses.length === 0 ? null : statuses } : e
           )
         );
       }
     } else {
-      onChange([...selectedEducation, { level, statuses: typedStatuses.length === 0 ? null : typedStatuses }]);
+      onChange([...selectedEducation, { level, statuses: statuses.length === 0 ? null : statuses }]);
     }
     setExpandedLevel(null);
   };
@@ -94,7 +94,7 @@ export function EducationFilter({ educationLevels, selectedEducation, onChange }
                     </CheckboxLabel>
                     {levelOption.statuses.map(status => {
                       const currentStatuses = selected?.statuses ?? [];
-                      const isChecked = currentStatuses.includes(status as StatusesEnum);
+                      const isChecked = currentStatuses.includes(status);
 
                       return (
                         <CheckboxLabel key={status}>

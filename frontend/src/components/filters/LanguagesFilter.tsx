@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from '@emotion/styled';
-import type { LanguageRequirement } from '../../api/client';
+import type { LanguageRequirement, LanguageOption } from '../../api/client';
 import Badge from '../Badge';
 import Chip from '../Chip';
 import { useClickOutside } from '../../hooks/useClickOutside';
@@ -31,11 +31,6 @@ const LevelButton = styled.button<{ selected?: boolean }>`
     border-color: ${props => props.selected ? 'var(--primary-700)' : 'var(--neutral-400)'};
   }
 `;
-
-interface LanguageOption {
-  language: string;
-  resume_count: number;
-}
 
 interface Props {
   languages: LanguageOption[];

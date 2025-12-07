@@ -1,14 +1,13 @@
 import logging
-from typing import Any
 
 from adrf.views import APIView
 from django.conf import settings
 from django.core.cache import cache as django_cache
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from drf_spectacular.extensions import OpenApiSerializerExtension
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
-from pydantic import BaseModel, Field
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
@@ -24,13 +23,65 @@ logger = logging.getLogger(__name__)
 THROTTLE_RATES: dict[str, str] = settings.REST_FRAMEWORK.get("DEFAULT_THROTTLE_RATES", {})  # type: ignore[assignment]
 
 
-class ResumeListResponse(BaseModel):
-    """Paginated list of resumes."""
+class QueueMetricsSerializer(serializers.Serializer):
+    stream_length = serializers.IntegerField(help_text="Total items in Redis stream")
+    queue_length = serializers.IntegerField(help_text="Pending items in queue")
+    scheduled_retries = serializers.IntegerField(help_text="Items scheduled for retry")
+    active_jobs = serializers.IntegerField(help_text="Currently processing jobs")
+    redis_memory_usage = serializers.IntegerField(help_text="Redis memory usage in bytes")
 
-    count: int = Field(description="Total number of resumes")
-    next: str | None = Field(default=None, description="Next page URL")
-    previous: str | None = Field(default=None, description="Previous page URL")
-    results: list[ResumeResponse] = Field(description="Resumes for current page")
+
+class ProcessingConfigSerializer(serializers.Serializer):
+    text_llm_provider = serializers.CharField(help_text="LLM provider for text extraction")
+    text_llm_model = serializers.CharField(help_text="LLM model for text extraction")
+    ocr_llm_provider = serializers.CharField(help_text="LLM provider for OCR")
+    ocr_llm_model = serializers.CharField(help_text="LLM model for OCR")
+    generate_review = serializers.BooleanField(help_text="Whether AI review is enabled")
+    store_in_db = serializers.BooleanField(help_text="Whether to store in database")
+
+
+class HealthResponseSerializer(serializers.Serializer):
+    status = serializers.CharField(help_text="Service status: ok, degraded, or down")
+    service = serializers.CharField(help_text="Service name")
+    queue = QueueMetricsSerializer()
+    processing_config = ProcessingConfigSerializer()
+
+
+class FileTypeConfigSerializer(serializers.Serializer):
+    """Configuration for a single file type."""
+
+    media_type = serializers.CharField(help_text="MIME type")
+    category = serializers.CharField(help_text="File category (document, image, etc)")
+    max_size_mb = serializers.IntegerField(help_text="Maximum file size in MB")
+    parser = serializers.CharField(help_text="Parser used for this file type")
+
+
+class FileConfigResponseSerializer(serializers.Serializer):
+    """Dictionary of file type configurations keyed by extension."""
+
+    def to_representation(self, instance: dict) -> dict:
+        """Return the dict as-is since keys are dynamic extensions."""
+        return instance
+
+
+class FileConfigResponseExtension(OpenApiSerializerExtension):
+    """Extension to generate proper additionalProperties schema for FileConfigResponse."""
+
+    target_class = "processor.views.FileConfigResponseSerializer"
+
+    def map_serializer(self, auto_schema, direction):
+        """Generate object schema with additionalProperties pointing to FileTypeConfig."""
+        return {
+            "type": "object",
+            "additionalProperties": auto_schema.resolve_serializer(FileTypeConfigSerializer, direction).ref,
+        }
+
+
+class ResumeListResponse(serializers.Serializer):
+    count = serializers.IntegerField(help_text="Total number of resumes")
+    next = serializers.CharField(allow_null=True, help_text="Next page URL")
+    previous = serializers.CharField(allow_null=True, help_text="Previous page URL")
+    results = serializers.ListField(help_text="Resumes for current page")
 
 
 class ResumeCollectionView(APIView):
@@ -135,7 +186,7 @@ class HealthView(APIView):
     """Service health status endpoint."""
 
     @extend_schema(
-        responses={200: OpenApiResponse(description="Health status including queue stats and configuration")},
+        responses={200: HealthResponseSerializer},
         description="Get service health status. Returns system status, queue statistics, and processing configuration.",
     )
     async def get(self, request: Request) -> Response:
@@ -159,11 +210,11 @@ class FileConfigView(APIView):
     """File upload configuration endpoint."""
 
     @extend_schema(
-        responses={200: OpenApiResponse(description="File upload configuration")},
-        description="Get file upload configuration. Returns allowed extensions, MIME types, max sizes, and categories.",
+        responses={200: FileConfigResponseSerializer},
+        description="Get file upload configuration. Returns allowed extensions, MIME types, max sizes, and categories. Keys are file extensions.",
     )
     @method_decorator(cache_page(60 * 60 * 24))
-    def get(self, request: Any) -> Response:
+    def get(self, request: Request) -> Response:
         cache_key = "file_config_v1"
         cached = django_cache.get(cache_key)
         if cached:

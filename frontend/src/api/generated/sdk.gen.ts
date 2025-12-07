@@ -6,7 +6,7 @@ import type { V1ConfigFileTypesRetrieveError, V1ConfigFileTypesRetrieveResponse,
 export const client = createClient(createConfig());
 
 /**
- * Get file upload configuration. Returns allowed extensions, MIME types, max sizes, and categories.
+ * Get file upload configuration. Returns allowed extensions, MIME types, max sizes, and categories. Keys are file extensions.
  */
 export const v1ConfigFileTypesRetrieve = <ThrowOnError extends boolean = false>(options?: OptionsLegacyParser<unknown, ThrowOnError>) => {
     return (options?.client ?? client).get<V1ConfigFileTypesRetrieveResponse, V1ConfigFileTypesRetrieveError, ThrowOnError>({

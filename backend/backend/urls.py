@@ -1,7 +1,5 @@
-from typing import Any
-
 from django.contrib import admin
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -10,7 +8,7 @@ from core.metrics import update_queue_metrics
 from processor.services.job_service import JobService
 
 
-async def metrics_view(_request: Any) -> HttpResponse:
+async def metrics_view(_request: HttpRequest) -> HttpResponse:
     try:
         job_service = JobService()
         stats = await job_service.get_queue_stats()

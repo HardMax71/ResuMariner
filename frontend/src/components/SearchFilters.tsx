@@ -8,6 +8,7 @@ import { EducationFilter } from "./filters/EducationFilter";
 import { LanguagesFilter } from "./filters/LanguagesFilter";
 import { ActiveFiltersBar } from "./filters/ActiveFiltersBar";
 import { FilterGrid, FilterInputWrapper, FilterLabel } from "./filters/styled";
+import { getErrorMessage } from "../utils/error";
 
 type Props = {
   value: SearchFiltersSchema;
@@ -16,7 +17,7 @@ type Props = {
 
 export default function SearchFiltersComp({ value, onChange }: Props) {
   const { data: opts, isLoading: loading, error: queryError } = useFilterOptions();
-  const error = queryError ? (queryError as Error).message : null;
+  const error = queryError ? getErrorMessage(queryError) : null;
 
   const companies = useMemo(() => opts?.companies ?? [], [opts]);
   const roles = useMemo(() => opts?.roles ?? [], [opts]);

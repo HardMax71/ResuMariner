@@ -63,10 +63,6 @@ class Contact(BaseModel):
     email: str
     phone: str | None = None
     links: ContactLinks | None = None
-    # Direct access for legacy compatibility
-    linkedin: str | None = None
-    github: str | None = None
-    website: str | None = None
 
 
 class WorkAuthorization(BaseModel):
@@ -311,9 +307,6 @@ class LanguageProficiency(BaseModel):
     language: Language
     self_assessed: str
     cefr: str
-    # Legacy/alternative field names
-    name: str | None = None
-    level: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -331,10 +324,6 @@ class Award(BaseModel):
     position: str | None = None
     description: str | None = None
     url: str | None = None
-    # Legacy/alternative field names
-    title: str | None = None
-    issuer: str | None = None
-    date: str | None = None
 
 
 class ScientificContribution(BaseModel):
@@ -372,15 +361,6 @@ class Resume(BaseModel):
     language_proficiency: list[LanguageProficiency] = Field(default_factory=list)
     awards: list[Award] = Field(default_factory=list)
     scientific_contributions: list[ScientificContribution] = Field(default_factory=list)
-    # Legacy flat fields for backward compatibility
-    name: str | None = None
-    email: str | None = None
-    phone: str | None = None
-    location: Location | None = None
-    linkedin: str | None = None
-    github: str | None = None
-    website: str | None = None
-    resume_lang: str | None = None
 
     @model_validator(mode="before")
     @classmethod

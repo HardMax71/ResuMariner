@@ -1,15 +1,11 @@
 import { useState, useMemo } from 'react';
+import type { FilterOption } from '../../api/client';
 import Badge from '../Badge';
 import Chip from '../Chip';
 import { FilterLabel } from './styled';
 
-interface Skill {
-  value: string;
-  count: number;
-}
-
 interface Props {
-  skills: Skill[];
+  skills: FilterOption[];
   selectedSkills: string[];
   onChange: (skills: string[]) => void;
 }

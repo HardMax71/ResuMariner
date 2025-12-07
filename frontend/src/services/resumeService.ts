@@ -32,30 +32,30 @@ export async function uploadResume(file: File): Promise<ResumeResponse> {
 
 export async function getResumeStatus(uid: string): Promise<ResumeResponse> {
   const { data, error } = await v1ResumesRetrieve2({ path: { uid } });
-  if (error) throw new Error(String(error));
-  return data as ResumeResponse;
+  if (error || !data) throw new Error(error ? String(error) : 'No data returned');
+  return data;
 }
 
 export async function searchSemantic(params: VectorSearchQuerySchema): Promise<SearchResponse> {
   const { data, error } = await v1SearchSemanticCreate({ body: params });
-  if (error) throw new Error(String(error));
-  return data as SearchResponse;
+  if (error || !data) throw new Error(error ? String(error) : 'No data returned');
+  return data;
 }
 
 export async function searchStructured(params: GraphSearchQuerySchema): Promise<SearchResponse> {
   const { data, error } = await v1SearchStructuredCreate({ body: params });
-  if (error) throw new Error(String(error));
-  return data as SearchResponse;
+  if (error || !data) throw new Error(error ? String(error) : 'No data returned');
+  return data;
 }
 
 export async function searchHybrid(params: HybridSearchQuerySchema): Promise<SearchResponse> {
   const { data, error } = await v1SearchHybridCreate({ body: params });
-  if (error) throw new Error(String(error));
-  return data as SearchResponse;
+  if (error || !data) throw new Error(error ? String(error) : 'No data returned');
+  return data;
 }
 
 export async function getFilterOptions(): Promise<FilterOptions> {
   const { data, error } = await v1FiltersRetrieve();
-  if (error) throw new Error(String(error));
-  return data as FilterOptions;
+  if (error || !data) throw new Error(error ? String(error) : 'No data returned');
+  return data;
 }

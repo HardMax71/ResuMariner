@@ -256,7 +256,10 @@ class CountryOptionSerializer(serializers.Serializer):
 
 class EducationLevelOptionSerializer(serializers.Serializer):
     level = serializers.CharField(help_text="Education level")
-    statuses = serializers.ListField(child=serializers.CharField(), help_text="Education statuses for this level")
+    statuses = serializers.ListField(
+        child=serializers.ChoiceField(choices=[status.value for status in EducationStatus]),
+        help_text="Education statuses for this level",
+    )
     resume_count = serializers.IntegerField(help_text="Number of resumes with this level")
 
 
