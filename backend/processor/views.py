@@ -142,7 +142,7 @@ class ResumeDetailView(APIView):
     @extend_schema(
         responses={
             200: ResumeResponse,
-            400: OpenApiResponse(description="Resume not found"),
+            404: OpenApiResponse(description="Resume not found"),
         },
         description="Get resume by ID. Returns status and full data if completed.",
     )
@@ -153,11 +153,13 @@ class ResumeDetailView(APIView):
     @extend_schema(
         responses={
             204: OpenApiResponse(description="Resume deleted successfully"),
-            400: OpenApiResponse(description="Resume not found"),
+            404: OpenApiResponse(description="Resume not found"),
         },
         description="Delete resume and all associated data (vectors, files). Preserves shared entities.",
     )
     async def delete(self, request: Request, uid: str) -> Response:
+        # Check if job exists before deleting
+        await request.job_service.get_job(uid)  # Raises NotFound if not exists
         await request.resume_service.delete_resume(uid)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -168,7 +170,7 @@ class ResumeByEmailView(APIView):
     @extend_schema(
         responses={
             204: OpenApiResponse(description="Resume deleted successfully"),
-            400: OpenApiResponse(description="Resume not found"),
+            404: OpenApiResponse(description="Resume not found"),
         },
         description="Delete resume by email address.",
     )

@@ -25,6 +25,7 @@ class ExplainMatchView(APIView):
         request=ExplainMatchRequestSerializer,
         responses={
             200: JobMatchExplanation,
+            400: OpenApiResponse(description="Invalid request"),
             404: OpenApiResponse(description="Resume not found"),
         },
         description="Generate AI-powered explanation of candidate-job fit with structured strengths, concerns, and recommendations.",
@@ -87,6 +88,7 @@ class InterviewQuestionsView(APIView):
         request=InterviewQuestionsRequestSerializer,
         responses={
             200: InterviewQuestionSet,
+            400: OpenApiResponse(description="Invalid request"),
             404: OpenApiResponse(description="Resume not found"),
         },
         description="Generate 6-12 interview questions tailored to candidate's background, with follow-ups and assessment criteria.",
