@@ -29,6 +29,7 @@ class SemanticSearchView(APIView):
         request=VectorSearchQuerySchema,
         responses={
             200: SearchResponseSerializer,
+            400: OpenApiResponse(description="Invalid search query"),
             429: OpenApiResponse(description=f"Rate limit exceeded ({THROTTLE_RATES.get('search', 'N/A')})"),
         },
         description="Perform semantic search using vector embeddings. Searches resume content by semantic similarity.",
@@ -52,6 +53,7 @@ class StructuredSearchView(APIView):
         request=GraphSearchQuerySchema,
         responses={
             200: SearchResponseSerializer,
+            400: OpenApiResponse(description="Invalid search filters"),
             429: OpenApiResponse(description=f"Rate limit exceeded ({THROTTLE_RATES.get('search', 'N/A')})"),
         },
         description="Perform structured search using graph filters. Filters resumes by skills, role, company, location, and experience.",
@@ -73,6 +75,7 @@ class HybridSearchView(APIView):
         request=HybridSearchQuerySchema,
         responses={
             200: SearchResponseSerializer,
+            400: OpenApiResponse(description="Invalid search parameters"),
             429: OpenApiResponse(description=f"Rate limit exceeded ({THROTTLE_RATES.get('search', 'N/A')})"),
         },
         description="Perform hybrid search combining semantic and structured approaches. Weighted combination of vector and graph search.",
