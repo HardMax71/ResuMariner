@@ -234,6 +234,7 @@ class SearchResponseSerializer(serializers.Serializer):
     results = SearchResultSerializer(many=True, help_text="Search results")
     query = serializers.CharField(required=False, allow_null=True, allow_blank=True, help_text="Original query")
     search_type = serializers.CharField(help_text="Type of search performed")
+    total_found = serializers.IntegerField(help_text="Total number of matching results found")
 
 
 class FilterOptionSerializer(serializers.Serializer):
@@ -255,7 +256,10 @@ class CountryOptionSerializer(serializers.Serializer):
 
 class EducationLevelOptionSerializer(serializers.Serializer):
     level = serializers.CharField(help_text="Education level")
-    statuses = serializers.ListField(child=serializers.CharField(), help_text="Education statuses for this level")
+    statuses = serializers.ListField(
+        child=serializers.ChoiceField(choices=[status.value for status in EducationStatus]),
+        help_text="Education statuses for this level",
+    )
     resume_count = serializers.IntegerField(help_text="Number of resumes with this level")
 
 

@@ -64,8 +64,7 @@ export default function Search() {
 
   const activeFilterCount = Object.values(filters).filter(v => {
     if (v === null || v === undefined) return false;
-    const asArray = v as { length?: number };
-    if (asArray.length !== undefined) return asArray.length > 0;
+    if (Array.isArray(v)) return v.length > 0;
     return true;
   }).length;
 
@@ -86,7 +85,7 @@ export default function Search() {
               {res.search_type.charAt(0).toUpperCase() + res.search_type.slice(1)} Search
             </Badge>
             <span className="muted small" style={{ marginLeft: 'auto' }}>
-              Search completed in {(res as { execution_time?: number }).execution_time ? `${(res as { execution_time?: number }).execution_time!.toFixed(2)}s` : '<1s'}
+              {res.total_found} total match{res.total_found === 1 ? '' : 'es'}
             </span>
           </div>
       )}

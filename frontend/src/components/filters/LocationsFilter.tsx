@@ -1,20 +1,22 @@
 import { useState } from 'react';
-import type { LocationRequirement } from '../../api/client';
+import type { LocationRequirement, CountryOption } from '../../api/client';
 import Badge from '../Badge';
 import Chip from '../Chip';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { PopupContainer, PopupTitle, CheckboxList, CheckboxLabel, FilterLabel } from './styled';
 
-interface LocationOption {
-  country: string;
-  cities: string[];
-  resume_count: number;
-}
-
 interface Props {
-  locations: LocationOption[];
+  locations: CountryOption[];
   selectedLocations: LocationRequirement[];
   onChange: (locations: LocationRequirement[]) => void;
+}
+
+function arraysEqual(a: string[] | null | undefined, b: string[]): boolean {
+  if (!a || a.length === 0) return b.length === 0;
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((val, idx) => val === sortedB[idx]);
 }
 
 export function LocationsFilter({ locations, selectedLocations, onChange }: Props) {
@@ -26,8 +28,7 @@ export function LocationsFilter({ locations, selectedLocations, onChange }: Prop
     const existing = selectedLocations.find(l => l.country === country);
 
     if (existing) {
-      const sameCitiesSelected = JSON.stringify(existing.cities?.sort()) === JSON.stringify(cities.sort());
-      if (sameCitiesSelected) {
+      if (arraysEqual(existing.cities, cities)) {
         onChange(selectedLocations.filter(l => l.country !== country));
       } else {
         onChange(
@@ -46,7 +47,7 @@ export function LocationsFilter({ locations, selectedLocations, onChange }: Prop
 
   return (
     <div className="mb-3" ref={ref}>
-      <FilterLabel className="label small">
+      <FilterLabel>
         Location
         {selectedLocations.length > 0 && (
           <Badge style={{ marginLeft: "var(--space-1)" }}>
@@ -81,7 +82,7 @@ export function LocationsFilter({ locations, selectedLocations, onChange }: Prop
 
               {isExpanded && (
                 <PopupContainer
-                  style={{ minWidth: "50%", maxWidth: "80%" }}
+                  style={{ minWidth: "min(15rem, 50vw)", width: "max-content", maxWidth: "min(20rem, 80vw)" }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <PopupTitle>Select cities in {countryOption.country}</PopupTitle>

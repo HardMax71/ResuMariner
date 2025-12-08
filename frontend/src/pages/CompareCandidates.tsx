@@ -6,6 +6,7 @@ import PageHeader from "../components/PageHeader";
 import Badge from "../components/Badge";
 import { AlertCircle, Users, TrendingUp, Award, X } from "lucide-react";
 import { compareCandidates } from "../services/ragService";
+import { getErrorMessage } from "../utils/error";
 
 export default function CompareCandidates() {
   const [searchParams] = useSearchParams();
@@ -76,7 +77,7 @@ export default function CompareCandidates() {
           <form onSubmit={onSubmit}>
             <FlexColumn gap="var(--space-3)">
               <div>
-                <div className="flex justify-between" style={{ marginBottom: 'var(--space-2)', alignItems: 'flex-end' }}>
+                <div className="flex justify-between" style={{ marginBottom: 'var(--space-2)', alignItems: 'center' }}>
                   <label className="label">Candidate UIDs (2-5)</label>
                   {candidateUids.length < 5 && (
                     <button type="button" className="btn btn-sm" onClick={addCandidate}>
@@ -149,7 +150,7 @@ export default function CompareCandidates() {
           <ErrorCard>
             <div className="flex align-center gap-2">
               <AlertCircle size={20} />
-              <span>{(error as Error).message}</span>
+              <span>{getErrorMessage(error)}</span>
             </div>
           </ErrorCard>
         )}
@@ -235,7 +236,9 @@ export default function CompareCandidates() {
                       </div>
                       <FlexColumn gap="var(--space-2)">
                         {Object.entries(dim.candidates).map(([key, value]) => {
-                          const isValueUid = value.length === 36 && value.includes('-');
+                          // Use proper UUID v4 regex for detection
+                          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                          const isValueUid = uuidRegex.test(value);
                           const uid = isValueUid ? value : key;
                           const assessment = isValueUid ? key : value;
                           const candidateName = result.scores.find(s => s.uid === uid)?.name;

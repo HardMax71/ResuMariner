@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { AlertCircle, ChevronDown, ChevronUp, ArrowLeft, FileText, Sparkles, AlertTriangle, Info, Lightbulb } from "lucide-react";
+import { AlertCircle, ChevronDown, ArrowLeft, FileText, Sparkles, AlertTriangle, Info, Lightbulb } from "lucide-react";
 import { useResumeStatus } from "../hooks/useJobStatus";
 import type { ProcessingResult, SectionFeedback } from "../api/client";
+import { getErrorMessage } from "../utils/error";
 import {
   PageWrapper,
   PageContainer,
@@ -41,10 +42,17 @@ const COLOR_PALETTES = {
   }
 } as const;
 
+// Type guard for SectionFeedback
+function isSectionFeedback(value: unknown): value is SectionFeedback {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as SectionFeedback;
+  return v.must !== undefined || v.should !== undefined || v.advise !== undefined;
+}
+
 export default function AIReview() {
   const { uid = "" } = useParams();
   const { data: job, isLoading: loading, error: queryError } = useResumeStatus(uid);
-  const error = queryError ? (queryError as Error).message : null;
+  const error = queryError ? getErrorMessage(queryError) : null;
   const result = job?.status === "completed" ? (job.result as ProcessingResult) : null;
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
@@ -201,14 +209,12 @@ export default function AIReview() {
         {result.review && (
           <FlexColumn gap="var(--space-3)">
             {Object.entries(result.review)
-              .filter(([key, value]) => {
-                if (key === "overall_score" || key === "summary" || value === null || value === undefined) return false;
-                // Check if it's a ReviewFeedback object by looking for feedback properties
-                const asFeedback = value as SectionFeedback;
-                return asFeedback.must !== undefined || asFeedback.should !== undefined || asFeedback.advise !== undefined;
+              .filter((entry): entry is [string, SectionFeedback] => {
+                const [key, value] = entry;
+                if (key === "overall_score" || key === "summary") return false;
+                return isSectionFeedback(value);
               })
-              .map(([section, value]) => {
-                const feedback = value as SectionFeedback;
+              .map(([section, feedback]) => {
                 const mustCount = feedback.must?.length ?? 0;
                 const shouldCount = feedback.should?.length ?? 0;
                 const adviseCount = feedback.advise?.length ?? 0;

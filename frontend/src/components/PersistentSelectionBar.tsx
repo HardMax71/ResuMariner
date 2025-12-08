@@ -27,21 +27,7 @@ export default function PersistentSelectionBar() {
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 999,
-        background: 'rgba(var(--neutral-950-rgb), 0.98)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderTop: '1px solid rgba(var(--primary-400-rgb), 0.3)',
-        padding: 'var(--space-3) var(--space-4)',
-        boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.4)',
-      }}
-    >
+    <div className="selection-bar">
       <div
         style={{
           maxWidth: '1280px',

@@ -4,8 +4,9 @@ import { useMutation } from "@tanstack/react-query";
 import { PageWrapper, PageContainer, GlassCard, FlexColumn, ErrorCard, Spinner } from "../components/styled";
 import PageHeader from "../components/PageHeader";
 import Badge from "../components/Badge";
-import { AlertCircle, CheckCircle, AlertTriangle, TrendingUp, MessageCircle, Lightbulb, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, AlertTriangle, TrendingUp, MessageCircle, Lightbulb } from "lucide-react";
 import { explainMatch, type JobMatchExplanation } from "../services/ragService";
+import { getErrorMessage } from "../utils/error";
 
 export default function ExplainMatch() {
   const [searchParams] = useSearchParams();
@@ -97,7 +98,7 @@ export default function ExplainMatch() {
           <ErrorCard>
             <div className="flex align-center gap-2">
               <AlertCircle size={20} />
-              <span>{(error as Error).message}</span>
+              <span>{getErrorMessage(error)}</span>
             </div>
           </ErrorCard>
         )}

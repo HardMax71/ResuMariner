@@ -8,12 +8,61 @@ export type Award = {
     position?: (string | null);
     description?: (string | null);
     url?: (string | null);
-    title?: (string | null);
-    issuer?: (string | null);
-    date?: (string | null);
 };
 
 export type AwardType = 'hackathon' | 'competition' | 'recognition' | 'scholarship' | 'other';
+
+export type CandidateComparison = {
+    /**
+     * 2-3 sentence positioning of each candidate's core strength
+     */
+    executive_summary: string;
+    /**
+     * Scores for each candidate
+     */
+    scores: Array<CandidateScore>;
+    /**
+     * Head-to-head comparisons across key dimensions
+     */
+    dimension_comparisons: Array<DimensionComparison>;
+    /**
+     * Scenario-based recommendations
+     */
+    recommendations: Array<ComparisonRecommendation>;
+    /**
+     * Risk assessments for each candidate
+     */
+    risk_assessment: Array<RiskAssessment>;
+    /**
+     * UIDs ordered by overall_score (highest first)
+     */
+    ranked_uids: Array<(string)>;
+};
+
+export type CandidateScore = {
+    uid: string;
+    name: string;
+    /**
+     * Technical skill match (0-10)
+     */
+    technical_skills: number;
+    /**
+     * Experience relevance (0-10)
+     */
+    experience_level: number;
+    /**
+     * Domain knowledge fit (0-10)
+     */
+    domain_expertise: number;
+    /**
+     * Cultural alignment signals (0-10)
+     */
+    cultural_indicators: number;
+    /**
+     * Weighted average of all dimensions
+     */
+    overall_score: number;
+};
 
 export type Certification = {
     name: string;
@@ -33,13 +82,20 @@ export type CompareCandidatesRequest = {
     job_context?: (string) | null;
 };
 
+export type ComparisonRecommendation = {
+    /**
+     * Hiring scenario (e.g., 'Immediate Impact', 'Long-term Growth')
+     */
+    scenario: string;
+    recommended_uid: string;
+    recommended_name: string;
+    rationale: string;
+};
+
 export type Contact = {
     email: string;
     phone?: (string | null);
     links?: (ContactLinks | null);
-    linkedin?: (string | null);
-    github?: (string | null);
-    website?: (string | null);
 };
 
 export type ContactLinks = {
@@ -81,6 +137,27 @@ export type Coursework = {
 export type Demographics = {
     current_location?: (Location | null);
     work_authorization?: (WorkAuthorization | null);
+};
+
+export type DimensionComparison = {
+    /**
+     * Dimension name (e.g., 'Python Expertise')
+     */
+    dimension: string;
+    /**
+     * Dictionary with candidate UIDs as keys and assessment text as values. KEYS MUST BE: The exact UUID strings from the candidate data (e.g., '2bf27a35-d4d1-4df3-8e3f-ba79075aa99e'). VALUES MUST BE: Assessment text describing their strength (e.g., 'Strong React expertise with 5+ years experience'). DO NOT use 'Candidate 1', 'Candidate 2', names, or any other identifier as keys. DO NOT put UIDs as values.
+     */
+    candidates: {
+        [key: string]: (string);
+    };
+    /**
+     * UID of strongest candidate in this dimension (exact UUID string)
+     */
+    winner: string;
+    /**
+     * Brief comparison analysis for this dimension
+     */
+    analysis: string;
 };
 
 /**
@@ -143,7 +220,7 @@ export type EducationLevelOption = {
     /**
      * Education statuses for this level
      */
-    statuses: Array<(string)>;
+    statuses: Array<StatusesEnum>;
     /**
      * Number of resumes with this level
      */
@@ -188,6 +265,32 @@ export type EmploymentType = 'full-time' | 'part-time' | 'contract';
 export type ExplainMatchRequest = {
     resume_uid: string;
     job_description: string;
+};
+
+export type FileConfigResponse = {
+    [key: string]: FileTypeConfig;
+};
+
+/**
+ * Configuration for a single file type.
+ */
+export type FileTypeConfig = {
+    /**
+     * MIME type
+     */
+    media_type: string;
+    /**
+     * File category (document, image, etc)
+     */
+    category: string;
+    /**
+     * Maximum file size in MB
+     */
+    max_size_mb: number;
+    /**
+     * Parser used for this file type
+     */
+    parser: string;
 };
 
 export type FileUpload = {
@@ -247,6 +350,19 @@ export type GraphSearchQuerySchema = {
     limit?: number;
 };
 
+export type HealthResponse = {
+    /**
+     * Service status: ok, degraded, or down
+     */
+    status: string;
+    /**
+     * Service name
+     */
+    service: string;
+    queue: QueueMetrics;
+    processing_config: ProcessingConfig;
+};
+
 export type HybridSearchQuerySchema = {
     /**
      * Natural language search query
@@ -268,6 +384,64 @@ export type HybridSearchQuerySchema = {
 
 export type InstitutionInfo = {
     name: string;
+};
+
+export type InterviewQuestion = {
+    category: QuestionCategory;
+    /**
+     * Interview question
+     */
+    question: string;
+    /**
+     * What skill/knowledge this question validates
+     */
+    assesses: string;
+    /**
+     * Probing follow-up questions
+     */
+    follow_ups: Array<(string)>;
+    /**
+     * Warning signs in candidate's answer
+     */
+    red_flags: Array<(string)>;
+    /**
+     * Signs of a strong answer
+     */
+    good_answer_indicators: Array<(string)>;
+    /**
+     * Appropriate difficulty for candidate's level
+     */
+    difficulty_level: SeniorityLevel;
+    /**
+     * Estimated time to discuss this question
+     */
+    time_estimate_minutes: number;
+};
+
+export type InterviewQuestionSet = {
+    candidate_uid: string;
+    candidate_name: string;
+    /**
+     * Brief summary of candidate's background
+     */
+    candidate_summary: string;
+    seniority_level: SeniorityLevel;
+    /**
+     * 6-12 interview questions covering different categories
+     */
+    questions: Array<InterviewQuestion>;
+    /**
+     * Total recommended interview time
+     */
+    recommended_duration_minutes: number;
+    /**
+     * Key areas to probe based on resume
+     */
+    focus_areas: Array<(string)>;
+    /**
+     * Interviewer prep notes about candidate
+     */
+    preparation_notes: string;
 };
 
 export type InterviewQuestionsRequest = {
@@ -302,6 +476,33 @@ export type JobExperience = {
      * Key achievements/responsibilities
      */
     key_points?: Array<(string)> | null;
+};
+
+export type JobMatchExplanation = {
+    /**
+     * Overall match score (0.0-1.0)
+     */
+    match_score: number;
+    /**
+     * Hiring recommendation category
+     */
+    recommendation: MatchRecommendation;
+    /**
+     * Key strengths (1-5 items, ordered by relevance)
+     */
+    strengths: Array<MatchStrength>;
+    /**
+     * Areas of concern (0-5 items, ordered by severity)
+     */
+    concerns: Array<MatchConcern>;
+    /**
+     * 2-3 sentence executive summary
+     */
+    summary: string;
+    /**
+     * Top 3 topics to discuss in interview
+     */
+    key_discussion_points: Array<(string)>;
 };
 
 export type KeyPoint = {
@@ -349,8 +550,6 @@ export type LanguageProficiency = {
     language: Language;
     self_assessed: string;
     cefr: string;
-    name?: (string | null);
-    level?: (string | null);
 };
 
 /**
@@ -405,6 +604,42 @@ export type LocationRequirement = {
     cities?: Array<(string)> | null;
 };
 
+export type MatchConcern = {
+    /**
+     * Concern category (e.g., 'Missing Skill', 'Experience Gap')
+     */
+    category: string;
+    /**
+     * Specific concern
+     */
+    detail: string;
+    /**
+     * Impact level: 'critical', 'moderate', or 'minor'
+     */
+    severity: string;
+    /**
+     * How candidate might address this gap
+     */
+    mitigation?: (string | null);
+};
+
+export type MatchRecommendation = 'strong_fit' | 'moderate_fit' | 'weak_fit';
+
+export type MatchStrength = {
+    /**
+     * Strength category (e.g., 'Technical Skills', 'Experience Level')
+     */
+    category: string;
+    /**
+     * Specific detail from resume
+     */
+    detail: string;
+    /**
+     * How relevant this strength is (0.0-1.0)
+     */
+    relevance_score: number;
+};
+
 export type PersonalInfo = {
     name: string;
     resume_lang: string;
@@ -417,6 +652,33 @@ export type Preferences = {
     employment_types?: Array<EmploymentType>;
     work_modes?: Array<WorkMode>;
     salary?: (string | null);
+};
+
+export type ProcessingConfig = {
+    /**
+     * LLM provider for text extraction
+     */
+    text_llm_provider: string;
+    /**
+     * LLM model for text extraction
+     */
+    text_llm_model: string;
+    /**
+     * LLM provider for OCR
+     */
+    ocr_llm_provider: string;
+    /**
+     * LLM model for OCR
+     */
+    ocr_llm_model: string;
+    /**
+     * Whether AI review is enabled
+     */
+    generate_review: boolean;
+    /**
+     * Whether to store in database
+     */
+    store_in_db: boolean;
 };
 
 /**
@@ -460,6 +722,31 @@ export type Project = {
 
 export type PublicationType = 'journal_article' | 'conference_paper' | 'patent' | 'thesis' | 'technical_report' | 'other';
 
+export type QuestionCategory = 'technical_deep_dive' | 'behavioral' | 'project_architecture' | 'problem_solving' | 'system_design';
+
+export type QueueMetrics = {
+    /**
+     * Total items in Redis stream
+     */
+    stream_length: number;
+    /**
+     * Pending items in queue
+     */
+    queue_length: number;
+    /**
+     * Items scheduled for retry
+     */
+    scheduled_retries: number;
+    /**
+     * Currently processing jobs
+     */
+    active_jobs: number;
+    /**
+     * Redis memory usage in bytes
+     */
+    redis_memory_usage: number;
+};
+
 export type Resume = {
     uid: string;
     personal_info: PersonalInfo;
@@ -473,19 +760,8 @@ export type Resume = {
     language_proficiency?: Array<LanguageProficiency>;
     awards?: Array<Award>;
     scientific_contributions?: Array<ScientificContribution>;
-    name?: (string | null);
-    email?: (string | null);
-    phone?: (string | null);
-    location?: (Location | null);
-    linkedin?: (string | null);
-    github?: (string | null);
-    website?: (string | null);
-    resume_lang?: (string | null);
 };
 
-/**
- * Paginated list of resumes.
- */
 export type ResumeListResponse = {
     /**
      * Total number of resumes
@@ -494,15 +770,15 @@ export type ResumeListResponse = {
     /**
      * Next page URL
      */
-    next?: (string | null);
+    next: (string) | null;
     /**
      * Previous page URL
      */
-    previous?: (string | null);
+    previous: (string) | null;
     /**
      * Resumes for current page
      */
-    results: Array<ResumeResponse>;
+    results: Array<unknown>;
 };
 
 /**
@@ -541,6 +817,17 @@ export type ReviewResult = {
     scientific_contributions?: (SectionFeedback | null);
     overall_score?: (number | null);
     summary?: (string | null);
+};
+
+export type RiskAssessment = {
+    /**
+     * Candidate UID
+     */
+    uid: string;
+    /**
+     * Risk/concern summary for this candidate
+     */
+    risk: string;
 };
 
 export type ScientificContribution = {
@@ -619,6 +906,10 @@ export type SearchResponse = {
      * Type of search performed
      */
     search_type: string;
+    /**
+     * Total number of matching results found
+     */
+    total_found: number;
 };
 
 export type SearchResult = {
@@ -691,6 +982,8 @@ export type SectionFeedback = {
     advise?: (Array<(string)> | null);
 };
 
+export type SeniorityLevel = 'junior' | 'mid_level' | 'senior' | 'staff_plus';
+
 export type Skill = {
     name: string;
 };
@@ -735,7 +1028,7 @@ export type WorkAuthorization = {
 
 export type WorkMode = 'onsite' | 'hybrid' | 'remote';
 
-export type V1ConfigFileTypesRetrieveResponse = (unknown);
+export type V1ConfigFileTypesRetrieveResponse = (FileConfigResponse);
 
 export type V1ConfigFileTypesRetrieveError = unknown;
 
@@ -743,7 +1036,7 @@ export type V1FiltersRetrieveResponse = (FilterOptions);
 
 export type V1FiltersRetrieveError = unknown;
 
-export type V1HealthRetrieveResponse = (unknown);
+export type V1HealthRetrieveResponse = (HealthResponse);
 
 export type V1HealthRetrieveError = unknown;
 
@@ -751,7 +1044,7 @@ export type V1RagCompareCreateData = {
     body: CompareCandidatesRequest;
 };
 
-export type V1RagCompareCreateResponse = (unknown);
+export type V1RagCompareCreateResponse = (CandidateComparison);
 
 export type V1RagCompareCreateError = (unknown);
 
@@ -759,7 +1052,7 @@ export type V1RagExplainMatchCreateData = {
     body: ExplainMatchRequest;
 };
 
-export type V1RagExplainMatchCreateResponse = (unknown);
+export type V1RagExplainMatchCreateResponse = (JobMatchExplanation);
 
 export type V1RagExplainMatchCreateError = (unknown);
 
@@ -767,7 +1060,7 @@ export type V1RagInterviewQuestionsCreateData = {
     body: InterviewQuestionsRequest;
 };
 
-export type V1RagInterviewQuestionsCreateResponse = (unknown);
+export type V1RagInterviewQuestionsCreateResponse = (InterviewQuestionSet);
 
 export type V1RagInterviewQuestionsCreateError = (unknown);
 

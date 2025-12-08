@@ -1,26 +1,17 @@
 import { useState } from 'react';
 import styled from '@emotion/styled';
-import type { LanguageRequirement } from '../../api/client';
+import type { LanguageRequirement, LanguageOption } from '../../api/client';
 import Badge from '../Badge';
 import Chip from '../Chip';
 import { useClickOutside } from '../../hooks/useClickOutside';
-import { FilterLabel } from './styled';
+import { FilterLabel, PopupContainer } from './styled';
 
 const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
-const PopupContainer = styled.div`
-  position: absolute;
-  top: calc(100% + var(--space-1) / 2);
-  left: 0;
-  z-index: 10;
-  background: white;
-  border: 1px solid var(--neutral-300);
-  border-radius: var(--radius-sm);
-  padding: var(--space-1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+const LevelPickerPopup = styled(PopupContainer)`
   display: flex;
   gap: calc(var(--space-1) / 2);
-  min-width: 50%;
+  padding: var(--space-1);
 `;
 
 const LevelButton = styled.button<{ selected?: boolean }>`
@@ -40,11 +31,6 @@ const LevelButton = styled.button<{ selected?: boolean }>`
     border-color: ${props => props.selected ? 'var(--primary-700)' : 'var(--neutral-400)'};
   }
 `;
-
-interface LanguageOption {
-  language: string;
-  resume_count: number;
-}
 
 interface Props {
   languages: LanguageOption[];
@@ -80,7 +66,7 @@ export function LanguagesFilter({ languages, selectedLanguages, onChange }: Prop
 
   return (
     <div className="mb-3" ref={ref}>
-      <FilterLabel className="label small">
+      <FilterLabel>
         Languages
         {selectedLanguages.length > 0 && (
           <Badge style={{ marginLeft: "var(--space-1)" }}>
@@ -112,7 +98,7 @@ export function LanguagesFilter({ languages, selectedLanguages, onChange }: Prop
               </Chip>
 
               {isExpanded && (
-                <PopupContainer onClick={(e) => e.stopPropagation()}>
+                <LevelPickerPopup onClick={(e) => e.stopPropagation()}>
                   {CEFR_LEVELS.map(level => (
                     <LevelButton
                       key={level}
@@ -123,7 +109,7 @@ export function LanguagesFilter({ languages, selectedLanguages, onChange }: Prop
                       {level}
                     </LevelButton>
                   ))}
-                </PopupContainer>
+                </LevelPickerPopup>
               )}
             </div>
           );
