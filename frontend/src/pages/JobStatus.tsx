@@ -1371,7 +1371,7 @@ export default function JobStatus() {
                 </Tooltip>
                 <Tooltip text="Open API endpoint">
                   <a
-                    href={`${API_BASE_URL}/v1/resumes/${job.uid}/`}
+                    href={`${API_BASE_URL}/api/v1/resumes/${job.uid}/`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
