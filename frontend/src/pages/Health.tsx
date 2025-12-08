@@ -50,7 +50,7 @@ export default function Health() {
               <IconButton as="a" href={GRAFANA_URL} target="_blank" rel="noopener noreferrer" title="Open Grafana Dashboard">
                 <BarChart3 size={18} />
               </IconButton>
-              <IconButton as="a" href={`${API_BASE_URL}/api/v1/health/`} target="_blank" rel="noopener noreferrer" title="Open API endpoint">
+              <IconButton as="a" href={`${API_BASE_URL}/v1/health/`} target="_blank" rel="noopener noreferrer" title="Open API endpoint">
                 <Code2 size={18} />
               </IconButton>
               <IconButton onClick={() => refetch()} disabled={isLoading} title="Refresh">
