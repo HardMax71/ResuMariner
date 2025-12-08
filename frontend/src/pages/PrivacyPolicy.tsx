@@ -42,7 +42,7 @@ export default function PrivacyPolicy() {
                 </a>{" "}
                 or using the{" "}
                 <a
-                  href={`${API_BASE_URL}/api/docs/`}
+                  href={`${API_BASE_URL}/docs/`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="policy-link"
