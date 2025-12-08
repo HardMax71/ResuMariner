@@ -25,7 +25,7 @@ import {
 import { IconButton } from "../components/styled/Button";
 import PageHeader from "../components/PageHeader";
 
-const GRAFANA_URL = import.meta.env.VITE_GRAFANA_URL || "http://grafana.localhost:8081";
+const GRAFANA_URL = window.APP_CONFIG?.GRAFANA_URL || "http://grafana.localhost:8081";
 
 export default function Health() {
   const { data, error, isLoading, refetch } = useHealth();
@@ -50,7 +50,7 @@ export default function Health() {
               <IconButton as="a" href={GRAFANA_URL} target="_blank" rel="noopener noreferrer" title="Open Grafana Dashboard">
                 <BarChart3 size={18} />
               </IconButton>
-              <IconButton as="a" href={`${API_BASE_URL}/v1/health/`} target="_blank" rel="noopener noreferrer" title="Open API endpoint">
+              <IconButton as="a" href={`${API_BASE_URL}/api/v1/health/`} target="_blank" rel="noopener noreferrer" title="Open API endpoint">
                 <Code2 size={18} />
               </IconButton>
               <IconButton onClick={() => refetch()} disabled={isLoading} title="Refresh">

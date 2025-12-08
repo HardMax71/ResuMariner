@@ -17,7 +17,7 @@ export async function uploadResume(file: File): Promise<ResumeResponse> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${API_BASE_URL}/v1/resumes/`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/resumes/`, {
     method: 'POST',
     body: formData,
   });

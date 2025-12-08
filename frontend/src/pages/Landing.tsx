@@ -6,14 +6,14 @@ import AnimatedTerminal from '../components/AnimatedTerminal';
 
 // Code examples defined outside component to avoid recreation on each render
 const CODE_EXAMPLES = {
-  curl: `curl -X POST ${API_BASE_URL}/v1/resumes/ \\
+  curl: `curl -X POST ${API_BASE_URL}/api/v1/resumes/ \\
   -H "Content-Type: multipart/form-data" \\
   -F "file=@resume.pdf"`,
 
   python: `import requests
 
 response = requests.post(
-    '${API_BASE_URL}/v1/resumes/',
+    '${API_BASE_URL}/api/v1/resumes/',
     files={'file': open('resume.pdf', 'rb')}
 )
 print(response.json())`,
@@ -24,7 +24,7 @@ const fs = require('fs');
 const form = new FormData();
 form.append('file', fs.createReadStream('resume.pdf'));
 
-fetch('${API_BASE_URL}/v1/resumes/', {
+fetch('${API_BASE_URL}/api/v1/resumes/', {
   method: 'POST',
   body: form
 }).then(r => r.json()).then(console.log);`
@@ -354,7 +354,7 @@ export default function Landing() {
             <p className="landing-code-footer">
               Full documentation at{' '}
               <a
-                href={`${API_BASE_URL}/docs/`}
+                href={`${API_BASE_URL}/api/docs/`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

@@ -1,7 +1,18 @@
 // Configure the Hey API client with the base URL
 import { client } from './generated';
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+// Runtime config from window.APP_CONFIG (set by /config.js loaded before React)
+declare global {
+  interface Window {
+    APP_CONFIG?: {
+      API_BASE_URL?: string;
+      GRAFANA_URL?: string;
+    };
+  }
+}
+
+// Base URL for API requests (generated client paths already include /api prefix)
+export const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:8000";
 
 // Configure the global client with our base URL
 client.setConfig({
