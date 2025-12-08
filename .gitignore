@@ -4,3 +4,4 @@ uploads/
 __pycache__/
 .env
 traefik-dashboard-users
+*.tsbuildinfo
