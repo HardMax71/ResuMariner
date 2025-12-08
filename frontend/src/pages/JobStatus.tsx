@@ -54,6 +54,13 @@ const renderValue = (value: unknown): string => {
   return JSON.stringify(value);
 };
 
+// Ensure URL has protocol for href (handles Telegram @username format)
+const toUrl = (url: string) => {
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('@')) return `https://t.me/${url.slice(1)}`;
+  return `https://${url}`;
+};
+
 const getBadgeStyle = (text: string, category?: string) => {
   const t = text.toLowerCase();
 
@@ -250,7 +257,7 @@ export default function JobStatus() {
       case "pending":
         return <Clock size={24} strokeWidth={2} style={{ color: "var(--neutral-600)" }} />;
       case "processing":
-        return <Loader2 size={24} className="spinner" />;
+        return <Loader2 size={24} className="spin" style={{ color: "var(--primary-600)" }} />;
       case "completed":
         return <CheckCircle2 size={24} strokeWidth={2.5} style={{ color: "var(--success)" }} />;
       case "failed":
@@ -1710,7 +1717,7 @@ export default function JobStatus() {
                               }}>
                                 {contact.links.linkedin && (
                                   <a
-                                    href={renderValue(contact.links.linkedin)}
+                                    href={toUrl(contact.links.linkedin)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     title="LinkedIn"
@@ -1739,7 +1746,7 @@ export default function JobStatus() {
                                 )}
                                 {contact.links.github && (
                                   <a
-                                    href={renderValue(contact.links.github)}
+                                    href={toUrl(contact.links.github)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     title="GitHub"
@@ -1768,7 +1775,7 @@ export default function JobStatus() {
                                 )}
                                 {contact.links.telegram && (
                                   <a
-                                    href={renderValue(contact.links.telegram)}
+                                    href={toUrl(contact.links.telegram)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     title="Telegram"

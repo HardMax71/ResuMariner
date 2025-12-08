@@ -78,9 +78,5 @@ export const Spinner = styled.div`
   border: 3px solid var(--primary-100);
   border-top-color: var(--primary-600);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+  animation: spin 0.8s linear infinite;
 `;
